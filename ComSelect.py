@@ -50,12 +50,12 @@ class ComSelect(QDialog):
         self.number_board_comboBox.addItem('1 Board')
         self.number_board_comboBox.addItem('2 Boards')
         # ------------------------------------------------------------------------------------------------------------ #
-        # list all available com port in the combobox for board #1
+        # list all available com ports in the combobox for board #1
         self.board_1_port_comboBox = QComboBox(self)
         self.board_1_port_comboBox.addItems(com_ports11)
         self.board_1_port_comboBox.addItems(com_ports12)
         # ------------------------------------------------------------------------------------------------------------ #
-        # list all available com port in the combobox for board #2
+        # list all available com ports in the combobox for board #2
         self.board_2_port_comboBox = QComboBox(self)
         self.board_2_port_comboBox.addItems(com_ports21)
         self.board_2_port_comboBox.addItems(com_ports22)
@@ -74,13 +74,13 @@ class ComSelect(QDialog):
         self.display_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
         self.select_layout.addWidget(self.display_groupBox)
         # ------------------------------------------------------------------------------------------------------------ #
-        # list all available display in the combobox for voltage(s) display(s)
+        # list all available displays in the combobox for voltage(s) display(s)
         self.voltage_display_comboBox = QComboBox(self)
         self.voltage_display_comboBox.addItem('No display')
         self.voltage_display_comboBox.addItem('High-Voltage')
-        self.voltage_display_comboBox.addItem('High-Voltage + Low Voltage')
+        self.voltage_display_comboBox.addItem('High-Voltage + Low-Voltage')
         # ------------------------------------------------------------------------------------------------------------ #
-        # list all available display in the combobox for current(s) display(s)
+        # list all available displays in the combobox for current(s) display(s)
         self.current_display_comboBox = QComboBox(self)
         self.current_display_comboBox.addItem('No display')
         self.current_display_comboBox.addItem('1 plot with 8 currents monitoring')
@@ -106,7 +106,7 @@ class ComSelect(QDialog):
         self.debug_checkBox_title_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.debug_checkBox_title_lbl.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
-        # check box to display received data c
+        # check box to display received data
         self.display_cmd_checkBox = QCheckBox()
         self.display_cmd_checkBox.setFixedWidth(15)
         self.display_cmd_checkBox_title_lbl = QLabel("Received data")
@@ -134,7 +134,7 @@ class ComSelect(QDialog):
         self.select_layout.addLayout(self.button_layout)
         # ------------------------------------------------------------------------------------------------------------ #
         self.button_box = QDialogButtonBox()
-        # self.button_box.setOrientation(Qt.Horizontal)
+        #self.button_box.setOrientation(Qt.Horizontal)
         self.button_box.setStandardButtons(QDialogButtonBox.StandardButton.Ok)
         # ------------------------------------------------------------------------------------------------------------ #
         self.button_box.clicked.connect(self.test_2_boards_different_ports)

@@ -16,8 +16,8 @@
 import os
 import sys
 #add path to source
-print(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# print(os.path.dirname(os.path.abspath(__file__)))
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # custom packages
 from ComSelect import *
@@ -36,6 +36,8 @@ class HaxelPowerSupplyInterface(QWidget):
             sys.exit(0)
 
         self.debug_mode = dialog.get_debug_mode_results()
+        # ************************************************************************************************************ #
+        # RECEIVED DATA
         display_cmd = dialog.get_rvc_data_results()
         # ************************************************************************************************************ #
         # RECORD DATA
@@ -111,11 +113,9 @@ class HaxelPowerSupplyInterface(QWidget):
         # BOARD #1
         self.board_1_groupBox = QGroupBox("Board {}".format(self.board_1.board_name))
         self.board_1_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-
         self.main_layout.addWidget(self.board_1_groupBox, 0)
 
         self.board_1_groupBox_layout = QFormLayout(self)
-
         self.board_1_groupBox_layout.addRow(self.board_1)
         self.board_1_groupBox.setLayout(self.board_1_groupBox_layout)
 
@@ -128,6 +128,7 @@ class HaxelPowerSupplyInterface(QWidget):
                 self.setGeometry(0, 0, 1500, 500)
             else:
                 self.setGeometry(0, 0, 1500, 500)
+
         # ************************************************************************************************************ #
         # BOARD #2
         elif self.number_board == 2:
@@ -145,7 +146,6 @@ class HaxelPowerSupplyInterface(QWidget):
             self.setGeometry(0, 0, 20, 20)
 
         self.main_layout.addStretch(1)
-
         # ************************************************************************************************************ #
         self.show()
 

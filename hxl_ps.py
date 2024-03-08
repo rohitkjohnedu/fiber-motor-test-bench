@@ -74,7 +74,7 @@ class HaxelPowerSupply(QWidget):
             # Low Voltage monitor
             self.lv_vm = np.zeros(1000, dtype=float)
             self.lv_vm_now = []
-            # High Voltage error
+            # Low Voltage error
             self.lv_err = np.zeros(1000, dtype=float)
             self.lv_err_now = []
         # ************************************************************************************************************ #
@@ -128,11 +128,12 @@ class HaxelPowerSupply(QWidget):
         try:
             self.ser = Serial(self.port_name, 115200, timeout=0.5)
         except Exception as err_com_port:
-            print("[ERR.] Please make sure than you use the right COM port: {}".format(err_com_port))
+            print("[ERR.] Please make sure that you use the right COM port: {}".format(err_com_port))
             sys.exit(-1)
         # ------------------------------------------------------------------------------------------------------------ #
         # remove old data in input buffer
-        self.ser.flushInput()
+        # self.ser.flushInput() # deprecated: use self.ser.reset_input_buffer()
+        self.ser.reset_input_buffer()
         # ------------------------------------------------------------------------------------------------------------ #
         # Enable debug
         to_send = "QName\r\n"
@@ -221,7 +222,7 @@ class HaxelPowerSupply(QWidget):
                                                      port_name=port_name)
 
     ####################################################################################################################
-    # INITIALIZE HXL PS VI
+    # INITIALIZE HXL PS UI
     def init_vi(self):
         layout_main = QVBoxLayout()
         self.setLayout(layout_main)
@@ -256,7 +257,7 @@ class HaxelPowerSupply(QWidget):
             layout_left.addWidget(self.lv_plots)
 
         # ************************************************************************************************************ #
-        # add top layout to main layout
+        # add top layout to main layout 
         layout_main.addLayout(layout_top)
         # ------------------------------------------------------------------------------------------------------------ #
         if self.display_currents == 1:
@@ -381,7 +382,7 @@ class HaxelPowerSupply(QWidget):
             return
 
         # ************************************************************************************************************ #
-        # handle data
+        # Handle data
         # Remove units, spaces, split with coma
         # Refer to documentation of HVPS to assign data to fields
         data = line.replace(" ", "").replace("uA", "").replace("V", "").replace("Hz", "").replace("\r\n", "").split(",")
@@ -462,7 +463,7 @@ class HaxelPowerSupply(QWidget):
         # flush input if too much data not handled: avoid keeping very old values
         if self.ser.in_waiting > 200:
             # print(self.ser.in_waiting)
-            self.ser.flushInput()
+            self.ser.reset_input_buffer()
 
     ####################################################################################################################
     # RECONNECTION WITH BOARD
@@ -470,14 +471,14 @@ class HaxelPowerSupply(QWidget):
         self.ser.close()
         try:
             self.ser.open()
-            self.ser.flushInput()
+            self.ser.reset_input_buffer()
             print("[INFO] reconnected to the board")
         except Exception as err_connection:
             print("[ERR] connection failed: {}".format(err_connection))
             pass
 
     ####################################################################################################################
-    # RECONNECTION WITH BOARD
+    # 
     def stop_comm(self):
         # Disable HV and monitoring
         send_command(self.ser, "\r\nEStop\r\n")
