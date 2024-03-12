@@ -4,11 +4,11 @@
 # @brief      Author:             MBE
 #             Institute:          EPFL
 #             Laboratory:         LMTS
-#             Software version:   v1.08 (SYLVAIN/MARTIJN)
-#             Created on:         08.11.2023
-#             Last modifications: 08.11.2023
+#             Software version:   v1.09 (SYLVAIN/MARTIJN/MYKHAILO)
+#             Created on:         11.03.2024
+#             Last modifications: 11.03.2024
 #
-# Copyright 2021/2023 EPFL-LMTS
+# Copyright 2021/2024 EPFL-LMTS
 # All rights reserved.
 # NO HELP WILL BE GIVEN IF YOU MODIFY THIS CODE !!!
 ########################################################################################################################
