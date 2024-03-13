@@ -70,7 +70,7 @@ class VoltagePlots(QWidget):
         self.hv_err_value_label = QLabel("0 V")
         self.hv_vm_value_label.setFixedWidth(60)
         # ------------------------------------------------------------------------------------------------------------ #
-        self.voltage_labels_layout = QVBoxLayout(self)
+        self.voltage_labels_layout = QVBoxLayout()
         self.voltage_labels_layout.addWidget(self.hv_set_name_label, 0, alignment=Qt.AlignmentFlag.AlignLeft)
         self.voltage_labels_layout.addWidget(self.hv_set_value_label, 0, alignment=Qt.AlignmentFlag.AlignRight)
         # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))

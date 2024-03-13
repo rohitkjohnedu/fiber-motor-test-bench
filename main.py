@@ -126,14 +126,14 @@ class PowerSupplyInterface(QWidget):
         # ************************************************************************************************************ #
         #                                     INITIALIZATION OF THE USER INTERFACE
         # ************************************************************************************************************ #
-        # Init user interface + callback for buttons...                                                                 (to change)!
+        # Init user interface + callback for buttons...                                                                
 
         self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
         self.main_layout = QHBoxLayout(self)
 
         # ************************************************************************************************************ #
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
-        self.control_panel_layout = QVBoxLayout(self)
+        self.control_panel_layout = QVBoxLayout()
         # ------------------------------------------------------------------------------------------------------------ #
 
         # BOARD #1 (Power supply control panel).
@@ -163,7 +163,7 @@ class PowerSupplyInterface(QWidget):
         # ************************************************************************************************************ #
         # MONITORING (Right side of the main window: plots of measured and controlled variables: force, voltage, and currents.
         # Position and speed will be added later).
-        self.monitoring_groupBox_layout = QVBoxLayout(self)
+        self.monitoring_groupBox_layout = QVBoxLayout()
 
         self.plots_groupBox = QGroupBox("Monitoring")
         self.plots_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
@@ -175,15 +175,14 @@ class PowerSupplyInterface(QWidget):
         self.all_plots_layout.addWidget(self.force_sensor_widget)
         # ------------------------------------------------------------------------------------------------------------ #
         # POWER SUPPLY VOLTAGE PLOT
-        hv_plots = self.board_1.get_hv_plots()
         self.all_plots_layout.addWidget(self.board_1.hv_plots)
         # ------------------------------------------------------------------------------------------------------------ #
-        # POWER SUPPLY CURRENT PLOTS
-        self.currents_layout = QHBoxLayout(self)
-        # self.hb_cm_plots = board_1.hb_cm_plots
-        for plots_row in range(3):  # three phases means 3 current plots
-            self.currents_layout.addWidget(self.board_1.hb_cm_plots[plots_row])
-        self.all_plots_layout.addLayout(self.currents_layout)
+        # # POWER SUPPLY CURRENT PLOTS
+        # self.currents_layout = QHBoxLayout(self)
+        # # self.hb_cm_plots = board_1.hb_cm_plots
+        # for plots_row in range(3):  # three phases means 3 current plots
+        #     self.currents_layout.addWidget(self.board_1.hb_cm_plots[plots_row])
+        # self.all_plots_layout.addLayout(self.currents_layout)
         # ------------------------------------------------------------------------------------------------------------ #
         self.plots_groupBox.setLayout(self.all_plots_layout)
         self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
@@ -208,8 +207,8 @@ class PowerSupplyInterface(QWidget):
 
         # ************************************************************************************************************ #
                 
-        self.show()
-        self.showMaximized()
+        # self.show()
+        # self.showMaximized()
 
         # ************************************************************************************************************ #
         # ************************************************************************************************************ #
@@ -252,6 +251,7 @@ def main():
 
     window = PowerSupplyInterface()
     window.show()
+    window.showMaximized()
 
     app.exec()
 
