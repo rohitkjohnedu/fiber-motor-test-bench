@@ -107,14 +107,14 @@ class PowerSupply(QWidget):
                                                       plot_name=y_name_2,
                                                       plot_index=FullBridge+1, y_min=0, y_max=hb_cm_plot_max))
         # ------------------------------------------------------------------------------------------------------------ #
-        # elif self.display_currents == 3:
-        #     # self.ps_hv_cm_plots = Current1Plots(plot_tittle="DCDC Current Monitor",
-        #     #                                     plot_name=self.y_name[0], plot_index=0, y_min=0, y_max=hb_cm_plot_max)
-        #     # -------------------------------------------------------------------------------------------------------- #
-        #     for HalfBridges in range(nbHalfBridges):
-        #         self.hb_cm_plots.append(Current1Plots(plot_tittle="CH{} Current Monitor".format(HalfBridges+1),
-        #                                               plot_name=self.y_name[HalfBridges+1],
-        #                                               plot_index=HalfBridges+1, y_min=0, y_max=hb_cm_plot_max))
+        elif self.display_currents == 3:
+            # self.ps_hv_cm_plots = Current1Plots(plot_tittle="DCDC Current Monitor",
+            #                                     plot_name=self.y_name[0], plot_index=0, y_min=0, y_max=hb_cm_plot_max)
+            # -------------------------------------------------------------------------------------------------------- #
+            for HalfBridges in range(nbHalfBridges):
+                self.hb_cm_plots.append(Current1Plots(plot_tittle="CH{} Current Monitor".format(HalfBridges+1),
+                                                      plot_name=self.y_name[HalfBridges+1],
+                                                      plot_index=HalfBridges+1, y_min=0, y_max=hb_cm_plot_max))
         # ************************************************************************************************************ #
         # FOR ANY PLOT (CURRENT OR VOLTAGE)
         if (self.display_currents != 0) or (self.display_voltages != 0):
@@ -234,17 +234,17 @@ class PowerSupply(QWidget):
         self.setLayout(layout_top)
         layout_top.setSpacing(3)
         # ************************************************************************************************************ #
-        layout_bottom = QVBoxLayout()
-        self.setLayout(layout_bottom)
-        layout_bottom.setSpacing(3)
-        # ------------------------------------------------------------------------------------------------------------ #
-        layout_bottom1 = QHBoxLayout()
-        self.setLayout(layout_bottom1)
-        layout_bottom1.setSpacing(3)
-        # ------------------------------------------------------------------------------------------------------------ #
-        layout_bottom2 = QHBoxLayout()
-        self.setLayout(layout_bottom2)
-        layout_bottom2.setSpacing(3)
+        # layout_bottom = QVBoxLayout()
+        # self.setLayout(layout_bottom)
+        # layout_bottom.setSpacing(3)
+        # # ------------------------------------------------------------------------------------------------------------ #
+        # layout_bottom1 = QHBoxLayout()
+        # self.setLayout(layout_bottom1)
+        # layout_bottom1.setSpacing(3)
+        # # ------------------------------------------------------------------------------------------------------------ #
+        # layout_bottom2 = QHBoxLayout()
+        # self.setLayout(layout_bottom2)
+        # layout_bottom2.setSpacing(3)
         # ************************************************************************************************************ #
         # Control panel is on the left side
         layout_left = QVBoxLayout()
@@ -424,39 +424,39 @@ class PowerSupply(QWidget):
         #     print("[ERR] Unable to convert line: {} - {}".format(line, e))
 
         # ************************************************************************************************************ #
-        # # UPDATE PLOTS/LABELS
-        # # ------------------------------------------------------------------------------------------------------------ #
-        # # update voltage button
-        # self.voltage.update_data(current_voltage=self.hv_vm[-1])
-        # # ------------------------------------------------------------------------------------------------------------ #
-        # # update voltage plots
-        # if self.display_voltages != 0:
-        #     self.hv_plots.update_plot(t=self.tplot, y1=self.hv_set, y2=self.hv_vm)
-        #     self.hv_plots.update_label(label1=self.hv_set_now, label2=self.hv_vm_now, label3=self.hv_err_now)
-        # # ------------------------------------------------------------------------------------------------------------ #
-        # if self.display_voltages == 2:
-        #     self.lv_plots.update_plot(t=self.tplot, y1=self.lv_set, y2=self.lv_vm)
-        #     self.lv_plots.update_label(label1=self.lv_set_now, label2=self.lv_vm_now, label3=self.lv_err_now)
-        # # ------------------------------------------------------------------------------------------------------------ #
-        # # update current plots
-        # if self.display_currents == 1:
-        #     self.all_cm_plots.update_8_plot(t=self.tplot, y=self.cm_val, labels=self.cm_val_now)
-        # # ------------------------------------------------------------------------------------------------------------ #
-        # elif self.display_currents == 2:
-        #     # self.ps_hv_cm_plots.update_1_plot(t=self.tplot, y=self.cm_val[0], label=self.cm_val_now[0])
-        #     for FullBridge in range(nbFullBridges):
-        #         y1_index = (2*FullBridge)+1
-        #         y2_index = 2*(FullBridge+1)
-        #         y_val = [self.cm_val[y1_index], self.cm_val[y2_index]]
-        #         y_val_label = [self.cm_val_now[y1_index], self.cm_val_now[y2_index]]
-        #         self.fb_cm_plots[FullBridge].update_2_plot(t=self.tplot, y=y_val, label=y_val_label)
-        # # ------------------------------------------------------------------------------------------------------------ #
-        # elif self.display_currents == 3:
-        #     # self.ps_hv_cm_plots.update_1_plot(t=self.tplot, y=self.cm_val[0], label=self.cm_val_now[0])
-        #     for HalfBridges in range(nbHalfBridges):
-        #         self.hb_cm_plots[HalfBridges].update_1_plot(t=self.tplot,
-        #                                                     y=self.cm_val[HalfBridges+1],
-        #                                                     label=self.cm_val_now[HalfBridges+1])
+        # UPDATE PLOTS/LABELS
+        # ------------------------------------------------------------------------------------------------------------ #
+        # update voltage button
+        self.voltage.update_data(current_voltage=self.hv_vm[-1])
+        # ------------------------------------------------------------------------------------------------------------ #
+        # update voltage plots
+        if self.display_voltages != 0:
+            self.hv_plots.update_plot(t=self.tplot, y1=self.hv_set, y2=self.hv_vm)
+            self.hv_plots.update_label(label1=self.hv_set_now, label2=self.hv_vm_now, label3=self.hv_err_now)
+        # ------------------------------------------------------------------------------------------------------------ #
+        if self.display_voltages == 2:
+            self.lv_plots.update_plot(t=self.tplot, y1=self.lv_set, y2=self.lv_vm)
+            self.lv_plots.update_label(label1=self.lv_set_now, label2=self.lv_vm_now, label3=self.lv_err_now)
+        # ------------------------------------------------------------------------------------------------------------ #
+        # update current plots
+        if self.display_currents == 1:
+            self.all_cm_plots.update_8_plot(t=self.tplot, y=self.cm_val, labels=self.cm_val_now)
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif self.display_currents == 2:
+            # self.ps_hv_cm_plots.update_1_plot(t=self.tplot, y=self.cm_val[0], label=self.cm_val_now[0])
+            for FullBridge in range(nbFullBridges):
+                y1_index = (2*FullBridge)+1
+                y2_index = 2*(FullBridge+1)
+                y_val = [self.cm_val[y1_index], self.cm_val[y2_index]]
+                y_val_label = [self.cm_val_now[y1_index], self.cm_val_now[y2_index]]
+                self.fb_cm_plots[FullBridge].update_2_plot(t=self.tplot, y=y_val, label=y_val_label)
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif self.display_currents == 3:
+            # self.ps_hv_cm_plots.update_1_plot(t=self.tplot, y=self.cm_val[0], label=self.cm_val_now[0])
+            for HalfBridges in range(nbHalfBridges):
+                self.hb_cm_plots[HalfBridges].update_1_plot(t=self.tplot,
+                                                            y=self.cm_val[HalfBridges+1],
+                                                            label=self.cm_val_now[HalfBridges+1])
         # ************************************************************************************************************ #
         # # save data to file
         # if self.record_data == 1:
@@ -489,5 +489,5 @@ class PowerSupply(QWidget):
     #         self.record_data = 0
     #         self.RecordData.close_record(sequential=False)
 
-    # def get_hv_plots(self):
-    #     return self.hv_plots
+    def get_hv_plots(self):
+        return self.hv_plots
