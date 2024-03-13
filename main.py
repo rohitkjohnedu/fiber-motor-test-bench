@@ -29,19 +29,15 @@ from Instruments.futek import FutekSensor, FutekSensorWidget
 class PowerSupplyInterface(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
+        self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
+        self.init_ui()
 
-        # ************************************************************************************************************ #
-        #                       ASSIGNMENT OF VALUES TO VARIABLES FOR OPTIONS AND PORT SELECTION
-        # ************************************************************************************************************ #
-        # Comment the dialog for the port and options selection; assign values to variables instead below.
 
-        '''
-        # open a dialog to ask port
-        dialog = ComSelect("CP210")
-        if not dialog.exec():
-            print("[ERR] Canceled")
-            sys.exit(0)
-        '''
+    # **************************************************************************************************************** #
+    #                                           UNITIALIZATION OF THE INTERFACE
+    # **************************************************************************************************************** #
+    def init_ui(self):
+        self.main_layout = QHBoxLayout(self)
 
         self.debug_mode = 0 #dialog.get_debug_mode_results()
         # ------------------------------------------------------------------------------------------------------------ #
@@ -74,10 +70,6 @@ class PowerSupplyInterface(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.number_board = 1 #dialog.get_number_boards_used()      Privilege the use of one board for the moment.
 
-        # ************************************************************************************************************ #
-        #                                   DEFINITION OF THE INTERFACE OBJECTS
-        # ************************************************************************************************************ #
-
         # BOARD #1
         board_1_port = None #dialog.get_board_1_port_results()
         self.board_1 = PowerSupply(port_name=board_1_port,
@@ -88,62 +80,29 @@ class PowerSupplyInterface(QWidget):
                                         rcv_data=display_cmd,
                                         record_data=record_data)
         
-        # ------------------------------------------------------------------------------------------------------------ #
-
-        # BOARD #2
-        # board_2_port = None
-        # if self.number_board == 2:
-        #     board_2_port = dialog.get_board_2_port_results()
-        #     self.board_2 = PowerSupply(port_name=board_2_port,
-        #                                     estimate_rate=self.estimateRate,
-        #                                     currents_display=display_currents,
-        #                                     voltage_display=display_voltages,
-        #                                     debug_mode=self.debug_mode,
-        #                                     rcv_data=display_cmd,
-        #                                     record_data=record_data)
-
         # ************************************************************************************************************ #
 
-        # FUTEK FORCE SENSOR (Load cell)
-        self.force_sensor = FutekSensor()
-        self.force_sensor_widget = FutekSensorWidget(self.force_sensor, controls=True)
+        self.setupControlPanel()
+        self.setMonitoringPanel()
+
+
 
         # ************************************************************************************************************ #
-
-        # DEBUG MODE
-        # if self.debug_mode == 1:
-        #     print("[INFO] Selected Board {} (com port {})".format(self.board_1.board_name, board_1_port))
-        #     # if self.number_board == 2:
-        #     #     print("[INFO] Selected Board {} (com port {})".format(self.board_2.board_name, board_2_port))
-
-        #     print("[INFO] User selected display_voltage: {}".format(display_voltages))
-        #     print("[INFO] User selected display_current: {}".format(display_currents))
-
-        #     print("[INFO] User selected display: {}".format(display_cmd))
-        #     print("[INFO] User selected Debug: {}".format(self.debug_mode))
-        #     print("[INFO] User selected Record: {}".format(record_data))
-
+        #                                               CONTROL PANEL
         # ************************************************************************************************************ #
-        #                                     INITIALIZATION OF THE USER INTERFACE
-        # ************************************************************************************************************ #
-        # Init user interface + callback for buttons...                                                                 (to change)!
-
-        self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
-        self.main_layout = QHBoxLayout(self)
-
-        # ************************************************************************************************************ #
+    def setupControlPanel(self):
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
-        self.control_panel_layout = QVBoxLayout(self)
+        control_panel_layout = QVBoxLayout()
         # ------------------------------------------------------------------------------------------------------------ #
 
         # BOARD #1 (Power supply control panel).
-        self.board_1_groupBox = QGroupBox(self.board_1.board_name)
-        self.board_1_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.control_panel_layout.addWidget(self.board_1_groupBox, stretch=1)
+        board_1_groupBox = QGroupBox(self.board_1.board_name)
+        board_1_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        control_panel_layout.addWidget(board_1_groupBox, stretch=1)
 
-        self.board_1_groupBox_layout = QFormLayout(self.board_1_groupBox) #
-        self.board_1_groupBox_layout.addRow(self.board_1)
-        self.board_1_groupBox.setLayout(self.board_1_groupBox_layout)
+        board_1_groupBox_layout = QFormLayout(board_1_groupBox)
+        board_1_groupBox_layout.addRow(self.board_1)
+        board_1_groupBox.setLayout(board_1_groupBox_layout)
 
         self.board_1.init_vi()
 
@@ -151,107 +110,59 @@ class PowerSupplyInterface(QWidget):
 
         # ACTUATOR (Motorized linear stage / Linear actuator control panel).    Plan to make two tabs for the linear stage
         # and the linear actuator.
-        self.actuator_groupBox = QGroupBox("Actuator")
-        self.actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.control_panel_layout.addWidget(self.actuator_groupBox, stretch=1)
+        actuator_groupBox = QGroupBox("Actuator")
+        actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        control_panel_layout.addWidget(actuator_groupBox, stretch=1)
 
         # Here will be a code for the actuator control panel.
 
         # ------------------------------------------------------------------------------------------------------------ #
-        self.main_layout.addLayout(self.control_panel_layout, 0) # add the control panel on the left side.
+        self.main_layout.addLayout(control_panel_layout, 0) # add the control panel on the left side.
+
+
 
         # ************************************************************************************************************ #
-        # MONITORING (Right side of the main window: plots of measured and controlled variables: force, voltage, and currents.
-        # Position and speed will be added later).
-        self.monitoring_groupBox_layout = QVBoxLayout(self)
+        #                                               MONITORING PANEL
+        # ************************************************************************************************************ #
+    def setMonitoringPanel(self):
+        # MONITORING (Right side of the main window: plots of measured and controlled variables: force, voltage, currents.
+        # Position and speed will be added later). 
+        monitoring_groupBox_layout = QVBoxLayout()
 
-        self.plots_groupBox = QGroupBox("Monitoring")
-        self.plots_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.monitoring_groupBox_layout.addWidget(self.plots_groupBox)
+        plots_groupBox = QGroupBox("Monitoring")
+        plots_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        monitoring_groupBox_layout.addWidget(plots_groupBox)
 
-        self.all_plots_layout = QVBoxLayout(self.plots_groupBox)
+        all_plots_layout = QVBoxLayout()
         # ------------------------------------------------------------------------------------------------------------ #
         # FORCE SENSOR PLOT
-        self.all_plots_layout.addWidget(self.force_sensor_widget)
+        force_sensor = FutekSensor()
+        force_sensor_widget = FutekSensorWidget(force_sensor, controls=True)
+        all_plots_layout.addWidget(force_sensor_widget)
         # ------------------------------------------------------------------------------------------------------------ #
         # POWER SUPPLY VOLTAGE PLOT
-        hv_plots = self.board_1.get_hv_plots()
-        self.all_plots_layout.addWidget(self.board_1.hv_plots)
+        all_plots_layout.addWidget(self.board_1.hv_plots)
         # ------------------------------------------------------------------------------------------------------------ #
         # POWER SUPPLY CURRENT PLOTS
-        self.currents_layout = QHBoxLayout(self)
-        # self.hb_cm_plots = board_1.hb_cm_plots
-        for plots_row in range(3):  # three phases means 3 current plots
-            self.currents_layout.addWidget(self.board_1.hb_cm_plots[plots_row])
-        self.all_plots_layout.addLayout(self.currents_layout)
+        # self.currents_layout = QHBoxLayout()
+        # for plots_row in range(3):  # three phases means 3 current plots
+        #     self.currents_layout.addWidget(self.board_1.hb_cm_plots[plots_row])
+        # self.all_plots_layout.addLayout(self.currents_layout)
         # ------------------------------------------------------------------------------------------------------------ #
-        self.plots_groupBox.setLayout(self.all_plots_layout)
-        self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
+        self.board_1.hv_plots.setLayout(all_plots_layout)
+        plots_groupBox.setLayout(all_plots_layout)
+        self.main_layout.addLayout(monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
-        # ************************************************************************************************************ #
 
-        # BOARD #2
-        # elif self.number_board == 2:
-        #     Board #2
-        #     self.board_2_groupBox = QGroupBox("Board {}".format(self.board_2.board_name))
-        #     self.board_2_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        #     self.main_layout.addWidget(self.board_2_groupBox, 0)
-
-        #     self.board_2_groupBox_layout = QFormLayout(self)
-        #     self.board_2_groupBox_layout.addRow(self.board_2)
-        #     self.board_2_groupBox.setLayout(self.board_2_groupBox_layout)
-
-        #     self.board_2.init_vi()
-        #     self.setGeometry(0, 0, 20, 20)
-
-        #     self.main_layout.addStretch(1)
-
-        # ************************************************************************************************************ #
-                
-        self.show()
-        self.showMaximized()
-
-        # ************************************************************************************************************ #
-        # ************************************************************************************************************ #
-        
-        # set a timer with the callback function which reads data from serial port and plot
-        # period is 30ms => 33Hz, if enough data sent by the board
-        # self.timer = QTimer(self)
-        # self.timer.timeout.connect(self.data_reader_callback)
-        # self.timer.start(self.time)
-
-        # ************************************************************************************************************ #
-        # ************************************************************************************************************ #
-
-    # def data_reader_callback(self):
-    #     self.board_1.data_reader_callback()
-    #     if self.number_board == 2:
-    #         self.board_2.data_reader_callback()
-
-    # def closeEvent(self, event):
-    #     reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?")
-
-    #     if reply == QMessageBox.StandardButton.Yes:
-    #         self.board_1.stop_comm()
-    #         if self.number_board == 2:
-    #             self.board_2.stop_comm()
-
-    #         event.accept()
-    #         if self.debug_mode == 1:
-    #             print("[INFO] Program closed.")
-
-    #     else:
-    #         event.ignore()
-
-    # ************************************************************************************************************ #
-    # ************************************************************************************************************ #
-
+# ******************************************************************************************************************** #
+# ******************************************************************************************************************** #
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName(PROGRAM_NAME)
 
     window = PowerSupplyInterface()
     window.show()
+    window.showMaximized()
 
     app.exec()
 
