@@ -1,5 +1,5 @@
-PROGRAM_NAME = 'Test Bench for Linear Actuators'
-PROGRAM_VERSION = 'v1.01 - 11.03.2024 - Unification of PS and FS interfaces'
+PROGRAM_NAME = 'HXL PS Interface'
+PROGRAM_VERSION = 'v1.08 - 08.11.2023 - MOTOR FIBER'
 
 # Board parameters
 nbFullBridges = 4

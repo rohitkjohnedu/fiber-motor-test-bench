@@ -4,11 +4,11 @@
 # @brief      Author:             MBE
 #             Institute:          EPFL
 #             Laboratory:         LMTS
-#             Software version:   v1.09 (SYLVAIN/MARTIJN/MYKHAILO)
-#             Created on:         11.03.2024
-#             Last modifications: 11.03.2024
-#
-# Copyright 2021/2024 EPFL-LMTS
+#             Software version:   v1.08 (SYLVAIN/MARTIJN)
+#             Created on:         08.11.2023
+#             Last modifications: 08.11.2023
+
+# Copyright 2021/2023 EPFL-LMTS
 # All rights reserved.
 # NO HELP WILL BE GIVEN IF YOU MODIFY THIS CODE !!!
 ########################################################################################################################
@@ -40,16 +40,16 @@ class StopReboot(QWidget):
         self.lay.addWidget(self.emg_stop_btn)
         # ------------------------------------------------------------------------------------------------------------ #
         # ACTIONS
-    #     self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
+        self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
 
-    # ####################################################################################################################
-    # def attach_serial(self, serial):
-    #     self.ser = serial
+    ####################################################################################################################
+    def attach_serial(self, serial):
+        self.ser = serial
 
-    # ####################################################################################################################
-    # def emg_stop_btn_clicked(self):
-    #     # send through the serial port
-    #     to_send = "\r\nEStop\r\n"
-    #     send_command(self.ser, to_send)
-    #     # display information message
-    #     print("[INFO] Emergency stop")
+    ####################################################################################################################
+    def emg_stop_btn_clicked(self):
+        # send through the serial port
+        to_send = "\r\nEStop\r\n"
+        send_command(self.ser, to_send)
+        # display information message
+        print("[INFO] Emergency stop")

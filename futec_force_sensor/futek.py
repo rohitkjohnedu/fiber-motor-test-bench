@@ -9,7 +9,7 @@ from threading import Thread, RLock
 import numpy as np
 import pyqtgraph as pg
 from PyQt6 import QtWidgets, QtCore
-# from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter
 
 sys.path.append(os.getcwd())
 
@@ -128,7 +128,6 @@ class FutekSensor:
         import clr  # Late import of pydotnet to avoid conflict with Qt
         clr.AddReference("FUTEK_USB_DLL")  # Reference Futek Dll
         import FUTEK_USB_DLL  # Import Futek Dll C# library
-
 
         self.serial_number = serial_number  # Serial number of the controller
         self.futek_dll = FUTEK_USB_DLL.USB_DLL()  # Dll object
@@ -553,8 +552,8 @@ class FutekSensorWidget(QtWidgets.QWidget):
         main_layout = QtWidgets.QHBoxLayout(self)
 
         connect_layout = QtWidgets.QFormLayout()
-        # if controls:
-        #     main_layout.addLayout(connect_layout)
+        if controls:
+            main_layout.addLayout(connect_layout)
         connect_layout.addRow(QtWidgets.QLabel("Force Sensor"))
         self.connect_button = QtWidgets.QPushButton("Connect")
         self.connect_button.released.connect(self._connect_button_callback)
@@ -582,9 +581,6 @@ class FutekSensorWidget(QtWidgets.QWidget):
         self.plot_force_widget.setLabel('bottom', 'Time', units='s')
         self.plot_force = self.plot_force_widget.plot()
         main_layout.addWidget(self.plot_force_widget)
-
-        if controls:
-            main_layout.addLayout(connect_layout)
 
         self.plot_update_timer = QtCore.QTimer(self)
         self.plot_update_timer.timeout.connect(self.plot_update)
@@ -646,15 +642,17 @@ class FutekSensorWidget(QtWidgets.QWidget):
         event.accept()
 
 
-# def interface():
-#     APP_NAME = "Futek force sensor"
-#     APP = QtWidgets.QApplication(sys.argv)
-#     parser = argparse.ArgumentParser(description='Process some integers.')
-#     parser.add_argument('-sn', '--serial-number', default=577685, type=int)
-#     arguments = parser.parse_args()
-#     FS_OBJECT = FutekSensor(serial_number=arguments.serial_number)  # Default serial number is 577685
-#     WIDGET = FutekSensorWidget(FS_OBJECT)
-#     APP = create_qt_app_from_widget(APP, WIDGET, APP_NAME)
+def interface():
+    APP_NAME = "Futek force sensor"
+    APP = QtWidgets.QApplication(sys.argv)
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-sn', '--serial-number', default=577685, type=int)
+    arguments = parser.parse_args()
+    FS_OBJECT = FutekSensor(serial_number=arguments.serial_number)  # Default serial number is 577685
+    WIDGET = FutekSensorWidget(FS_OBJECT)
+    APP = create_qt_app_from_widget(APP, WIDGET, APP_NAME)
 
-# if __name__ == '__main__':
-#     interface()
+
+
+if __name__ == '__main__':
+    interface()
