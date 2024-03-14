@@ -30,6 +30,9 @@ class PowerSupplyInterface(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
 
+        self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
+        self.main_layout = QHBoxLayout(self)
+
         # ************************************************************************************************************ #
         #                       ASSIGNMENT OF VALUES TO VARIABLES FOR OPTIONS AND PORT SELECTION
         # ************************************************************************************************************ #
@@ -103,7 +106,7 @@ class PowerSupplyInterface(QWidget):
         #                                     record_data=record_data)
 
         # ************************************************************************************************************ #
-
+        self.force_sensor = None
         # FUTEK FORCE SENSOR (Load cell)
         self.force_sensor = FutekSensor()
         self.force_sensor_widget = FutekSensorWidget(self.force_sensor, controls=True)
@@ -128,8 +131,8 @@ class PowerSupplyInterface(QWidget):
         # ************************************************************************************************************ #
         # Init user interface + callback for buttons...                                                                
 
-        self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
-        self.main_layout = QHBoxLayout(self)
+        # self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
+        # self.main_layout = QHBoxLayout(self)
 
         # ************************************************************************************************************ #
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
@@ -170,20 +173,71 @@ class PowerSupplyInterface(QWidget):
         self.monitoring_groupBox_layout.addWidget(self.plots_groupBox)
 
         self.all_plots_layout = QVBoxLayout(self.plots_groupBox)
+        self.all_plots_layout.setSpacing(0)
         # ------------------------------------------------------------------------------------------------------------ #
         # FORCE SENSOR PLOT
         self.all_plots_layout.addWidget(self.force_sensor_widget)
-        # ------------------------------------------------------------------------------------------------------------ #
+
+        self.force_sensor_layout = QHBoxLayout()
+        self.force_sensor_controls_layout = QVBoxLayout()
+        self.force_sensor_controls_layout.setContentsMargins(0, 10, 0, 10)
+
+        self.force_sensor_layout.addWidget(self.force_sensor_widget)
+
+        self.force_sensor_controls_layout.addWidget(self.force_sensor_widget.heading)
+        self.force_sensor_controls_layout.addWidget(self.force_sensor_widget.connect_button)
+        self.force_sensor_controls_layout.addWidget(self.force_sensor_widget.tare_button)
+        self.force_sensor_controls_layout.addWidget(self.force_sensor_widget.clear_button)
+        self.force_sensor_controls_layout.addWidget(self.force_sensor_widget.continuous_acq)
+        self.force_sensor_controls_layout.addWidget(self.force_sensor_widget.save_data_button)
+
+        self.force_sensor_controls_layout.addStretch(1)
+        self.force_sensor_layout.addLayout(self.force_sensor_controls_layout)
+        self.all_plots_layout.addLayout(self.force_sensor_layout)
+
+        # # ------------------------------------------------------------------------------------------------------------ #
         # POWER SUPPLY VOLTAGE PLOT
-        self.all_plots_layout.addWidget(self.board_1.hv_plots)
-        # ------------------------------------------------------------------------------------------------------------ #
-        # # POWER SUPPLY CURRENT PLOTS
-        # self.currents_layout = QHBoxLayout(self)
-        # # self.hb_cm_plots = board_1.hb_cm_plots
-        # for plots_row in range(3):  # three phases means 3 current plots
-        #     self.currents_layout.addWidget(self.board_1.hb_cm_plots[plots_row])
-        # self.all_plots_layout.addLayout(self.currents_layout)
-        # ------------------------------------------------------------------------------------------------------------ #
+        self.voltage_layout = QHBoxLayout()
+        self.voltage_labels_layout = QVBoxLayout()
+        self.voltage_labels_layout.setContentsMargins(0, 10, 0, 10)
+
+        # self.voltage_labels_layout.setContentsMargins(5, 0, 0, 0)
+        self.voltage_layout.addWidget(self.board_1.hv_plots)
+
+        self.voltage_labels_layout.addWidget(self.board_1.hv_set_name_label)
+        self.voltage_labels_layout.addWidget(self.board_1.hv_set_value_label)
+        # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
+        self.voltage_labels_layout.addWidget(self.board_1.hv_vm_name_label)
+        self.voltage_labels_layout.addWidget(self.board_1.hv_vm_value_label)
+        # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
+        self.voltage_labels_layout.addWidget(self.board_1.hv_err_name_label)
+        self.voltage_labels_layout.addWidget(self.board_1.hv_err_value_label)
+        # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
+
+        self.voltage_labels_layout.addStretch(1)
+        self.voltage_layout.addLayout(self.voltage_labels_layout)
+        self.all_plots_layout.addLayout(self.voltage_layout)
+
+        # # ------------------------------------------------------------------------------------------------------------ #
+        # POWER SUPPLY CURRENT PLOTS
+        self.currents_layout = QHBoxLayout()
+        # self.currents_layout.setContentsMargins(0, 0, 0, 0)
+        self.currents_layout.setSpacing(0)
+
+        self.current_labels_layout = QVBoxLayout()
+        self.current_labels_layout.setContentsMargins(0, 10, 0, 10)
+
+        for plots_row in range(3):  # three phases means 3 current plots
+            self.currents_layout.addWidget(self.board_1.hb_cm_plots[plots_row])
+
+            self.current_labels_layout.addWidget(self.board_1.names_labels[plots_row])     
+            self.current_labels_layout.addWidget(self.board_1.values_labels[plots_row])
+
+        self.current_labels_layout.addStretch(1) 
+        self.currents_layout.addLayout(self.current_labels_layout)
+        self.all_plots_layout.addLayout(self.currents_layout)
+
+        # # ------------------------------------------------------------------------------------------------------------ #
         self.plots_groupBox.setLayout(self.all_plots_layout)
         self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
@@ -206,15 +260,23 @@ class PowerSupplyInterface(QWidget):
         #     self.main_layout.addStretch(1)
 
         # ************************************************************************************************************ #
-                
+
+        # if self.number_board == 1:
+        #     if display_voltages == 0:
+        #         self.setGeometry(0, 0, 10, 10)
+        #     elif display_voltages == 1:
+        #         self.setGeometry(0, 0, 1500, 500)
+        #     else:
+        #         self.setGeometry(0, 0, 1500, 500)
+
         # self.show()
         # self.showMaximized()
 
         # ************************************************************************************************************ #
         # ************************************************************************************************************ #
         
-        # set a timer with the callback function which reads data from serial port and plot
-        # period is 30ms => 33Hz, if enough data sent by the board
+        # # set a timer with the callback function which reads data from serial port and plot
+        # # period is 30ms => 33Hz, if enough data sent by the board
         # self.timer = QTimer(self)
         # self.timer.timeout.connect(self.data_reader_callback)
         # self.timer.start(self.time)
@@ -224,8 +286,8 @@ class PowerSupplyInterface(QWidget):
 
     # def data_reader_callback(self):
     #     self.board_1.data_reader_callback()
-    #     if self.number_board == 2:
-    #         self.board_2.data_reader_callback()
+        # if self.number_board == 2:
+        #     self.board_2.data_reader_callback()
 
     # def closeEvent(self, event):
     #     reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?")

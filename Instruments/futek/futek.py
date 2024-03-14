@@ -551,40 +551,46 @@ class FutekSensorWidget(QtWidgets.QWidget):
         self.futek_sensor = force_sensor_object
 
         main_layout = QtWidgets.QHBoxLayout(self)
+        main_layout.setSpacing(0)
+        
+        # connect_layout = QtWidgets.QFormLayout()
+        self.heading = QtWidgets.QLabel("Force sensor")
+        # heading.setFixedWidth(1)
+        self.heading.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        # connect_layout.addRow(self.heading)
 
-        connect_layout = QtWidgets.QFormLayout()
-        # if controls:
-        #     main_layout.addLayout(connect_layout)
-        connect_layout.addRow(QtWidgets.QLabel("Force Sensor"))
         self.connect_button = QtWidgets.QPushButton("Connect")
         self.connect_button.released.connect(self._connect_button_callback)
-        connect_layout.addRow(self.connect_button)
-        tare_button = QtWidgets.QPushButton("Tare")
-        tare_button.clicked.connect(self._tare_button_callback)
-        connect_layout.addRow(tare_button)
-        clear_button = QtWidgets.QPushButton("Clear")
-        clear_button.clicked.connect(self.futek_sensor.clear_buffer)
-        connect_layout.addRow(clear_button)
-        continuous_acq = QtWidgets.QPushButton("Continuous display")
+        # connect_layout.addRow(self.connect_button)
 
-        continuous_acq.setCheckable(True)
-        continuous_acq.setChecked(True)
-        continuous_acq.toggled.connect(self._continuous_acq_button_callback)
-        connect_layout.addRow(continuous_acq)
-        save_data_button = QtWidgets.QPushButton("Save Data")
-        save_data_button.clicked.connect(self._save_data_button_callback)
-        connect_layout.addRow(save_data_button)
+        self.tare_button = QtWidgets.QPushButton("Tare")
+        self.tare_button.clicked.connect(self._tare_button_callback)
+        # connect_layout.addRow(self.tare_button)
+
+        self.clear_button = QtWidgets.QPushButton("Clear")
+        self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
+        # connect_layout.addRow(self.clear_button)
+
+        self.continuous_acq = QtWidgets.QPushButton("Continuous display")
+        self.continuous_acq.setCheckable(True)
+        self.continuous_acq.setChecked(True)
+        self.continuous_acq.toggled.connect(self._continuous_acq_button_callback)
+        # connect_layout.addRow(self.continuous_acq)
+
+        self.save_data_button = QtWidgets.QPushButton("Save Data")
+        self.save_data_button.clicked.connect(self._save_data_button_callback)
+        # connect_layout.addRow(self.save_data_button)
 
         self.plot_force_widget = pg.PlotWidget(self, title="Force sensor reading")
-        self.plot_force_widget.setMinimumWidth(600)
-        self.plot_force_widget.setMinimumHeight(250)
+        # self.plot_force_widget.setMinimumWidth(650)
+        self.plot_force_widget.setMinimumHeight(300)
         self.plot_force_widget.setLabel('left', 'Force', units='mN')
         self.plot_force_widget.setLabel('bottom', 'Time', units='s')
         self.plot_force = self.plot_force_widget.plot()
         main_layout.addWidget(self.plot_force_widget)
 
-        if controls:
-            main_layout.addLayout(connect_layout)
+        # if controls:
+        #     main_layout.addLayout(connect_layout)
 
         self.plot_update_timer = QtCore.QTimer(self)
         self.plot_update_timer.timeout.connect(self.plot_update)

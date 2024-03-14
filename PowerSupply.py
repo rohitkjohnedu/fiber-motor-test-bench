@@ -65,6 +65,40 @@ class PowerSupply(QWidget):
             # High Voltage error
             self.hv_err = np.zeros(1000, dtype=float)
             self.hv_err_now = []
+        
+            # voltage labels
+            # ------------------------------------------------------------------------------------------------------------ #
+            # Vhv_set
+            self.hv_set_name_label = QLabel("Target")
+            self.hv_set_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.hv_set_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[2]))
+            self.hv_set_name_label.setFixedWidth(100)
+
+            self.hv_set_value_label = QLabel("0 V")
+            self.hv_set_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.hv_set_value_label.setFixedWidth(100)
+            # ------------------------------------------------------------------------------------------------------------ #
+            # Vhv_vm
+            self.hv_vm_name_label = QLabel("Monitor")
+            self.hv_vm_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.hv_vm_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[0]))
+            self.hv_vm_name_label.setFixedWidth(100)
+
+            self.hv_vm_value_label = QLabel("0 V")
+            self.hv_vm_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.hv_vm_value_label.setFixedWidth(100)
+            # ------------------------------------------------------------------------------------------------------------ #
+            # Vhv_err
+            self.hv_err_name_label = QLabel("Error")
+            self.hv_err_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.hv_err_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[9]))
+            self.hv_err_name_label.setFixedWidth(100)
+
+            self.hv_err_value_label = QLabel("0 V")
+            self.hv_err_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.hv_err_value_label.setFixedWidth(100)        
+
+
         # ------------------------------------------------------------------------------------------------------------ #
         if self.display_voltages == 2:
             # Low Voltage plot
@@ -84,6 +118,8 @@ class PowerSupply(QWidget):
         if self.display_currents != 0:
             self.fb_cm_plots = []
             self.hb_cm_plots = []
+            self.names_labels = []
+            self.values_labels = []
             self.cm_val = np.zeros([9, 1000], dtype=int)
             self.cm_val_now = ["", "", "", "", "", "", "", "", ""]
             self.y_name = ["HV CM"]
@@ -107,14 +143,27 @@ class PowerSupply(QWidget):
                                                       plot_name=y_name_2,
                                                       plot_index=FullBridge+1, y_min=0, y_max=hb_cm_plot_max))
         # ------------------------------------------------------------------------------------------------------------ #
-        # elif self.display_currents == 3:
-        #     # self.ps_hv_cm_plots = Current1Plots(plot_tittle="DCDC Current Monitor",
-        #     #                                     plot_name=self.y_name[0], plot_index=0, y_min=0, y_max=hb_cm_plot_max)
-        #     # -------------------------------------------------------------------------------------------------------- #
-        #     for HalfBridges in range(nbHalfBridges):
-        #         self.hb_cm_plots.append(Current1Plots(plot_tittle="CH{} Current Monitor".format(HalfBridges+1),
-        #                                               plot_name=self.y_name[HalfBridges+1],
-        #                                               plot_index=HalfBridges+1, y_min=0, y_max=hb_cm_plot_max))
+        elif self.display_currents == 3:
+            # self.ps_hv_cm_plots = Current1Plots(plot_tittle="DCDC Current Monitor",
+            #                                     plot_name=self.y_name[0], plot_index=0, y_min=0, y_max=hb_cm_plot_max)
+            # -------------------------------------------------------------------------------------------------------- #
+            for HalfBridges in range(nbHalfBridges):
+                self.hb_cm_plots.append(Current1Plots(plot_tittle="CH{} Current Monitor".format(HalfBridges+1),
+                                                      plot_name=self.y_name[HalfBridges+1],
+                                                      plot_index=HalfBridges+1, y_min=0, y_max=hb_cm_plot_max))
+                # current labels
+                self.y_name_label = QLabel(self.y_name[HalfBridges+1])
+                self.y_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.y_name_label.setStyleSheet("background-color: rgb{}; color: white; ".format(color[HalfBridges+1]))
+                self.y_name_label.setFixedWidth(100)
+                self.names_labels.append(self.y_name_label)
+
+                self.y_value_label = QLabel("0 uA")
+                self.y_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.y_value_label.setFixedWidth(100)
+                self.values_labels.append(self.y_value_label)
+                
+        
         # ************************************************************************************************************ #
         # FOR ANY PLOT (CURRENT OR VOLTAGE)
         if (self.display_currents != 0) or (self.display_voltages != 0):
@@ -341,7 +390,7 @@ class PowerSupply(QWidget):
         layout_main.addStretch(1)
 
     ####################################################################################################################
-    # CALLBACK
+    # # CALLBACK
     # def data_reader_callback(self):
     #     # ************************************************************************************************************ #
     #     # shift data in the array one sample left

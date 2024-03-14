@@ -32,7 +32,7 @@ class Current9Plots(QWidget):
         self.layout_plot = QHBoxLayout(self)
         self.layout_plot.setSpacing(3)
 
-        self.graphics_layout = pg.GraphicsLayoutWidget(show=True)
+        self.graphics_layout = pg.GraphicsLayoutWidget(show=False)
         # ************************************************************************************************************ #
         # current plot
         self.current_plot = self.graphics_layout.addPlot(title=plot_tittle)
@@ -41,7 +41,7 @@ class Current9Plots(QWidget):
         self.current_plot.setYRange(y_min, y_max)
         # ************************************************************************************************************ #
         # current labels
-        self.current_labels_layout = QVBoxLayout(self)
+        self.current_labels_layout = QVBoxLayout()
         self.y_plot = []
         self.y_name_label = []
         self.y_value_label = []
@@ -79,7 +79,7 @@ class Current8Plots(QWidget):
         self.layout_plot = QHBoxLayout(self)
         self.layout_plot.setSpacing(3)
 
-        self.graphics_layout = pg.GraphicsLayoutWidget(show=True)
+        self.graphics_layout = pg.GraphicsLayoutWidget(show=False)
         # ************************************************************************************************************ #
         # current plot
         self.current_plot = self.graphics_layout.addPlot(title=plot_tittle)
@@ -88,7 +88,7 @@ class Current8Plots(QWidget):
         self.current_plot.setYRange(y_min, y_max)
         # ************************************************************************************************************ #
         # current labels
-        self.current_labels_layout = QVBoxLayout(self)
+        self.current_labels_layout = QVBoxLayout()
         self.y_plot = []
         self.y_name_label = []
         self.y_value_label = []
@@ -127,7 +127,7 @@ class Current2Plots(QWidget):
         self.layout_plot = QHBoxLayout(self)
         self.layout_plot.setSpacing(3)
 
-        self.graphics_layout = pg.GraphicsLayoutWidget(show=True)
+        self.graphics_layout = pg.GraphicsLayoutWidget(show=False)
         # ************************************************************************************************************ #
         # current plot
         self.current_plot = self.graphics_layout.addPlot(title=plot_tittle)
@@ -136,7 +136,7 @@ class Current2Plots(QWidget):
         self.current_plot.setYRange(y_min, y_max)
         # ************************************************************************************************************ #
         # current labels
-        self.current_labels_layout = QVBoxLayout(self)
+        self.current_labels_layout = QVBoxLayout()
         self.y_plot = []
         self.y_name_label = []
         self.y_value_label = []
@@ -174,9 +174,9 @@ class Current1Plots(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.layout_plot = QHBoxLayout(self)
-        self.layout_plot.setSpacing(3)
+        self.layout_plot.setSpacing(0)
 
-        self.graphics_layout = pg.GraphicsLayoutWidget(show=True)
+        self.graphics_layout = pg.GraphicsLayoutWidget(show=False)
         # ************************************************************************************************************ #
         # current plot
         self.current_plot = self.graphics_layout.addPlot(title=plot_tittle)
@@ -186,24 +186,29 @@ class Current1Plots(QWidget):
 
         self.y_plot = self.current_plot.plot(pen=color[plot_index], name=plot_name)
         # ************************************************************************************************************ #
-        # current labels
-        self.y_name_label = QLabel(plot_name)
-        self.y_name_label.setStyleSheet("background-color: rgb{}; color: white; ".format(color[plot_index]))
-        self.y_name_label.setFixedWidth(60)
+        # # current labels
+        # self.y_name_label = QLabel(plot_name)
+        # self.y_name_label.setStyleSheet("background-color: rgb{}; color: white; ".format(color[plot_index]))
+        # self.y_name_label.setFixedWidth(60)
 
-        self.y_value_label = QLabel("0 uA")
-        self.y_value_label.setFixedWidth(60)
+        # self.y_value_label = QLabel("0 uA")
+        # self.y_value_label.setFixedWidth(60)
         # ------------------------------------------------------------------------------------------------------------ #
-        self.current_labels_layout = QVBoxLayout(self)
-        self.current_labels_layout.addWidget(self.y_name_label, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.current_labels_layout.addWidget(self.y_value_label, 0, alignment=Qt.AlignmentFlag.AlignRight)
-        self.current_labels_layout.addSpacerItem(QSpacerItem(10, 16))
-        self.current_labels_layout.addStretch(1)
+        # ------------------------------------------------------------------------------------------------------------ #
+        # self.current_labels_layout = QVBoxLayout()
+        # self.current_labels_layout.addWidget(self.y_name_label, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        # self.current_labels_layout.addWidget(self.y_value_label, 0, alignment=Qt.AlignmentFlag.AlignRight)
+        # self.current_labels_layout.addSpacerItem(QSpacerItem(10, 16))
+        # self.current_labels_layout.addStretch(1)
         # ------------------------------------------------------------------------------------------------------------ #
         self.layout_plot.addWidget(self.graphics_layout)
-        self.layout_plot.addLayout(self.current_labels_layout)
+        # self.layout_plot.addLayout(self.current_labels_layout)
 
     ####################################################################################################################
     def update_1_plot(self, t, y, label):
         self.y_plot.setData(t, y)
         self.y_value_label.setText("{} uA".format(label, '9f'))
+
+    def legend_currents(self):
+        return self.y_name_label
+    

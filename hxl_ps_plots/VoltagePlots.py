@@ -30,9 +30,9 @@ class VoltagePlots(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.layout_plot = QHBoxLayout(self)
-        self.layout_plot.setSpacing(3)
+        self.layout_plot.setSpacing(0)
 
-        self.graphics_layout = pg.GraphicsLayoutWidget(show=True)
+        self.graphics_layout = pg.GraphicsLayoutWidget(show=False)
         # ************************************************************************************************************ #
         # voltage plot
         self.voltage_plot = self.graphics_layout.addPlot(title=plot_tittle)
@@ -44,46 +44,55 @@ class VoltagePlots(QWidget):
         self.v_set_plot = self.voltage_plot.plot(pen=color[2], name="Target voltage")
         self.v_now_plot = self.voltage_plot.plot(pen=color[0], name="Output voltage")
         # ************************************************************************************************************ #
-        # voltage labels
-        # ------------------------------------------------------------------------------------------------------------ #
-        # Vhv_set
-        self.hv_set_name_label = QLabel("Target")
-        self.hv_set_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[2]))
-        self.hv_set_name_label.setFixedWidth(60)
+        # # voltage labels
+        # # ------------------------------------------------------------------------------------------------------------ #
+        # # Vhv_set
+        # self.hv_set_name_label = QLabel("Target")
+        # self.hv_set_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.hv_set_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[2]))
+        # self.hv_set_name_label.setFixedWidth(100)
 
-        self.hv_set_value_label = QLabel("0 V")
-        self.hv_set_value_label.setFixedWidth(60)
-        # ------------------------------------------------------------------------------------------------------------ #
-        # Vhv_vm
-        self.hv_vm_name_label = QLabel("Monitor")
-        self.hv_vm_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[0]))
-        self.hv_vm_name_label.setFixedWidth(60)
+        # self.hv_set_value_label = QLabel("0 V")
+        # self.hv_set_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.hv_set_value_label.setFixedWidth(100)
+        # # ------------------------------------------------------------------------------------------------------------ #
+        # # Vhv_vm
+        # self.hv_vm_name_label = QLabel("Monitor")
+        # self.hv_vm_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.hv_vm_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[0]))
+        # self.hv_vm_name_label.setFixedWidth(100)
 
-        self.hv_vm_value_label = QLabel("0 V")
-        self.hv_vm_value_label.setFixedWidth(60)
-        # ------------------------------------------------------------------------------------------------------------ #
-        # Vhv_err
-        self.hv_err_name_label = QLabel("Error")
-        self.hv_err_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[9]))
-        self.hv_err_name_label.setFixedWidth(60)
+        # self.hv_vm_value_label = QLabel("0 V")
+        # self.hv_vm_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.hv_vm_value_label.setFixedWidth(100)
+        # # ------------------------------------------------------------------------------------------------------------ #
+        # # Vhv_err
+        # self.hv_err_name_label = QLabel("Error")
+        # self.hv_err_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.hv_err_name_label.setStyleSheet("background-color: rgb{}; color: white" .format(color[9]))
+        # self.hv_err_name_label.setFixedWidth(100)
 
-        self.hv_err_value_label = QLabel("0 V")
-        self.hv_vm_value_label.setFixedWidth(60)
+        # self.hv_err_value_label = QLabel("0 V")
+        # self.hv_err_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.hv_err_value_label.setFixedWidth(100)        
+        # # ------------------------------------------------------------------------------------------------------------ #
+        # self.voltage_labels_layout = QVBoxLayout()
+        # # self.voltage_labels_layout.setContentsMargins(5, 0, 0, 0)
+        # self.voltage_labels_layout.addWidget(self.hv_set_name_label)
+        # self.voltage_labels_layout.addWidget(self.hv_set_value_label)
+        # # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
+        # self.voltage_labels_layout.addWidget(self.hv_vm_name_label)
+        # self.voltage_labels_layout.addWidget(self.hv_vm_value_label)
+        # # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
+        # self.voltage_labels_layout.addWidget(self.hv_err_name_label)
+        # self.voltage_labels_layout.addWidget(self.hv_err_value_label)
+        # # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
+        # self.voltage_labels_layout.addStretch(1)
         # ------------------------------------------------------------------------------------------------------------ #
-        self.voltage_labels_layout = QVBoxLayout()
-        self.voltage_labels_layout.addWidget(self.hv_set_name_label, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.voltage_labels_layout.addWidget(self.hv_set_value_label, 0, alignment=Qt.AlignmentFlag.AlignRight)
-        # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
-        self.voltage_labels_layout.addWidget(self.hv_vm_name_label, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.voltage_labels_layout.addWidget(self.hv_vm_value_label, 0, alignment=Qt.AlignmentFlag.AlignRight)
-        # self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
-        self.voltage_labels_layout.addWidget(self.hv_err_name_label, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.voltage_labels_layout.addWidget(self.hv_err_value_label, 0, alignment=Qt.AlignmentFlag.AlignLeft) # AlignRight
-        self.voltage_labels_layout.addSpacerItem(QSpacerItem(10, 16))
-        self.voltage_labels_layout.addStretch(1)
-        # ------------------------------------------------------------------------------------------------------------ #
+        # self.graphics_layout.setMaximumWidth(1000)
+        
         self.layout_plot.addWidget(self.graphics_layout)
-        self.layout_plot.addLayout(self.voltage_labels_layout)
+        # self.layout_plot.addLayout(self.voltage_labels_layout)
 
     ####################################################################################################################
     def update_plot(self, t, y1, y2):
