@@ -555,33 +555,38 @@ class FutekSensorWidget(QtWidgets.QWidget):
         
         # connect_layout = QtWidgets.QFormLayout()
         self.heading = QtWidgets.QLabel("Force sensor")
-        # heading.setFixedWidth(1)
+        self.heading.setFixedWidth(100)
         self.heading.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         # connect_layout.addRow(self.heading)
 
         self.connect_button = QtWidgets.QPushButton("Connect")
+        self.connect_button.setFixedWidth(100)
         self.connect_button.released.connect(self._connect_button_callback)
         # connect_layout.addRow(self.connect_button)
 
         self.tare_button = QtWidgets.QPushButton("Tare")
+        self.tare_button.setFixedWidth(100)
         self.tare_button.clicked.connect(self._tare_button_callback)
         # connect_layout.addRow(self.tare_button)
 
         self.clear_button = QtWidgets.QPushButton("Clear")
+        self.clear_button.setFixedWidth(100)
         self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
         # connect_layout.addRow(self.clear_button)
 
-        self.continuous_acq = QtWidgets.QPushButton("Continuous display")
+        self.continuous_acq = QtWidgets.QPushButton("Continuous\n display")
+        self.continuous_acq.setFixedWidth(100)
         self.continuous_acq.setCheckable(True)
         self.continuous_acq.setChecked(True)
         self.continuous_acq.toggled.connect(self._continuous_acq_button_callback)
         # connect_layout.addRow(self.continuous_acq)
 
         self.save_data_button = QtWidgets.QPushButton("Save Data")
+        self.save_data_button.setFixedWidth(100)
         self.save_data_button.clicked.connect(self._save_data_button_callback)
         # connect_layout.addRow(self.save_data_button)
 
-        self.plot_force_widget = pg.PlotWidget(self, title="Force sensor reading")
+        self.plot_force_widget = pg.PlotWidget(self, title="Force Sensor Reading")
         # self.plot_force_widget.setMinimumWidth(650)
         self.plot_force_widget.setMinimumHeight(300)
         self.plot_force_widget.setLabel('left', 'Force', units='mN')

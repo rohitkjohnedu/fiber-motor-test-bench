@@ -44,7 +44,7 @@ class VoltagePlots(QWidget):
         self.v_set_plot = self.voltage_plot.plot(pen=color[2], name="Target voltage")
         self.v_now_plot = self.voltage_plot.plot(pen=color[0], name="Output voltage")
         # ************************************************************************************************************ #
-        # # voltage labels
+        # # Voltage labels
         # # ------------------------------------------------------------------------------------------------------------ #
         # # Vhv_set
         # self.hv_set_name_label = QLabel("Target")
@@ -99,8 +99,8 @@ class VoltagePlots(QWidget):
         self.v_set_plot.setData(t, y1)  # plot
         self.v_now_plot.setData(t, y2)
 
-    ####################################################################################################################
-    def update_label(self, label1, label2, label3):
-        self.hv_set_value_label.setText("{} V".format(label1, '4.2f'))
-        self.hv_vm_value_label.setText("{} V".format(label2, '4.2f'))
-        self.hv_err_value_label.setText("{} V".format(label3, '4.2f'))
+    # ####################################################################################################################
+    # def update_label(self, label1, label2, label3):
+    #     self.hv_set_value_label.setText("{} V".format(label1, '4.2f'))
+    #     self.hv_vm_value_label.setText("{} V".format(label2, '4.2f'))
+    #     self.hv_err_value_label.setText("{} V".format(label3, '4.2f'))

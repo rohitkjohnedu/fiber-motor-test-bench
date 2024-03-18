@@ -205,9 +205,9 @@ class Current1Plots(QWidget):
         # self.layout_plot.addLayout(self.current_labels_layout)
 
     ####################################################################################################################
-    def update_1_plot(self, t, y, label):
+    def update_1_plot(self, t, y):
         self.y_plot.setData(t, y)
-        self.y_value_label.setText("{} uA".format(label, '9f'))
+        # self.y_value_label.setText("{} uA".format(label, '9f'))
 
     def legend_currents(self):
         return self.y_name_label

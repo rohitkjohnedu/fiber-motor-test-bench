@@ -40,16 +40,16 @@ class StopReboot(QWidget):
         self.lay.addWidget(self.emg_stop_btn)
         # ------------------------------------------------------------------------------------------------------------ #
         # ACTIONS
-    #     self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
+        self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
 
     # ####################################################################################################################
-    # def attach_serial(self, serial):
-    #     self.ser = serial
+    def attach_serial(self, serial):
+        self.ser = serial
 
     # ####################################################################################################################
-    # def emg_stop_btn_clicked(self):
-    #     # send through the serial port
-    #     to_send = "\r\nEStop\r\n"
-    #     send_command(self.ser, to_send)
-    #     # display information message
-    #     print("[INFO] Emergency stop")
+    def emg_stop_btn_clicked(self):
+        # send through the serial port
+        to_send = "\r\nEStop\r\n"
+        send_command(self.ser, to_send)
+        # display information message
+        print("[INFO] Emergency stop")

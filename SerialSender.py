@@ -13,7 +13,7 @@
 # NO HELP WILL BE GIVEN IF YOU MODIFY THIS CODE !!!
 ########################################################################################################################
 
-# def send_command(ser, command):
-#     to_send = bytearray(command, encoding="utf-8")
-#     ser.write(to_send)
-#     # print("[send] {}".format(command.replace("\r\n", "")))
+def send_command(ser, command):
+    to_send = bytearray(command, encoding="utf-8")
+    ser.write(to_send)
+    # print("[send] {}".format(command.replace("\r\n", "")))
