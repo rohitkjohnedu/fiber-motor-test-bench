@@ -32,4 +32,4 @@ Driver and widget for Reading Futek Force sensor
 """
 __all__ = ["FutekSensor", "FutekSensorWidget", "interface", "FutekSensorDaqmx"]
 
-from .futek import FutekSensor, FutekSensorWidget #interface # FutekSensorDaqmx
+from .futek import FutekSensor, FutekSensorPlot, FutekSensorControl #interface # FutekSensorDaqmx

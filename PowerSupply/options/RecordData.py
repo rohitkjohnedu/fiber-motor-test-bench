@@ -17,7 +17,7 @@
 from datetime import *
 from pathlib import *
 from PyQt6.QtWidgets import *
-from Userdef import *
+from PowerSupply.Userdef import *
 
 
 class RecordData(QWidget):

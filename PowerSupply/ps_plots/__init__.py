@@ -14,5 +14,5 @@
 ########################################################################################################################
 
 from . ColorPlots import *
-from . CurrentPlots import Current9Plots, Current8Plots, Current2Plots, Current1Plots
+from . CurrentPlots import Current1Plots
 from . VoltagePlots import VoltagePlots

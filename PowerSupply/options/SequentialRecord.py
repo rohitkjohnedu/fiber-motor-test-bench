@@ -16,7 +16,7 @@
 # python packages
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
-from options import *
+from PowerSupply.options import *
 
 
 class SequentialRecord(QWidget):

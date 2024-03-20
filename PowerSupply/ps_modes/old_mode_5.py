@@ -1,6 +1,6 @@
 ########################################################################################################################
 # @project    EPFL-HXL_PS_v1.0
-# @file       hxl_ps_modes\mode_3.py
+# @file       hxl_ps_modes\old_mode_5.py
 # @brief      Author:             MBE
 #             Institute:          EPFL
 #             Laboratory:         LMTS
@@ -17,12 +17,12 @@
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 # custom packages
-from py_toggle import *
-from SerialSender import *
-from Userdef import *
+from PowerSupply.py_toggle import *
+from PowerSupply.SerialSender import *
+from PowerSupply.Userdef import *
+import time
 
-
-class Mode3(QWidget):
+class OldMode5(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
 
@@ -67,7 +67,7 @@ class Mode3(QWidget):
         # self.fb_phase_label.setAlignment(Qt.AlignLeft)
         self.hb_phase_shift_label.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
-        self.hb_on_off_label = QLabel("ON/OFF")
+        self.hb_on_off_label = QLabel("State")
         self.hb_on_off_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hb_on_off_label.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
@@ -111,11 +111,13 @@ class Mode3(QWidget):
         self.hb_pulse_phase_edit.setFixedWidth(80)
         self.hb_pulse_phase_edit.setEnabled(False)
         # ------------------------------------------------------------------------------------------------------------ #
-        self.hb_phase_shift_edit = QLineEdit("0")
-        self.hb_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.hb_phase_shift_edit = QLineEdit("-")
+        self.hb_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hb_phase_shift_edit.setFixedWidth(80)
+        self.hb_phase_shift_edit.setEnabled(False)
         # ------------------------------------------------------------------------------------------------------------ #
-        self.hb_toggle = PyToggle(animation_curve=QEasingCurve.Type.InOutQuint)
+        self.change_btn = QPushButton("SET")
+        self.change_btn.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
         self.mode3_groupBox_layout.addWidget(self.hb_comboBox, 1, 0, Qt.AlignmentFlag.AlignCenter)
         self.mode3_groupBox_layout.addWidget(self.hb_freq_edit, 1, 1, Qt.AlignmentFlag.AlignCenter)
@@ -123,27 +125,38 @@ class Mode3(QWidget):
         self.mode3_groupBox_layout.addWidget(self.hb_neg_duty_edit, 1, 3, Qt.AlignmentFlag.AlignCenter)
         self.mode3_groupBox_layout.addWidget(self.hb_pulse_phase_edit, 1, 4, Qt.AlignmentFlag.AlignCenter)
         self.mode3_groupBox_layout.addWidget(self.hb_phase_shift_edit, 1, 5, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_toggle, 1, 6, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.change_btn, 1, 6, Qt.AlignmentFlag.AlignCenter)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.t_switch_label = QLabel("Time (s)")
+        # self.fb_duty_label.setAlignment(Qt.AlignLeft)
+        self.t_switch_label.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.t_switch_edit = QLineEdit("1")
+        self.t_switch_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.t_switch_edit.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.sequence_time_label = QLabel("Sequences")
+        # self.fb_duty_label.setAlignment(Qt.AlignLeft)
+        self.sequence_time_label.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.sequence_time_edit = QLineEdit("1")
+        self.sequence_time_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.sequence_time_edit.setFixedWidth(80)
+
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.mode3_groupBox_layout.addWidget(self.t_switch_label, 2, 0, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.t_switch_edit, 2, 1, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.sequence_time_label, 2, 2, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.sequence_time_edit, 2, 3, Qt.AlignmentFlag.AlignCenter)
         # ------------------------------------------------------------------------------------------------------------ #
         # ACTIONS
-        self.hb_toggle.stateChanged.connect(self.hb_toggled)
-        self.hb_freq_edit.returnPressed.connect(self.hb_set)
-        self.hb_pos_duty_edit.returnPressed.connect(self.hb_set)
-        self.hb_phase_shift_edit.returnPressed.connect(self.hb_set)
+        self.change_btn.clicked.connect(self.hb_set)
         self.mode3_layout.addStretch(1)
 
     ####################################################################################################################
     # ATTACH SERIAL
     def attach_serial(self, serial):
         self.hb_ser = serial
-
-    ####################################################################################################################
-    # CHECKBOX TOGGLED
-    def hb_toggled(self):
-        if self.hb_toggle.isChecked() == 1:
-            self.hb_set()
-        else:
-            self.hb_stop()
 
     ####################################################################################################################
     # TOGGLE CLICKED = SET STATE
@@ -155,47 +168,39 @@ class Mode3(QWidget):
                 channel_val += pow(2, exponent)
             freq_val = float(self.hb_freq_edit.text())
             pos_duty_val = float(self.hb_pos_duty_edit.text())
-            phase_shift_val = float(self.hb_phase_shift_edit.text())
+            t_switch_val = float(self.t_switch_edit.text())
+            sequence_time_total_val = int(self.sequence_time_edit.text())
             # check frequency/duty cycle value
             pos_pulse_width = float(10*(pos_duty_val/freq_val))
             if pos_pulse_width < 2:
-                self.hb_stop()
                 print("[ERR] Positive pulse width: {} ms < 2 ms".format(pos_pulse_width))
             else:
                 # check frequency value
                 if (freq_val >= f_min) and (freq_val <= f_max):
-                    # change the state of toggle
-                    self.hb_toggle_on()
+                    # display information message
+                    print("[INFO] Mode 5 ON")
+                    # self.chx_set_state_label_on()
+                    for sequence in range(sequence_time_total_val):
+                        # send through the serial port
+                        to_send = "\r\nSM3 {} {} {} 120 \r\n".format(channel_val, freq_val, pos_duty_val)
+                        send_command(self.hb_ser, to_send)
+                        # wait....
+                        time.sleep(t_switch_val)
+                        # send through the serial port
+                        to_send = "\r\nSM3 {} {} {} 240 \r\n".format(channel_val, freq_val, pos_duty_val)
+                        send_command(self.hb_ser, to_send)
+                        # wait....
+                        time.sleep(t_switch_val)
+
                     # send through the serial port
-                    to_send = "\r\nSM3 {} {} {} {} \r\n".format(channel_val, freq_val, pos_duty_val,phase_shift_val)
+                    to_send = "\r\nCM3 0\r\n"
                     send_command(self.hb_ser, to_send)
                     # display information message
-                    print("[INFO] Mode 3 ON ({} Phases | {}Hz | {}% | {}°)".format(channel_val, freq_val, pos_duty_val,
-                                                                                   phase_shift_val))
+                    print("[INFO] Mode 5 OFF")
                 else:
-                    self.hb_stop()
+                    print("[ERR] Frequency value:  {}".format(freq_val))
         except Exception as err_fb_freq_edit:
             # display error message
             print("[ERR] FB FREQ VAL: {} - {}".format(self.hb_freq_edit.text(), err_fb_freq_edit))
         return
 
-    ####################################################################################################################
-    # TOGGLE NOT CLICKED = STOP STATE
-    def hb_stop(self):
-        # change the state of toggle
-        self.hb_toggle_off()
-        # send through the serial port
-        to_send = "\r\nCM3 0\r\n"
-        send_command(self.hb_ser, to_send)
-        # display information message
-        print("[INFO] Mode 3 OFF")
-
-    ####################################################################################################################
-    def hb_toggle_on(self):
-        self.hb_toggle.setChecked(True)
-        self.hb_toggle.start_transition(1)
-
-    ####################################################################################################################
-    def hb_toggle_off(self):
-        self.hb_toggle.setChecked(False)
-        self.hb_toggle.start_transition(0)

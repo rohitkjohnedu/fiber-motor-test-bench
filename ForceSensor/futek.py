@@ -14,9 +14,8 @@ from PyQt6 import QtWidgets, QtCore
 sys.path.append(os.getcwd())
 
 
-from tools.data_tools import CircularDataBuffer
-from tools.gui_tools import get_application_path, create_qt_app_from_widget
-
+from ForceSensor.tools.data_tools import CircularDataBuffer
+# from tools.gui_tools import get_application_path, create_qt_app_from_widget
 
 
 DEFAULT_BUFFER_LENGTH = 100000
@@ -395,197 +394,61 @@ class FutekSensor:
         self.disconnect()
 
 
-# class FutekSensorDaqmx():
-#     def __init__(self, daq_mx: LMTS.instruments.daqmx.DaqMx, channel=0, sensitivity=1, max_force=1, amplifier_gain=495,
-#                  excitation_voltage=10):
-#         """
-#         Force sensor management object for FUTEK force sensor.
-#         Requires a NI-Daqmx card and the daqmx lmts library.
-
-#         :param daq_mx: Daqmx object
-#         :param channel: channel number for the force channel
-#         :param sensitivity: force sensor sensitivity [V/V]
-#         :param max_force: force sensor max force
-#         :param amplifier_gain: conditioning electronics amplifier gain
-#         :param excitation_voltage: conditioning electronics excitation voltage.
-#         """
-#         self.daqmx = daq_mx
-#         self.channel = channel
-
-#         # Sensor profile
-#         self.sensor_sensitivity = sensitivity
-#         self.max_force = max_force
-#         # Conditionning electronics
-#         self.amplifier_gain = amplifier_gain
-#         self.excitation_voltage = excitation_voltage
-#         # Taring props
-#         self.tare_force = 0
-#         self.taring_time = 0.1
-#         # Filtering props
-#         # self.filtering_time = 0.03
-#         self.filtering_time = 0
-#         self.filtering_window = 11
-#         self.lock = RLock()
-#         self.has_been_tested = False
-
-#     @property
-#     def is_connected(self):
-#         if not self.has_been_tested:
-#             self.has_been_tested = self.wait_for_sensor_input()
-#         if not self.daqmx.acquisition_thread.is_running or not self.has_been_tested:
-#             warnings.warn("Futek sensor: The daqmx continuous acquisition is not running, please start first.")
-#             return False
-#         return True
-
-#     def tare(self):
-#         """
-#         Tare force sensor.
-#         """
-#         self.lock.acquire()
-#         self.set_filtering(self.filtering_time)
-#         self.clear_buffer()
-#         time.sleep(self.taring_time)
-#         time_data, force_data = self.get_buffer(clear_buffer=True, ignore_tare=True)
-#         self.tare_force = force_data.mean()
-#         self.lock.release()
-
-#     def clear_buffer(self):
-#         """
-#         Clear buffer.
-#         Will clear all daqmx buffer.
-#         """
-#         self.daqmx.clear_buffer()
-
-#     def set_filtering(self, filtering_time):
-#         """
-#         Set the time for the moving average filter.
-#         A value of zero will disable filtering.
-#         """
-#         self.filtering_time = filtering_time
-#         fech = self.daqmx.get_task_sampling_rate(self.daqmx.acquisition_task)
-#         window = filtering_time * fech
-#         if window>0 and window % 2 == 0:
-#             window += 1
-#         self.filtering_window = int(window)
-
-#     def filter_force(self, force):
-#         """
-#         Filter force routine.
-#         """
-#         if self.filtering_window > 0 and len(force)>self.filtering_window:
-#             return savgol_filter(force, self.filtering_window, polyorder=1)
-#         else:
-#             return force
-
-#     def voltage_to_force(self, voltage, ignore_tare=False):
-#         """
-#         Convert sensed voltage to force.
-#         """
-#         factor = 1 / (self.excitation_voltage * self.amplifier_gain * self.sensor_sensitivity) * self.max_force*1e3
-#         if ignore_tare:
-#             force = voltage * factor
-#         else:
-#             force = voltage * factor - self.tare_force
-#         return self.filter_force(force)
-
-#     def get_buffer(self, clear_buffer=False, ignore_tare=False):
-#         """
-#         Get force buffer converted to milli-newton.
-#         """
-#         self.lock.acquire()
-#         if not self.daqmx.acquisition_thread.is_running:
-#             return None
-#         force_data = self.daqmx.get_buffer(clear_buffer=clear_buffer)[:, self.channel * 2:self.channel * 2 + 2].copy()
-#         force_data[:, 1] = self.voltage_to_force(force_data[:, 1], ignore_tare)
-#         self.lock.release()
-#         return force_data[:,0],force_data[:,1]
-
-#     def set_sensor_range(self, max_force):
-#         self.max_force = max_force
-
-#     def get_current_force(self):
-#         if self.is_connected:
-#             return self.get_buffer()[1]
-#         else:
-#             return np.nan
-
-#     def wait_for_sensor_input(self):
-#         print("WAITING FOR Sensor input")
-#         self.clear_buffer()
-#         box = None
-#         if QtWidgets.QApplication.instance() and QtWidgets.QApplication.activeWindow():
-#             box = QtWidgets.QDialog()
-#             box.setWindowTitle("Waiting for force sensor input")
-#             box_layout = QtWidgets.QVBoxLayout()
-#             box.setLayout(box_layout)
-#             # box_layout.addWidget(FutekSensorWidget(self,controls=False))
-#             box_layout.addWidget(QtWidgets.QLabel("Safety: Press or tap on the force sensor to confirm it can sense."))
-#             box.show()
-#         else:  # Otherwise
-#             logging.error("Safety: Press or tap on the force sensor to confirm it can sense.")  # Printing in the console
-#         sensor_moves = False
-#         threshold = 5/100
-#         timeout = 10
-#         t_0 = time.perf_counter()
-#         while time.perf_counter()-t_0<timeout:
-#             QtWidgets.QApplication.processEvents()
-#             time_f, force = self.get_buffer()
-#             if len(force)>1:
-#                 sensor_moves = (force.max()-force.min())/(self.max_force*1e3)>threshold
-#                 if sensor_moves: break
-#             time.sleep(0.01)
-#         if box:
-#             box.close()
-#         return sensor_moves
-
-
-class FutekSensorWidget(QtWidgets.QWidget):
-    """Widget for controlling Force sensor"""
+class FutekSensorPlot(QtWidgets.QWidget):
+    """Widget for plotting the Force sensor"""
     plotHistoryLength = 10000
 
-    def __init__(self, force_sensor_object: FutekSensor, controls=True):
+    def __init__(self, force_sensor_object: FutekSensor, controls=False):
         """
         :param force_sensor_object: Force sensor object to display
         """
-        super(FutekSensorWidget, self).__init__()
+        super(FutekSensorPlot, self).__init__()
         self.futek_sensor = force_sensor_object
 
         main_layout = QtWidgets.QHBoxLayout(self)
         main_layout.setSpacing(0)
-        
-        # connect_layout = QtWidgets.QFormLayout()
+
         self.heading = QtWidgets.QLabel("Force sensor")
         self.heading.setFixedWidth(100)
         self.heading.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        # connect_layout.addRow(self.heading)
 
         self.connect_button = QtWidgets.QPushButton("Connect")
         self.connect_button.setFixedWidth(100)
         self.connect_button.released.connect(self._connect_button_callback)
-        # connect_layout.addRow(self.connect_button)
 
         self.tare_button = QtWidgets.QPushButton("Tare")
         self.tare_button.setFixedWidth(100)
         self.tare_button.clicked.connect(self._tare_button_callback)
-        # connect_layout.addRow(self.tare_button)
 
         self.clear_button = QtWidgets.QPushButton("Clear")
         self.clear_button.setFixedWidth(100)
         self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
-        # connect_layout.addRow(self.clear_button)
 
         self.continuous_acq = QtWidgets.QPushButton("Continuous\n display")
         self.continuous_acq.setFixedWidth(100)
         self.continuous_acq.setCheckable(True)
         self.continuous_acq.setChecked(True)
         self.continuous_acq.toggled.connect(self._continuous_acq_button_callback)
-        # connect_layout.addRow(self.continuous_acq)
 
         self.save_data_button = QtWidgets.QPushButton("Save Data")
         self.save_data_button.setFixedWidth(100)
         self.save_data_button.clicked.connect(self._save_data_button_callback)
-        # connect_layout.addRow(self.save_data_button)
 
+        # ----------------------------------------------------------------------------------------------- #
+
+        if controls == True:
+            control_layout = QtWidgets.QVBoxLayout()
+            control_layout.addWidget(self.heading)
+            control_layout.addWidget(self.connect_button)
+            control_layout.addWidget(self.tare_button)
+            control_layout.addWidget(self.clear_button)
+            control_layout.addWidget(self.continuous_acq)
+            control_layout.addWidget(self.save_data_button)   
+            control_layout.addStretch(1)
+            main_layout.addLayout(control_layout)
+
+        # ----------------------------------------------------------------------------------------------- #
+            
         self.plot_force_widget = pg.PlotWidget(self, title="Force Sensor Reading")
         # self.plot_force_widget.setMinimumWidth(650)
         self.plot_force_widget.setMinimumHeight(300)
@@ -593,9 +456,6 @@ class FutekSensorWidget(QtWidgets.QWidget):
         self.plot_force_widget.setLabel('bottom', 'Time', units='s')
         self.plot_force = self.plot_force_widget.plot()
         main_layout.addWidget(self.plot_force_widget)
-
-        # if controls:
-        #     main_layout.addLayout(connect_layout)
 
         self.plot_update_timer = QtCore.QTimer(self)
         self.plot_update_timer.timeout.connect(self.plot_update)
@@ -656,16 +516,46 @@ class FutekSensorWidget(QtWidgets.QWidget):
         self.stop_display_timer()
         event.accept()
 
+    # ----------------------------------------------------------------------------------------------- #
+        
+    def heading(self):
+        self.heading
+    
+    def connect_button(self):
+        self.connect_button
+    
+    def tare_button(self):
+        self.tare_button
+    
+    def clear_button(self):
+        self.clear_button
+    
+    def continuous_acq(self):
+        self.continuous_acq
+    
+    def save_data_button(self):
+        self.save_data_button
 
-# def interface():
-#     APP_NAME = "Futek force sensor"
-#     APP = QtWidgets.QApplication(sys.argv)
-#     parser = argparse.ArgumentParser(description='Process some integers.')
-#     parser.add_argument('-sn', '--serial-number', default=577685, type=int)
-#     arguments = parser.parse_args()
-#     FS_OBJECT = FutekSensor(serial_number=arguments.serial_number)  # Default serial number is 577685
-#     WIDGET = FutekSensorWidget(FS_OBJECT)
-#     APP = create_qt_app_from_widget(APP, WIDGET, APP_NAME)
 
-# if __name__ == '__main__':
-#     interface()
+class FutekSensorControl(QtWidgets.QWidget):
+
+    def __init__(self, force_sensor_object_control: FutekSensorPlot):
+
+        super(FutekSensorControl, self).__init__()
+        self.futek_sensor_contol = force_sensor_object_control
+
+        main_layout = QtWidgets.QHBoxLayout(self)
+        main_layout.setSpacing(0)
+
+        control_layout = QtWidgets.QVBoxLayout()
+        control_layout.setContentsMargins(0, 10, 0, 10)
+        control_layout.addWidget(self.futek_sensor_contol.heading)
+        control_layout.addWidget(self.futek_sensor_contol.connect_button)
+        control_layout.addWidget(self.futek_sensor_contol.tare_button)
+        control_layout.addWidget(self.futek_sensor_contol.clear_button)
+        control_layout.addWidget(self.futek_sensor_contol.continuous_acq)
+        control_layout.addWidget(self.futek_sensor_contol.save_data_button)
+
+        control_layout.addStretch(1)
+
+        main_layout.addLayout(control_layout)

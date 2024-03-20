@@ -16,7 +16,7 @@
 # python packages
 from PyQt6.QtWidgets import *
 # custom packages
-from SerialSender import *
+from PowerSupply.SerialSender import *
 
 
 class StopReboot(QWidget):

@@ -16,9 +16,9 @@
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 # custom packages
-from py_toggle import PyToggle
-from SerialSender import *
-from Userdef import *
+from PowerSupply.py_toggle import PyToggle
+from PowerSupply.SerialSender import *
+from PowerSupply.Userdef import *
 
 
 class Voltage(QWidget):
