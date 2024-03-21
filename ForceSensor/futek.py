@@ -1,21 +1,16 @@
-﻿import argparse
-import logging
+﻿import logging
 import os
 import sys
 import time
-import warnings
 from threading import Thread, RLock
 
 import numpy as np
 import pyqtgraph as pg
 from PyQt6 import QtWidgets, QtCore
-# from scipy.signal import savgol_filter
 
 sys.path.append(os.getcwd())
 
-
 from ForceSensor.tools.data_tools import CircularDataBuffer
-# from tools.gui_tools import get_application_path, create_qt_app_from_widget
 
 
 DEFAULT_BUFFER_LENGTH = 100000
@@ -117,7 +112,6 @@ class FutekSensor:
     """
     Class for reading Futek Force Sensor
     """
-
     def __init__(self, serial_number="802078"):
         """
         Init Class
@@ -310,7 +304,7 @@ class FutekSensor:
         self.buffer_data.clear()
         self.buffer_raw_data.clear()
 
-    def get_buffer(self, clear_buffer=True, initial_t=None):
+    def get_buffer(self, clear_buffer=True, initial_t=0):
         """
         Get current force buffer from continuous reading.
         clear_buffer reset the buffer.
@@ -320,7 +314,7 @@ class FutekSensor:
         :param clear_buffer: If set to True, clear the buffer after reading
         :type clear_buffer: bool
         :param initial_t: Align time buffer to a specific time (if set to zero, time will start from zero,
-        otherwise, if None, it'll take the value of the syster counter.
+        otherwise, if None, it'll take the value of the system counter.
         :type initial_t: float
         :return: tuple with time vector as first element and force data
         :rtype: tuple of ndarray
@@ -330,8 +324,9 @@ class FutekSensor:
         if clear_buffer:  # If flag clearBuffer set to true
             self.clear_buffer()
         if initial_t is not None:
-            data[:, 0] -= data[0, 0]
-            data[:, 0] += initial_t
+            if len(data) > 0:
+                data[:, 0] -= data[0, 0]
+                data[:, 0] += initial_t
         self.reading_thread_lock.release()  # Release lock
         return data[:, 0], data[:, 1]  # Return time and forces buffers
 
@@ -396,7 +391,7 @@ class FutekSensor:
 
 class FutekSensorPlot(QtWidgets.QWidget):
     """Widget for plotting the Force sensor"""
-    plotHistoryLength = 10000
+    plotHistoryLength = 1500
 
     def __init__(self, force_sensor_object: FutekSensor, controls=False):
         """
@@ -424,11 +419,11 @@ class FutekSensorPlot(QtWidgets.QWidget):
         self.clear_button.setFixedWidth(100)
         self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
 
-        self.continuous_acq = QtWidgets.QPushButton("Continuous\n display")
-        self.continuous_acq.setFixedWidth(100)
-        self.continuous_acq.setCheckable(True)
-        self.continuous_acq.setChecked(True)
-        self.continuous_acq.toggled.connect(self._continuous_acq_button_callback)
+        # self.continuous_acq = QtWidgets.QPushButton("Continuous\n display")
+        # self.continuous_acq.setFixedWidth(100)
+        # self.continuous_acq.setCheckable(True)
+        # self.continuous_acq.setChecked(True)
+        # self.continuous_acq.toggled.connect(self._continuous_acq_button_callback)
 
         self.save_data_button = QtWidgets.QPushButton("Save Data")
         self.save_data_button.setFixedWidth(100)
@@ -442,7 +437,7 @@ class FutekSensorPlot(QtWidgets.QWidget):
             control_layout.addWidget(self.connect_button)
             control_layout.addWidget(self.tare_button)
             control_layout.addWidget(self.clear_button)
-            control_layout.addWidget(self.continuous_acq)
+            #control_layout.addWidget(self.continuous_acq)
             control_layout.addWidget(self.save_data_button)   
             control_layout.addStretch(1)
             main_layout.addLayout(control_layout)
@@ -457,19 +452,20 @@ class FutekSensorPlot(QtWidgets.QWidget):
         self.plot_force = self.plot_force_widget.plot()
         main_layout.addWidget(self.plot_force_widget)
 
+        
         self.plot_update_timer = QtCore.QTimer(self)
         self.plot_update_timer.timeout.connect(self.plot_update)
         self.plot_update_timer.setInterval(50)
 
-        self.init_widget()
+        # self.init_widget()
 
-    def init_widget(self):
-        if self.futek_sensor.is_connected:
-            self.connect_button.setText("Disconnect")
-            self.start_display_timer()
-        else:
-            self.connect_button.setText("Connect")
-            self.stop_display_timer()
+    # def init_widget(self):
+    #     if self.futek_sensor.is_connected:
+    #         self.connect_button.setText("Disconnect")
+    #         self.start_display_timer()
+    #     else:
+    #         self.connect_button.setText("Connect")
+    #         self.stop_display_timer()
 
     def _save_data_button_callback(self):
         t, pos = self.futek_sensor.get_buffer(clear_buffer=False)
@@ -477,25 +473,25 @@ class FutekSensorPlot(QtWidgets.QWidget):
         if f[0] != '':
             np.savetxt(f[0], np.transpose([t, pos]))
 
-    def _continuous_acq_button_callback(self):
-        sender = self.sender()
-        if sender.isChecked():
-            self.start_display_timer()
-        else:
-            self.stop_display_timer()
+    # def _continuous_acq_button_callback(self):
+    #     sender = self.sender()
+    #     if sender.isChecked():
+    #         self.start_display_timer()
+    #     else:
+    #         self.stop_display_timer()
 
     def _connect_button_callback(self):
         self.connect_button.setEnabled(False)
-        if not self.futek_sensor.is_connected:
-            connect_query = self.futek_sensor.connect()
-            if connect_query:
-                self.connect_button.setText("Disconnect")
-                self.start_display_timer()
-        else:
+        if self.futek_sensor.is_connected:
             connect_query = self.futek_sensor.disconnect()
             if not connect_query:
                 self.connect_button.setText("Connect")
-            self.stop_display_timer()
+                # self.stop_display_timer() 
+        else:
+            connect_query = self.futek_sensor.connect()
+            if connect_query:
+                self.connect_button.setText("Disconnect")
+                # self.start_display_timer()
         self.connect_button.setEnabled(True)
 
     def _tare_button_callback(self):
@@ -507,14 +503,14 @@ class FutekSensorPlot(QtWidgets.QWidget):
             self.plot_force.setData(time_force[-self.plotHistoryLength:], force[-self.plotHistoryLength:])
 
     def start_display_timer(self):
-        self.plot_update_timer.start()
+       self.plot_update_timer.start()
 
     def stop_display_timer(self):
-        self.plot_update_timer.stop()
+       self.plot_update_timer.stop()
 
-    def closeEvent(self, event):
-        self.stop_display_timer()
-        event.accept()
+    # def closeEvent(self, event):
+    #     self.stop_display_timer()
+    #     event.accept()
 
     # ----------------------------------------------------------------------------------------------- #
         
@@ -553,7 +549,7 @@ class FutekSensorControl(QtWidgets.QWidget):
         control_layout.addWidget(self.futek_sensor_contol.connect_button)
         control_layout.addWidget(self.futek_sensor_contol.tare_button)
         control_layout.addWidget(self.futek_sensor_contol.clear_button)
-        control_layout.addWidget(self.futek_sensor_contol.continuous_acq)
+        #control_layout.addWidget(self.futek_sensor_contol.continuous_acq)
         control_layout.addWidget(self.futek_sensor_contol.save_data_button)
 
         control_layout.addStretch(1)

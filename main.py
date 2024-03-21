@@ -33,7 +33,7 @@ class MainWindow(QWidget):
         self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
         display_cmd = 0                 # 0: no data display;       1: data display.
         record_data = 0                 # 0: no data record;        1: data record.
-        self.display_currents = 1       # 0: no current plot;       1: current plot.
+        self.display_currents = 0       # 0: no current plot;       1: current plot.
         self.display_voltages = 1       # 0: no voltage plot;       1: high voltage plot;       2: low voltage plot.
         self.display_force = 1          # 0: no force plot;         1: force plot.
 
@@ -42,7 +42,7 @@ class MainWindow(QWidget):
         # Estimation of data rate transmission used for nice beginning of plot and not totally inaccurate time basis on
         # plots.
 
-        self.time = 1
+        self.plot_interval = 1#ms
         self.estimateRate = 0.005
 
         # ************************************************************************************************************ #
@@ -177,12 +177,14 @@ class MainWindow(QWidget):
         # Period is 30ms => 33Hz, if enough data sent by the board.
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.data_reader_callback)
-        self.timer.start(self.time)
+        self.timer.start(self.plot_interval)
 
     # ------------------------------------------------------------------------------------------------------------ #
         
     def data_reader_callback(self):
         self.board_1.data_reader_callback()
+        self.board_1.plot_data()
+        # self.force_sensor_plot.plot_update()
         #save and plot futek data 
 
     # **************************************************************************************************************** #
