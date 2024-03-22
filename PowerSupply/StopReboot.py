@@ -42,6 +42,7 @@ class StopReboot(QWidget):
         # ACTIONS
         self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
 
+
     # ####################################################################################################################
     def attach_serial(self, serial):
         self.ser = serial

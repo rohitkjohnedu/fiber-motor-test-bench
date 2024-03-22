@@ -15,12 +15,12 @@
 
 import sys
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QApplication, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QApplication, QMessageBox, QPushButton
 # custom packages
 from PowerSupply.PS_Widget import PowerSupply
 from PowerSupply.Userdef import *
 from ForceSensor import FutekSensor, FutekSensorPlot, FutekSensorControl
-
+import time
 
 class MainWindow(QWidget):
     def __init__(self, parent=None):
@@ -42,7 +42,7 @@ class MainWindow(QWidget):
         # Estimation of data rate transmission used for nice beginning of plot and not totally inaccurate time basis on
         # plots.
 
-        self.plot_interval = 1#ms
+        self.plot_interval = 10#ms
         self.estimateRate = 0.005
 
         # ************************************************************************************************************ #
@@ -98,6 +98,18 @@ class MainWindow(QWidget):
 
         # Here will be a code for the actuator control panel.
 
+        # ------------------------------------------------------------------------------------------------------------ #
+
+        # Unified controller
+        self.uni_groupBox = QGroupBox("Uni controller")
+        self.uni_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        self.control_panel_layout.addWidget(self.uni_groupBox, stretch=1)
+
+        # Here will be the code for the unified controller
+        self.button_layout = QVBoxLayout(self.uni_groupBox)
+        self.run_botton = QPushButton("run")
+        self.button_layout.addWidget(self.run_botton)
+        self.run_botton.clicked.connect(self.run_button_clicked)
         # ------------------------------------------------------------------------------------------------------------ #
 
         self.main_layout.addLayout(self.control_panel_layout, 0) # add the control panel on the left side.
@@ -178,13 +190,27 @@ class MainWindow(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.data_reader_callback)
         self.timer.start(self.plot_interval)
+        self.start_time = time.perf_counter()
 
+    def run_button_clicked(self):
+        if self.run_botton.text() == "run":
+            self.run_botton.setText("stop")
+            self.board_1.start_recording()
+            self.force_sensor.start_reading()
+            self.start_time = time.perf_counter()
+        else:
+            self.run_botton.setText("run")
+            self.board_1.stop_recording()
+            self.force_sensor.stop_reading()
+        
     # ------------------------------------------------------------------------------------------------------------ #
         
     def data_reader_callback(self):
-        self.board_1.data_reader_callback()
-        self.board_1.plot_data()
-        # self.force_sensor_plot.plot_update()
+        #self.board_1.data_reader_callback()
+        self.board_1.plot_data(self.start_time)
+        self.force_sensor_plot.plot_update(self.start_time)
+
+
         #save and plot futek data 
 
     # **************************************************************************************************************** #
