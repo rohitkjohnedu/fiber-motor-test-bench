@@ -43,7 +43,7 @@ class MainWindow(QWidget):
         # plots.
 
         self.plot_interval = 10#ms
-        self.estimateRate = 0.005
+        self.start_time = 0
 
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
@@ -51,8 +51,7 @@ class MainWindow(QWidget):
 
         # POWER SUPPLY (High voltage power supply control panel).
         board_1_port = 'COM3'
-        self.board_1 = PowerSupply(port_name=board_1_port,
-                                        estimate_rate=self.estimateRate,
+        self.power_supply = PowerSupply(port_name=board_1_port,
                                         currents_display=self.display_currents,
                                         voltage_display=self.display_voltages,
                                         debug_mode=self.debug_mode,
@@ -79,14 +78,14 @@ class MainWindow(QWidget):
 
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # BOARD #1 (Power supply control panel).
-        self.board_1_groupBox = QGroupBox(self.board_1.board_name)
-        self.board_1_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.control_panel_layout.addWidget(self.board_1_groupBox, stretch=1)
+        # Power supply control panel.
+        self.power_supply_groupBox = QGroupBox(self.power_supply.board_name)
+        self.power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        self.control_panel_layout.addWidget(self.power_supply_groupBox, stretch=1)
 
-        self.board_1_groupBox_layout = QFormLayout(self.board_1_groupBox)
-        self.board_1_groupBox_layout.addRow(self.board_1)
-        self.board_1_groupBox.setLayout(self.board_1_groupBox_layout)
+        self.power_supply_groupBox_layout = QFormLayout(self.power_supply_groupBox)
+        self.power_supply_groupBox_layout.addRow(self.power_supply)
+        self.power_supply_groupBox.setLayout(self.power_supply_groupBox_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
@@ -107,9 +106,9 @@ class MainWindow(QWidget):
 
         # Here will be the code for the unified controller
         self.button_layout = QVBoxLayout(self.uni_groupBox)
-        self.run_botton = QPushButton("run")
-        self.button_layout.addWidget(self.run_botton)
-        self.run_botton.clicked.connect(self.run_button_clicked)
+        self.run_button = QPushButton("Run")
+        self.button_layout.addWidget(self.run_button)
+        self.run_button.clicked.connect(self.run_button_clicked)
         # ------------------------------------------------------------------------------------------------------------ #
 
         self.main_layout.addLayout(self.control_panel_layout, 0) # add the control panel on the left side.
@@ -148,12 +147,12 @@ class MainWindow(QWidget):
             self.voltage_labels_layout.setContentsMargins(0, 10, 0, 10)
 
             if self.display_voltages == 1:
-                self.voltage_layout.addWidget(self.board_1.hv_plots)
-                self.voltage_labels_layout.addWidget(self.board_1.voltage_legend)
+                self.voltage_layout.addWidget(self.power_supply.hv_plots)
+                self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
 
             if self.display_voltages == 2:
-                self.voltage_layout.addWidget(self.board_1.lv_plots)
-                self.voltage_labels_layout.addWidget(self.board_1.voltage_legend)
+                self.voltage_layout.addWidget(self.power_supply.lv_plots)
+                self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
 
             self.voltage_labels_layout.addStretch(1)
             self.voltage_layout.addLayout(self.voltage_labels_layout)
@@ -169,8 +168,8 @@ class MainWindow(QWidget):
             self.current_labels_layout.setContentsMargins(0, 10, 0, 10)
 
             for plots_row in range(3):  # three phases means 3 current plots.
-                self.currents_layout.addWidget(self.board_1.hb_cm_plots[plots_row])
-                self.current_labels_layout.addWidget(self.board_1.current_legend[plots_row])
+                self.currents_layout.addWidget(self.power_supply.hb_cm_plots[plots_row])
+                self.current_labels_layout.addWidget(self.power_supply.current_legend[plots_row])
 
             self.current_labels_layout.addStretch(1)
             self.currents_layout.addLayout(self.current_labels_layout)
@@ -186,28 +185,27 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
         
         # Set a timer with the callback function which reads data from serial port and plot.
-        # Period is 30ms => 33Hz, if enough data sent by the board.
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.data_reader_callback)
         self.timer.start(self.plot_interval)
-        self.start_time = time.perf_counter()
+
+        # self.start_time = time.perf_counter()
 
     def run_button_clicked(self):
-        if self.run_botton.text() == "run":
-            self.run_botton.setText("stop")
-            self.board_1.start_recording()
-            self.force_sensor.start_reading()
+        if self.run_button.text() == "Run":
+            self.run_button.setText("Stop")
+            self.power_supply.start_recording()
+            self.force_sensor.start_recording()
             self.start_time = time.perf_counter()
         else:
-            self.run_botton.setText("run")
-            self.board_1.stop_recording()
-            self.force_sensor.stop_reading()
+            self.run_button.setText("Run")
+            self.power_supply.stop_recording()
+            self.force_sensor.stop_recording()
         
     # ------------------------------------------------------------------------------------------------------------ #
         
     def data_reader_callback(self):
-        #self.board_1.data_reader_callback()
-        self.board_1.plot_data(self.start_time)
+        self.power_supply.plot_update(self.start_time)
         self.force_sensor_plot.plot_update(self.start_time)
 
 
@@ -219,7 +217,7 @@ class MainWindow(QWidget):
         reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?")
 
         if reply == QMessageBox.StandardButton.Yes:
-            self.board_1.stop_comm()
+            self.power_supply.stop_comm()
 
             event.accept()
             if self.debug_mode == 1:

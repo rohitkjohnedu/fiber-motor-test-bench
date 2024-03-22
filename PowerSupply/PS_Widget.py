@@ -19,14 +19,13 @@ from serial import *
 import sys
 import time
 # custom packages
-from PowerSupply.ps_plots import VoltagePlots, VoltageLegend, Current1Plots, CurrentLegend, color
+from PowerSupply.ps_plots import VoltagePlots, VoltageLegend, Current1Plots, CurrentLegend
 from PowerSupply.ps_modes import *
 from PowerSupply.options import *
 from PowerSupply.StopReboot import *
 from PowerSupply.Voltage import *
 
 from threading import Thread, RLock
-from ForceSensor.tools.data_tools import CircularDataBuffer
 
 DEFAULT_BUFFER_LENGTH = 10000000
 
@@ -45,11 +44,11 @@ class PowerSupply(QWidget):
 
         self.buffer_length = DEFAULT_BUFFER_LENGTH
         self.variables = 3
-        #self.buffer_data = CircularDataBuffer((self.buffer_length, 2))
-        self.buffer_data = np.zeros((self.buffer_length, self.variables),dtype=np.float64)
+        self.buffer_data = np.zeros((self.buffer_length, self.variables), dtype=np.float64)
         self.sample = 0
-        self.plotHistoryLength = 10#second
-        self.maxPlotHistoryLength = 10000#samples
+        self.plotHistoryLength = 10#seconds
+        self.maxPlotHistoryLength = 100000#samples
+        # self.reading_thread_lock = None
         # ************************************************************************************************************ #
 
         # MODULES
@@ -100,8 +99,6 @@ class PowerSupply(QWidget):
             self.lv_err = np.zeros(self.buffer_length, dtype=float)
             self.lv_err_now = []
 
-        self.sample = 0
-
         # ------------------------------------------------------------------------------------------------------------ #
             
         # Voltage labels.
@@ -131,16 +128,7 @@ class PowerSupply(QWidget):
                 # Current labels.
                 self.current_legend.append(CurrentLegend.CurrentLegend(plot_name=self.y_name[HalfBridges+1],
                                                                     plot_index=HalfBridges+1))    
-
-        # ************************************************************************************************************ #
-            
-        # FOR ANY PLOT (CURRENT OR VOLTAGE)
-        # if (self.display_voltages != 0) or (self.display_currents != 0):
-        #     # init data arrays + time basis,...
-        #     self.tplot = np.arange(-1000 * self.estimateRate, 0.0, self.estimateRate, dtype=float)
-        #     self.t_save = np.zeros(1000, dtype=int)
-
-
+           
         # ************************************************************************************************************ #
         #                                           SERIAL COMMUNICATION
         # ************************************************************************************************************ #
@@ -200,8 +188,7 @@ class PowerSupply(QWidget):
             print("[ERR] unable to read line: {}".format(e))
             self.try_reconnect()
 
-        self.board_name = line.replace("[QName] ", "").replace("\n", "")
-        # self.board_name = "Power Supply"
+        self.board_name = "Power Supply " + line.replace("[QName] ", "").replace("\n", "")
 
         # ------------------------------------------------------------------------------------------------------------ #
 
@@ -314,12 +301,7 @@ class PowerSupply(QWidget):
         
         # Layout of all widgets not plot.
         layout_left.addStretch(1)
-        layout_main.addStretch(1)
-        
-        # ************************************************************************************************************ #
-        
-        
-        
+        layout_main.addStretch(1)   
 
     # ************************************************************************************************************ #
     #                                           CALLBACK FUNCTION
@@ -361,37 +343,16 @@ class PowerSupply(QWidget):
         """
         self.buffer_data = np.zeros((self.buffer_length, self.variables), dtype=np.float64)
         self.sample = 0
-
-    #def get_buffer(self, clear_buffer=True, initial_t=0):
         
     def get_buffer(self):
         self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
         data = self.buffer_data[0:self.sample,:]
-        # if clear_buffer:  # If flag clearBuffer set to true
-        #     self.clear_buffer()
-        # if initial_t is not None:
-        #     if len(data) > 0:
-        #         data[:, 0] -= data[0, 0]
-        #         data[:, 0] += initial_t
         self.reading_thread_lock.release()  # Release lock
         return data
     
 
     def data_reader_callback(self):
         while self.continuous_reading_flag:  # If flag for stoping data acquisition is not true
-            # ------------------------------------------------------------------------------------------------------------ #
-            # reading = self.futek_dll.Normal_Data_Request(self.device_handle)  # Read current value
-            # if reading.isnumeric():  # If the value is valid
-            #     current_time = time.perf_counter()  # Get corresponding reading time
-            #     raw_force = float(reading) - self.tare_register_value  # Update raw data
-            #     current_force = self.sensor_capacity * (raw_force - self.taring_force) / (
-            #             self.fullscale_value - self.offset)  # Compute current force
-            #     self.reading_thread_lock.acquire()  # Get multithreading lock
-            #     self.buffer_data.append([current_time, current_force])
-            #     self.buffer_raw_data.append([current_time, raw_force])
-            #     self.reading_thread_lock.release()  # Release data lock
-            # ------------------------------------------------------------------------------------------------------------ #
-
             # Read from serial.
             try:
                 self.line = self.ser.readline()
@@ -423,7 +384,7 @@ class PowerSupply(QWidget):
             self.hv_vm = float(data[5])
             self.reading_thread_lock.acquire()  # Get multithreading lock
             epoch_time = time.perf_counter()
-            self.buffer_data[self.sample,:] = [epoch_time, self.t_save, self.hv_vm ]
+            self.buffer_data[self.sample,:] = [epoch_time, self.t_save, self.hv_vm]
             self.reading_thread_lock.release()  # Release data lock
 
             self.sample = self.sample + 1
@@ -471,12 +432,8 @@ class PowerSupply(QWidget):
         # ************************************************************************************************************ #
         #                                           UPDATE PLOTS/LABELS
         # ************************************************************************************************************ #
-    
-    # def plot_update(self):
-    #         tplot, hv_vm = self.get_buffer(clear_buffer=False)
-    #         # self.plot_force.setData(time_force[-self.plotHistoryLength:], force[-self.plotHistoryLength:])
 
-    def plot_data(self, start_time):
+    def plot_update(self, start_time):
         # Update voltage button.
             # self.voltage.update_data(current_voltage=self.hv_vm[-1])
 
@@ -487,13 +444,16 @@ class PowerSupply(QWidget):
                 tplot = epoch_time - start_time
                 hv_vm = data[:, 2]
 
-                if len(tplot) > self.maxPlotHistoryLength:
-                    tplot = tplot[-self.maxPlotHistoryLength:]
-                    hv_vm = hv_vm[-self.maxPlotHistoryLength:]
+                # if len(tplot) > self.maxPlotHistoryLength:
+                #     print("cutting")
+                #     tplot = tplot[-self.maxPlotHistoryLength:]
+                #     hv_vm = hv_vm[-self.maxPlotHistoryLength:]
 
                 if len(tplot) > 0:
-                    use = tplot>tplot[-1]-self.plotHistoryLength
-                    self.hv_plots.update_plot(t=tplot[use], y1=hv_vm[use]) # plot
+                    # print(tplot)
+                    use = tplot > tplot[-1] - self.plotHistoryLength
+                    self.hv_plots.update_plot(t=tplot[use], y1=hv_vm[use])
+
                 # self.hv_plots.update_plot(t=tplot[-self.plotHistoryLength:], y1=self.hv_set, y2=hv_vm[-self.plotHistoryLength:]) # plot
 
             #     self.voltage_legend.update_label(self.hv_set_now, self.hv_vm_now, self.hv_err_now)
@@ -522,9 +482,9 @@ class PowerSupply(QWidget):
             # if self.ser.in_waiting > 200:
             #     self.ser.reset_input_buffer()
 
-    def set_plot_history(self, history_length):
-        self.plotHistoryLength = history_length          
-        
+    # def set_plot_history(self, history_length):
+    #     self.plotHistoryLength = history_length
+                    
     ####################################################################################################################
     # RECONNECTION WITH BOARD
     def try_reconnect(self):

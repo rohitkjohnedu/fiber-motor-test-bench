@@ -10,8 +10,6 @@ from PyQt6 import QtWidgets, QtCore
 
 sys.path.append(os.getcwd())
 
-from ForceSensor.tools.data_tools import CircularDataBuffer
-
 
 DEFAULT_BUFFER_LENGTH = 10000000
 FUTEK_UNITS_CODE = {
@@ -282,11 +280,11 @@ class FutekSensor:
         else:
             _error_display("Impossible to tare : Force sensor not connected")
 
-    def start_reading(self):
+    def start_recording(self):
         """
         Start continuous reading of the force
         """
-        self.stop_reading()
+        self.stop_recording()
         self.buffer_data = np.zeros((self.buffer_length, 2))
         self.buffer_raw_data = np.zeros((self.buffer_length, 2))
         self.sample = 0
@@ -294,7 +292,7 @@ class FutekSensor:
         self.reading_thread = Thread(target=self._read_device)  # Thread initialization for continuous reading
         self.reading_thread.start()
 
-    def stop_reading(self):
+    def stop_recording(self):
         """
         Stop continuous reading of the force
         """
@@ -387,7 +385,7 @@ class FutekSensor:
         :return: current value of the force
         :rtype: float
         """
-        return self.buffer_data[self.sample-1, 1]
+        return self.buffer_data[0:self.sample, 1]
 
     def __del__(self):
         """
@@ -517,8 +515,7 @@ class FutekSensorPlot(QtWidgets.QWidget):
 
             if len(tplot)>0:
                 use = tplot>tplot[-1]-self.plotHistoryLength
-
-            self.plot_force.setData(tplot[use], force[use])
+                self.plot_force.setData(tplot[use], force[use])
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length
