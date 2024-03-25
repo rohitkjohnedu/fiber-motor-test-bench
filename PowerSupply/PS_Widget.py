@@ -43,12 +43,12 @@ class PowerSupply(QWidget):
         self.record_data = record_data
 
         self.buffer_length = DEFAULT_BUFFER_LENGTH
-        self.variables = 3
-        self.buffer_data = np.zeros((self.buffer_length, self.variables), dtype=np.float64)
+        self.variables_number = 8
+        self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
         self.sample = 0
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
-        # self.reading_thread_lock = None
+        self.reading_thread_lock = RLock()
         # ************************************************************************************************************ #
 
         # MODULES
@@ -329,7 +329,6 @@ class PowerSupply(QWidget):
     def start_recording(self):
         self.continuous_reading_flag = True
         self.reading_thread = Thread(target=self.data_reader_callback)
-        self.reading_thread_lock = RLock()
         self.reading_thread.start()
         self.clear_buffer()
 
@@ -337,11 +336,7 @@ class PowerSupply(QWidget):
         self.continuous_reading_flag = False
 
     def clear_buffer(self):
-        """
-        Clear both data buffer and raw data buffer
-        :return: None
-        """
-        self.buffer_data = np.zeros((self.buffer_length, self.variables), dtype=np.float64)
+        self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
         self.sample = 0
         
     def get_buffer(self):
@@ -350,44 +345,61 @@ class PowerSupply(QWidget):
         self.reading_thread_lock.release()  # Release lock
         return data
     
-
     def data_reader_callback(self):
-        while self.continuous_reading_flag:  # If flag for stoping data acquisition is not true
+        while self.continuous_reading_flag:  # If flag for data acquisition is True
             # Read from serial.
             try:
-                self.line = self.ser.readline()
-                self.line = self.line.decode("utf-8")
+                line = self.ser.readline()
+                line = line.decode("utf-8")
                 if self.rcv_data == 1:
-                    self.rcv_data_label.setText("Received data: {}".format(self.line))
+                    self.rcv_data_label.setText("Received data: {}".format(line))
             except Exception as e:
                 print("[ERR] unable to read line: {}".format(e))
                 self.try_reconnect()
                 continue
 
-            if len(self.line) <= 1:
+            if len(line) <= 1:
                 # Enable debug.
                 to_send = "\r\nMoni 1\r\n"
                 send_command(self.ser, to_send)
                 continue
 
-            if not self.line.startswith("[moni]"):
+            if not line.startswith("[moni]"):
                 continue   
 
             # ************************************************************************************************************ #
             # Handle data.
             # Remove units, spaces, split with coma.
             # Refer to documentation of HVPS to assign data to fields.
-            data = self.line.replace(" ", "").replace("uA", "").replace("V", "").replace("Hz", "").replace("\r\n", "").split(",")
+            data = line.replace(" ", "").replace("uA", "").replace("V", "").replace("Hz", "").replace("\r\n", "").split(",")
 
-            # current_time = time.perf_counter() #
-            self.t_save = float(data[1])/1000
-            self.hv_vm = float(data[5])
+            try:
+                if self.display_voltages != 0 or self.display_currents != 0:
+                    t_save = int(data[1])/1000
+            # -------------------------------------------------------------------------------------------------------- #
+                if self.display_voltages != 0:
+                    hv_set = np.float64(data[2])
+                    hv_set_now = format(hv_set, '4.0f')
+
+                    hv_vm = np.float64(data[5])
+                    hv_vm_now = format(hv_vm, '4.0f')
+
+                    hv_err = np.float64(data[2]) - np.float64(data[5])
+                    hv_err_now = format(hv_err, '4.0f')
+            except Exception as e:
+                print("[ERR] Unable to convert line: {} - {}".format(line, e))
+                continue
+            
+            # t_save = np.float64(data[1])/1000
+            # hv_vm = np.float64(data[5])
+
             self.reading_thread_lock.acquire()  # Get multithreading lock
             epoch_time = time.perf_counter()
-            self.buffer_data[self.sample,:] = [epoch_time, self.t_save, self.hv_vm]
+            self.buffer_data[self.sample,:] = [epoch_time, t_save, hv_set, hv_vm, hv_err,
+                                                                   hv_set_now, hv_vm_now, hv_err_now] # to change
             self.reading_thread_lock.release()  # Release data lock
-
             self.sample = self.sample + 1
+
             # try:
             #     # -------------------------------------------------------------------------------------------------------- #
             #     self.hv_vm[self.sample] = float(data[5])
@@ -442,21 +454,26 @@ class PowerSupply(QWidget):
                 data = self.get_buffer()
                 epoch_time = data[:, 0]
                 tplot = epoch_time - start_time
-                hv_vm = data[:, 2]
+                hv_set = data[:, 2]
+                hv_vm = data[:, 3]
+                # hv_err = data[:, 4]
+                hv_set_now = data[-1, 5]
+                hv_vm_now = data[-1, 6]
+                hv_err_now = data[-1, 7]
 
-                # if len(tplot) > self.maxPlotHistoryLength:
-                #     print("cutting")
-                #     tplot = tplot[-self.maxPlotHistoryLength:]
-                #     hv_vm = hv_vm[-self.maxPlotHistoryLength:]
+                if len(tplot) > self.maxPlotHistoryLength:
+                    tplot = tplot[-self.maxPlotHistoryLength:]
+                    hv_set = hv_set[-self.maxPlotHistoryLength:]
+                    hv_vm = hv_vm[-self.maxPlotHistoryLength:]
+                    # hv_err = hv_err[-self.maxPlotHistoryLength:]
+                    # hv_set_now = hv_set_now[-self.maxPlotHistoryLength:]
+                    # hv_vm_now = hv_vm_now[-self.maxPlotHistoryLength:]
+                    # hv_err_now = hv_err_now[-self.maxPlotHistoryLength:]
 
                 if len(tplot) > 0:
-                    # print(tplot)
                     use = tplot > tplot[-1] - self.plotHistoryLength
-                    self.hv_plots.update_plot(t=tplot[use], y1=hv_vm[use])
-
-                # self.hv_plots.update_plot(t=tplot[-self.plotHistoryLength:], y1=self.hv_set, y2=hv_vm[-self.plotHistoryLength:]) # plot
-
-            #     self.voltage_legend.update_label(self.hv_set_now, self.hv_vm_now, self.hv_err_now)
+                    self.hv_plots.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use])
+                    self.voltage_legend.update_label(hv_set_now, hv_vm_now, hv_err_now)
 
             # if self.display_voltages == 2:
             #     self.lv_plots.update_plot(t=tplot, y1=self.lv_set, y2=self.lv_vm)
@@ -482,8 +499,8 @@ class PowerSupply(QWidget):
             # if self.ser.in_waiting > 200:
             #     self.ser.reset_input_buffer()
 
-    # def set_plot_history(self, history_length):
-    #     self.plotHistoryLength = history_length
+    def set_plot_history(self, history_length):
+        self.plotHistoryLength = history_length
                     
     ####################################################################################################################
     # RECONNECTION WITH BOARD

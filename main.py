@@ -37,14 +37,6 @@ class MainWindow(QWidget):
         self.display_voltages = 1       # 0: no voltage plot;       1: high voltage plot;       2: low voltage plot.
         self.display_force = 1          # 0: no force plot;         1: force plot.
 
-        # ------------------------------------------------------------------------------------------------------------ #
-
-        # Estimation of data rate transmission used for nice beginning of plot and not totally inaccurate time basis on
-        # plots.
-
-        self.plot_interval = 10#ms
-        self.start_time = 0
-
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
         # ************************************************************************************************************ #
@@ -183,28 +175,31 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
         #                                          CALLBACK FOR DATA READING
         # ************************************************************************************************************ #
-        
-        # Set a timer with the callback function which reads data from serial port and plot.
+
+        self.plot_interval = 10#ms
+        self.start_time = 0
+
+        # Set a timer with the callback function which reads and displays data from serial port.
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.data_reader_callback)
+        self.timer.timeout.connect(self.plot_update_callback)
         self.timer.start(self.plot_interval)
 
         # self.start_time = time.perf_counter()
 
     def run_button_clicked(self):
         if self.run_button.text() == "Run":
-            self.run_button.setText("Stop")
+            self.start_time = time.perf_counter()
             self.power_supply.start_recording()
             self.force_sensor.start_recording()
-            self.start_time = time.perf_counter()
+            self.run_button.setText("Stop")
         else:
-            self.run_button.setText("Run")
             self.power_supply.stop_recording()
             self.force_sensor.stop_recording()
+            self.run_button.setText("Run")
         
     # ------------------------------------------------------------------------------------------------------------ #
         
-    def data_reader_callback(self):
+    def plot_update_callback(self):
         self.power_supply.plot_update(self.start_time)
         self.force_sensor_plot.plot_update(self.start_time)
 

@@ -47,7 +47,7 @@ class VoltagePlots(QWidget):
         self.layout_plot.addWidget(self.graphics_layout)
 
     ####################################################################################################################
-    def update_plot(self, t, y1):
-        self.v_set_plot.setData(t, y1)  # plot
-        # self.v_now_plot.setData(t, y2)
+    def update_plot(self, t, y1, y2):
+        self.v_set_plot.setData(t, y1) 
+        self.v_now_plot.setData(t, y2)
 

@@ -135,10 +135,8 @@ class FutekSensor:
         self.device_handle = None
 
         self.buffer_length = DEFAULT_BUFFER_LENGTH
-        #self.buffer_raw_data = CircularDataBuffer((self.buffer_length, 2))
-        #self.buffer_data = CircularDataBuffer((self.buffer_length, 2))
-        self.buffer_raw_data = np.zeros((self.buffer_length, 2))
-        self.buffer_data = np.zeros((self.buffer_length, 2))
+        self.buffer_raw_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
+        self.buffer_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
         self.sample = 0
 
         self.continuous_reading_flag = False
@@ -186,7 +184,7 @@ class FutekSensor:
         :type: float
         """
         sensor_capacity_register = self.futek_dll.Get_Internal_Register(self.device_handle, 5)
-        sensor_capacity_register = float(sensor_capacity_register)
+        sensor_capacity_register = np.float64(sensor_capacity_register)
         sensor_capacity_register_details = self.futek_dll.Get_Internal_Register(self.device_handle, 6)
         sensor_capacity_register_details = int(sensor_capacity_register_details)
 
@@ -194,7 +192,7 @@ class FutekSensor:
         unit_code = int((sensor_capacity_register_details & 0b1111111100000000) >> 8)
         direction_code = int(sensor_capacity_register_details & 0b11111111)
 
-        sensor_capacity_register *= 10 ** (-float(decimal_point_code))
+        sensor_capacity_register *= 10 ** (-np.float64(decimal_point_code))
 
         if unit_code in FUTEK_UNITS_CODE:
             sensor_capacity_register *= FUTEK_UNITS_CODE[unit_code]['conversion_to_mN']
@@ -220,7 +218,7 @@ class FutekSensor:
             while True:  # Try to read fullscale value
                 fullscale_value = self.futek_dll.Get_Fullscale_Value(self.device_handle)
                 if fullscale_value.isnumeric():  # If the return is numeric (i.e. correct)
-                    self.fullscale_value = float(fullscale_value)  # It is saved
+                    self.fullscale_value = np.float64(fullscale_value)  # It is saved
                     break  # Quitting the reading process
                 if timeout:  # If a timeout has been set
                     if time.perf_counter() > initial_time + timeout:  # Checking timeout has not been reached
@@ -233,7 +231,7 @@ class FutekSensor:
             while True:  # Try to read offset value
                 offset = self.futek_dll.Get_Offset_Value(self.device_handle)  # Call Dll function
                 if offset.isnumeric():  # If the return value is correct
-                    self.offset = float(offset)  # Save the value
+                    self.offset = np.float64(offset)  # Save the value
                     break  # Stop trying to read
                 if timeout:  # If method argument timeout is set
                     if time.perf_counter() > initial_time + timeout:  # Check if timeout time is elapsed
@@ -245,7 +243,7 @@ class FutekSensor:
             while True:  # Try to read tare register value
                 tare_register_value = self.futek_dll.Get_Internal_Register(self.device_handle, 1)
                 if tare_register_value.isnumeric():  # If the return value is correct
-                    self.tare_register_value = float(tare_register_value)  # Save the value
+                    self.tare_register_value = np.float64(tare_register_value)  # Save the value
                     break  # Stop trying to read
                 if timeout:  # If method argument timeout is set
                     if time.perf_counter() > initial_time + timeout:  # Check if timeout time is elapsed
@@ -273,10 +271,18 @@ class FutekSensor:
         Measure the force during 50ms and uses the mean as taring value
         """
         if self.is_connected:
-            self.get_buffer()  # Reset buffer
-            time.sleep(0.05)  # Wait for Measurement
-            self.taring_force = np.mean(self.buffer_raw_data[:, 1])  # Get mean value
-            self.get_buffer()  # Reset buffer
+            if self.continuous_reading_flag:
+                self.get_buffer()  # Reset buffer
+                time.sleep(0.05)  # Wait for Measurement
+                self.taring_force = np.mean(self.buffer_raw_data[0:self.sample, 1])  # Get mean value
+                self.get_buffer()  # Reset buffer
+            else:
+                self.start_recording()
+                self.get_buffer()  # Reset buffer
+                time.sleep(0.05)  # Wait for Measurement
+                self.taring_force = np.mean(self.buffer_raw_data[0:self.sample, 1])  # Get mean value
+                self.get_buffer()  # Reset buffer
+                self.stop_recording()
         else:
             _error_display("Impossible to tare : Force sensor not connected")
 
@@ -325,7 +331,8 @@ class FutekSensor:
         :rtype: tuple of ndarray
         """
         self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
-        data = self.buffer_data[0:self.sample,:]
+
+        data = self.buffer_data[0:self.sample,:] 
         # if clear_buffer:  # If flag clearBuffer set to true
         #     self.clear_buffer()
         # if initial_t is not None:
@@ -344,7 +351,7 @@ class FutekSensor:
                 reading = self.futek_dll.Normal_Data_Request(self.device_handle)  # Read current value
                 if reading.isnumeric():  # If the value is valid
                     current_time = time.perf_counter()  # Get corresponding reading time
-                    raw_force = float(reading) - self.tare_register_value  # Update raw data
+                    raw_force = np.float64(reading) - self.tare_register_value  # Update raw data
                     current_force = self.sensor_capacity * (raw_force - self.taring_force) / (
                             self.fullscale_value - self.offset)  # Compute current force
                     self.reading_thread_lock.acquire()  # Get multithreading lock
@@ -372,7 +379,7 @@ class FutekSensor:
         """
         Disconnect force sensor
         """
-        self.stop_reading()  # Stop continuous reading thread
+        self.stop_recording()  # Stop continuous reading thread
         if self.device_handle:
             # Calling Dll close method
             self.futek_dll.Close_Device_Connection(self.device_handle)
@@ -391,7 +398,7 @@ class FutekSensor:
         """
         Class Destructor
         """
-        self.stop_reading()
+        self.stop_recording()
         self.disconnect()
 
 
