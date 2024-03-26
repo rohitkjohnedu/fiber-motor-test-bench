@@ -34,7 +34,7 @@ class MainWindow(QWidget):
         display_cmd = 0                 # 0: no data display;       1: data display.
         record_data = 0                 # 0: no data record;        1: data record.
         self.display_currents = 0       # 0: no current plot;       1: current plot.
-        self.display_voltages = 1       # 0: no voltage plot;       1: high voltage plot;       2: low voltage plot.
+        self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;       2: high + low voltage plots.
         self.display_force = 1          # 0: no force plot;         1: force plot.
 
         # ************************************************************************************************************ #
@@ -138,13 +138,12 @@ class MainWindow(QWidget):
             self.voltage_labels_layout = QVBoxLayout()
             self.voltage_labels_layout.setContentsMargins(0, 10, 0, 10)
 
-            if self.display_voltages == 1:
-                self.voltage_layout.addWidget(self.power_supply.hv_plots)
-                self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
+            self.voltage_layout.addWidget(self.power_supply.voltage_plots)
+            self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
 
-            if self.display_voltages == 2:
-                self.voltage_layout.addWidget(self.power_supply.lv_plots)
-                self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
+            # if self.display_voltages == 2:
+            #     self.voltage_layout.addWidget(self.power_supply.voltage_plots)
+            #     self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
 
             self.voltage_labels_layout.addStretch(1)
             self.voltage_layout.addLayout(self.voltage_labels_layout)

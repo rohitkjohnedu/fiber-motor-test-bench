@@ -45,6 +45,7 @@ class PowerSupply(QWidget):
         self.buffer_length = DEFAULT_BUFFER_LENGTH
         self.variables_number = 8
         self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
+        self.values_labels = np.zeros((self.buffer_length, 6), dtype=np.float64)
         self.sample = 0
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
@@ -65,39 +66,41 @@ class PowerSupply(QWidget):
         #                                                VOLTAGE PLOTS
         # ************************************************************************************************************ #
 
-        # High Voltage monitor.
-        self.hv_vm = np.zeros(self.buffer_length, dtype=float)
-        self.hv_vm_now = []
+        # # High Voltage monitor.
+        # self.hv_vm = np.zeros(self.buffer_length, dtype=float)
+        # self.hv_vm_now = []
 
         # High Voltage plot.
-        if self.display_voltages != 0:
-            self.hv_plots = VoltagePlots(plot_tittle="High Voltage Monitor", y_min=0, y_max=hv_vm_plot_max)
+        if self.display_voltages != 0 & self.display_voltages != 2:
+            self.voltage_plots = VoltagePlots(plot_tittle="High voltage plot", y_min=0, y_hv_max=hv_vm_plot_max,
+                                         plots = "HV")
 
-            # High Voltage set by user.
-            self.hv_set = np.zeros(self.buffer_length, dtype=float)
-            self.hv_set_now = []
+            # # High Voltage set by user.
+            # self.hv_set = np.zeros(self.buffer_length, dtype=float)
+            # self.hv_set_now = []
 
-            # High Voltage error.
-            self.hv_err = np.zeros(self.buffer_length, dtype=float)
-            self.hv_err_now = []      
+            # # High Voltage error.
+            # self.hv_err = np.zeros(self.buffer_length, dtype=float)
+            # self.hv_err_now = []      
 
         # ------------------------------------------------------------------------------------------------------------ #
             
         # Low Voltage plot.               
         if self.display_voltages == 2:
-            self.lv_plots = VoltagePlots(plot_tittle="Low Voltage Monitor", y_min=0, y_max=lv_vm_plot_max)
+            self.voltage_plots = VoltagePlots(plot_tittle="High and low voltage plots", y_min=0, y_hv_max=hv_vm_plot_max,
+                                         y_lv_max=lv_vm_plot_max, plots = "HV + LV")
 
-            # Low Voltage set by user.
-            self.lv_set = np.zeros(self.buffer_length, dtype=float)
-            self.lv_set_now = []
+            # # Low Voltage set by user.
+            # self.lv_set = np.zeros(self.buffer_length, dtype=float)
+            # self.lv_set_now = []
 
-            # Low Voltage monitor.
-            self.lv_vm = np.zeros(self.buffer_length, dtype=float)
-            self.lv_vm_now = []
+            # # Low Voltage monitor.
+            # self.lv_vm = np.zeros(self.buffer_length, dtype=float)
+            # self.lv_vm_now = []
 
-            # Low Voltage error.
-            self.lv_err = np.zeros(self.buffer_length, dtype=float)
-            self.lv_err_now = []
+            # # Low Voltage error.
+            # self.lv_err = np.zeros(self.buffer_length, dtype=float)
+            # self.lv_err_now = []
 
         # ------------------------------------------------------------------------------------------------------------ #
             
@@ -342,6 +345,7 @@ class PowerSupply(QWidget):
     def get_buffer(self):
         self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
         data = self.buffer_data[0:self.sample,:]
+        # values = self.values_labels[0:self.sample,:]
         self.reading_thread_lock.release()  # Release lock
         return data
     
@@ -372,7 +376,7 @@ class PowerSupply(QWidget):
             # Remove units, spaces, split with coma.
             # Refer to documentation of HVPS to assign data to fields.
             data = line.replace(" ", "").replace("uA", "").replace("V", "").replace("Hz", "").replace("\r\n", "").split(",")
-
+            # print(data)
             try:
                 if self.display_voltages != 0 or self.display_currents != 0:
                     t_save = int(data[1])/1000
@@ -386,17 +390,33 @@ class PowerSupply(QWidget):
 
                     hv_err = np.float64(data[2]) - np.float64(data[5])
                     hv_err_now = format(hv_err, '4.0f')
+            # -------------------------------------------------------------------------------------------------------- #    
+                if self.display_voltages == 2:
+                    lv_set = np.float64(data[3])
+                    # print(lv_set)
+                    lv_set_now = format(lv_set, '2.1f')
+
+                    lv_vm = np.float64(data[4])
+                    lv_vm_now = format(lv_vm, '2.1f')
+
+                    lv_err = np.float64(data[3]) - np.float64(data[4])
+                    lv_err_now = format(lv_err, '2.1f')
+            # -------------------------------------------------------------------------------------------------------- #
             except Exception as e:
                 print("[ERR] Unable to convert line: {} - {}".format(line, e))
                 continue
             
-            # t_save = np.float64(data[1])/1000
-            # hv_vm = np.float64(data[5])
 
             self.reading_thread_lock.acquire()  # Get multithreading lock
             epoch_time = time.perf_counter()
-            self.buffer_data[self.sample,:] = [epoch_time, t_save, hv_set, hv_vm, hv_err,
-                                                                   hv_set_now, hv_vm_now, hv_err_now] # to change
+
+            self.buffer_data[self.sample,:] = [epoch_time, t_save,
+                                               hv_set, hv_vm, hv_err,
+                                               lv_set, lv_vm, lv_err]
+            
+            self.values_labels[self.sample,:] = [hv_set_now, hv_vm_now, hv_err_now,
+                                                 lv_set_now, lv_vm_now, lv_err_now]
+            
             self.reading_thread_lock.release()  # Release data lock
             self.sample = self.sample + 1
 
@@ -422,7 +442,7 @@ class PowerSupply(QWidget):
             #         self.lv_vm[self.sample] = float(data[4])
             #         self.lv_vm_now = format(float(data[4]), '2.1f')
 
-            #         self.lv_err[self.sample] = float(data[3]) - float(data[5])
+            #         self.lv_err[self.sample] = float(data[3]) - float(data[4])
             #         self.lv_err_now = format((float(data[3]) - float(data[4])), '2.1f')
             #     # -------------------------------------------------------------------------------------------------------- #
             #     if self.display_currents != 0:
@@ -451,33 +471,52 @@ class PowerSupply(QWidget):
 
         # Update voltage plots.
             if self.display_voltages != 0:
-                data = self.get_buffer()
+                all_data = self.get_buffer()
+                data = all_data
+                # values = all_data[1]
                 epoch_time = data[:, 0]
                 tplot = epoch_time - start_time
                 hv_set = data[:, 2]
                 hv_vm = data[:, 3]
                 # hv_err = data[:, 4]
-                hv_set_now = data[-1, 5]
-                hv_vm_now = data[-1, 6]
-                hv_err_now = data[-1, 7]
+                # if len(tplot) > 0:
+                #     hv_set_now = values[-1, 0]
+                #     hv_vm_now = values[-1, 1]
+                #     hv_err_now = values[-1, 2]
 
                 if len(tplot) > self.maxPlotHistoryLength:
                     tplot = tplot[-self.maxPlotHistoryLength:]
                     hv_set = hv_set[-self.maxPlotHistoryLength:]
                     hv_vm = hv_vm[-self.maxPlotHistoryLength:]
-                    # hv_err = hv_err[-self.maxPlotHistoryLength:]
-                    # hv_set_now = hv_set_now[-self.maxPlotHistoryLength:]
-                    # hv_vm_now = hv_vm_now[-self.maxPlotHistoryLength:]
-                    # hv_err_now = hv_err_now[-self.maxPlotHistoryLength:]
+                    lv_set = None
+                    lv_vm = None
+
+                # if len(tplot) > 0:
+                #     use = tplot > tplot[-1] - self.plotHistoryLength
+                #     self.voltage_plots.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use])
+                    # self.voltage_legend.update_label(hv_set_now, hv_vm_now, hv_err_now)
+
+            if self.display_voltages == 2:
+                lv_set = data[:, 5]
+                # print(lv_set)
+                lv_vm = data[:, 6]
+                # print(lv_vm)
+                # lv_err = data[:, 7]
+                # if len(tplot) > 0:
+                #     lv_set_now = values[-1, 3]
+                #     lv_vm_now = values[-1, 4]
+                #     lv_err_now = values[-1, 5]
+
+                if len(tplot) > self.maxPlotHistoryLength:
+                    lv_set = lv_set[-self.maxPlotHistoryLength:]
+                    lv_vm = lv_vm[-self.maxPlotHistoryLength:]
 
                 if len(tplot) > 0:
                     use = tplot > tplot[-1] - self.plotHistoryLength
-                    self.hv_plots.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use])
-                    self.voltage_legend.update_label(hv_set_now, hv_vm_now, hv_err_now)
-
-            # if self.display_voltages == 2:
-            #     self.lv_plots.update_plot(t=tplot, y1=self.lv_set, y2=self.lv_vm)
-            #     self.voltage_legend.update_label(self.lv_set_now, self.lv_vm_now, self.lv_err_now)
+                    self.voltage_plots.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use],
+                                                    y3=lv_set[use], y4=lv_vm[use])
+                    # self.voltage_legend.update_label(lv_set_now, lv_vm_now, lv_err_now)
+                # print(hv_vm[use], lv_vm[use])
 
             # # Update current plots.
             # if self.display_currents != 0:
