@@ -135,18 +135,14 @@ class MainWindow(QWidget):
         # POWER SUPPLY VOLTAGE PLOT
         if self.display_voltages != 0:
             self.voltage_layout = QHBoxLayout()
-            self.voltage_labels_layout = QVBoxLayout()
-            self.voltage_labels_layout.setContentsMargins(0, 10, 0, 10)
+            # self.voltage_labels_layout = QVBoxLayout()
+            # self.voltage_labels_layout.setContentsMargins(0, 10, 0, 10)
 
             self.voltage_layout.addWidget(self.power_supply.voltage_plots)
-            self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
+            # self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
 
-            # if self.display_voltages == 2:
-            #     self.voltage_layout.addWidget(self.power_supply.voltage_plots)
-            #     self.voltage_labels_layout.addWidget(self.power_supply.voltage_legend)
-
-            self.voltage_labels_layout.addStretch(1)
-            self.voltage_layout.addLayout(self.voltage_labels_layout)
+            # self.voltage_labels_layout.addStretch(1)
+            # self.voltage_layout.addLayout(self.voltage_labels_layout)
             self.all_plots_layout.addLayout(self.voltage_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
@@ -154,16 +150,17 @@ class MainWindow(QWidget):
         # POWER SUPPLY CURRENT PLOTS
         if self.display_currents != 0:
             self.currents_layout = QHBoxLayout()
-            self.currents_layout.setSpacing(0)
-            self.current_labels_layout = QVBoxLayout()
-            self.current_labels_layout.setContentsMargins(0, 10, 0, 10)
+            # self.currents_layout.setSpacing(0)
+            # self.current_labels_layout = QVBoxLayout()
+            # self.current_labels_layout.setContentsMargins(0, 10, 0, 10)
 
-            for plots_row in range(3):  # three phases means 3 current plots.
-                self.currents_layout.addWidget(self.power_supply.hb_cm_plots[plots_row])
-                self.current_labels_layout.addWidget(self.power_supply.current_legend[plots_row])
+            self.currents_layout.addWidget(self.power_supply.current_plots)
+            # for plots_row in range(3):  # three phases means 3 current plots.
+            #     self.currents_layout.addWidget(self.power_supply.hb_cm_plots[plots_row])
+                # self.current_labels_layout.addWidget(self.power_supply.current_legend[plots_row])
 
-            self.current_labels_layout.addStretch(1)
-            self.currents_layout.addLayout(self.current_labels_layout)
+            # self.current_labels_layout.addStretch(1)
+            # self.currents_layout.addLayout(self.current_labels_layout)
             self.all_plots_layout.addLayout(self.currents_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
@@ -183,8 +180,6 @@ class MainWindow(QWidget):
         self.timer.timeout.connect(self.plot_update_callback)
         self.timer.start(self.plot_interval)
 
-        # self.start_time = time.perf_counter()
-
     def run_button_clicked(self):
         if self.run_button.text() == "Run":
             self.start_time = time.perf_counter()
@@ -199,7 +194,8 @@ class MainWindow(QWidget):
     # ------------------------------------------------------------------------------------------------------------ #
         
     def plot_update_callback(self):
-        self.power_supply.plot_update(self.start_time)
+        if self.display_voltages !=0 or self.display_currents !=0:
+            self.power_supply.plot_update(self.start_time)
         self.force_sensor_plot.plot_update(self.start_time)
 
 
