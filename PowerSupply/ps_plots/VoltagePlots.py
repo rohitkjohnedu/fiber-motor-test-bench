@@ -75,9 +75,9 @@ class VoltagePlots(QWidget):
         self.hv_set_plot = hv_plot.plot(pen=color[2], name="Target high voltage")
         self.hv_now_plot = hv_plot.plot(pen=color[0], name="Output high voltage")
         if self.plots is not None:
-            self.lv_set_plot = pg.PlotCurveItem(pen=color[3], name="Target low voltage")
+            self.lv_set_plot = pg.PlotCurveItem(pen=color[8], name="Target low voltage")
             self.lv_plot.addItem(self.lv_set_plot)
-            self.lv_now_plot = pg.PlotCurveItem(pen=color[4], name="Output low voltage")
+            self.lv_now_plot = pg.PlotCurveItem(pen=color[6], name="Output low voltage")
             self.lv_plot.addItem(self.lv_now_plot)
         
         # ------------------------------------------------------------------------------------------ #

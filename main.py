@@ -31,10 +31,11 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
-        display_cmd = 0                 # 0: no data display;       1: data display.
         record_data = 0                 # 0: no data record;        1: data record.
-        self.display_currents = 0       # 0: no current plot;       1: current plot.
+        # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;       2: high + low voltage plots.
+        self.display_currents = 1       # 0: no current plot;       1: current plot.
+        # ------------------------------------------------------------------------------------------------------------ #
         self.display_force = 1          # 0: no force plot;         1: force plot.
 
         # ************************************************************************************************************ #
@@ -47,7 +48,6 @@ class MainWindow(QWidget):
                                         currents_display=self.display_currents,
                                         voltage_display=self.display_voltages,
                                         debug_mode=self.debug_mode,
-                                        rcv_data=display_cmd,
                                         record_data=record_data)
 
         # ------------------------------------------------------------------------------------------------------------ #
