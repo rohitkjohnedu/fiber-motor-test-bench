@@ -25,7 +25,7 @@ pg.setConfigOptions(antialias=True)
 
 
 class VoltagePlots(QWidget):
-    def __init__(self, parent=None, plot_tittle=None, y_min=0, y_hv_max=0, y_lv_max=0, plots=None):
+    def __init__(self, parent=None, plot_title=None, y_min=0, y_hv_max=0, y_lv_max=0, plots=None):
         QWidget.__init__(self, parent=parent)
 
         self.plots = plots
@@ -39,7 +39,7 @@ class VoltagePlots(QWidget):
         ## Create a plot widget:
         plot_widget = pg.PlotWidget(show=False)
         hv_plot = plot_widget.plotItem
-        hv_plot.setTitle(plot_tittle)
+        hv_plot.setTitle(plot_title)
         hv_plot.setYRange(y_min, y_hv_max)
         hv_plot.setLabel('bottom', 'Time', units='s')
         hv_plot.setLabel('left', 'High Voltage', units='V')

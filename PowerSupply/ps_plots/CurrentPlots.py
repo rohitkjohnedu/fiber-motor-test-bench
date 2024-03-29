@@ -14,11 +14,10 @@
 ########################################################################################################################
 
 # python packages
-from PyQt6.QtCore import *
-from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import QWidget, QHBoxLayout
 import pyqtgraph as pg
 # custom packages
-from PowerSupply.ps_plots import *
+from PowerSupply.ps_plots import color
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
@@ -26,28 +25,39 @@ pg.setConfigOptions(antialias=True)
 
 
 class CurrentPlots(QWidget):
-    def __init__(self, parent=None, plot_tittle=None, y_min=0, y_max=0):
+    def __init__(self, parent=None, y_min=0, y_max=0):
         QWidget.__init__(self, parent=parent)
 
         plot_layout = QHBoxLayout(self)
         plot_layout.setSpacing(0)
 
-        graphics_layout = pg.GraphicsLayoutWidget(show=False)
+        plot_widget = pg.PlotWidget()
+        self.legend = pg.LegendItem()
 
-        # Current plot
-        current_plot = graphics_layout.addPlot(title=plot_tittle)
+        current_plot = plot_widget.plotItem
+        current_plot.setTitle('Three-phase current of the Power Supply', bold=True)
         current_plot.setLabel('bottom', 'Time', units='s')
         current_plot.setLabel('left', 'Current', units='uA')
         current_plot.setYRange(y_min, y_max)
 
         self.y_plot = []
-        for i in range(3):
-            self.y_plot.append(current_plot.plot(pen=color[i+1]))
+        for i, phase in enumerate(['A', 'B', 'C']):
+            plot_item = current_plot.plot(pen=color[i+1])
+            self.y_plot.append(plot_item)
+            self.legend.addItem(plot_item, 'Phase {}'.format(phase))
 
-        plot_layout.addWidget(graphics_layout)
+        self.legend.setParentItem(current_plot)
+        self.legend.anchor((1.8, 0), (1, 0))
+
+        plot_layout.addWidget(plot_widget)
 
     ####################################################################################################################
     def update_plot(self, t, y1, y2, y3):
         self.y_plot[0].setData(t, y1)
         self.y_plot[1].setData(t, y2)
         self.y_plot[2].setData(t, y3)
+        
+    def update_legend(self, current_1, current_2, current_3):
+        for i, (phase, value)  in enumerate(zip(['A', 'B', 'C'], [current_1, current_2, current_3])):
+            self.legend.items[i][1].setText("Phase {}: {} uA".format(phase, value))
+

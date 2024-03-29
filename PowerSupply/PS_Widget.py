@@ -77,13 +77,13 @@ class PowerSupply(QWidget):
 
         # High voltage plot.
         if self.display_voltages == 1:
-            self.voltage_plots = VoltagePlots(plot_tittle="High voltage plot", y_min=0, y_hv_max=hv_vm_plot_max)     
+            self.voltage_plots = VoltagePlots(plot_title="Voltage", y_min=0, y_hv_max=hv_vm_plot_max)     
 
         # ------------------------------------------------------------------------------------------------------------ #
             
         # High and Low voltage plots.               
         if self.display_voltages == 2:
-            self.voltage_plots = VoltagePlots(plot_tittle="High and low voltage plots", y_min=0, y_hv_max=hv_vm_plot_max,
+            self.voltage_plots = VoltagePlots(plot_title="Voltage", y_min=0, y_hv_max=hv_vm_plot_max,
                                          y_lv_max=lv_vm_plot_max, plots = "HV + LV")
 
         # ------------------------------------------------------------------------------------------------------------ #
@@ -97,8 +97,7 @@ class PowerSupply(QWidget):
         
         # Current plot.
         if self.display_currents != 0:
-            self.current_plots = CurrentPlots(plot_tittle="Current plots",
-                                              y_min=0, y_max=hb_cm_plot_max)
+            self.current_plots = CurrentPlots(y_min=0, y_max=hb_cm_plot_max)
 
         # ------------------------------------------------------------------------------------------------------------ #
  
@@ -468,7 +467,7 @@ class PowerSupply(QWidget):
                     use = tplot > tplot[-1] - self.plotHistoryLength
                     self.current_plots.update_plot(t=tplot[use], y1=cm_val_w1[use],
                                                    y2=cm_val_w2[use], y3=cm_val_w3[use])
-                #     self.current_legend[HalfBridges].update_legend(self.cm_val_now[HalfBridges+1])
+                    self.current_plots.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])
                     
         # ************************************************************************************************************ #
         
