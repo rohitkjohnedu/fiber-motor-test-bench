@@ -47,7 +47,7 @@ class CurrentPlots(QWidget):
             self.legend.addItem(plot_item, 'Phase {}'.format(phase))
 
         self.legend.setParentItem(current_plot)
-        self.legend.anchor((1.8, 0), (1, 0))
+        self.legend.anchor((2, 0), (1, 0))
 
         plot_layout.addWidget(plot_widget)
 

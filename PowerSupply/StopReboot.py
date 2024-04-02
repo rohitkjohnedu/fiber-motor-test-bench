@@ -14,9 +14,9 @@
 ########################################################################################################################
 
 # python packages
-from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton
 # custom packages
-from PowerSupply.SerialSender import *
+from PowerSupply.SerialSender import send_command
 
 
 class StopReboot(QWidget):
@@ -26,7 +26,7 @@ class StopReboot(QWidget):
         self.ser = None
         # ************************************************************************************************************ #
 
-        self.emg_stop_btn = QPushButton("STOP")
+        self.emg_stop_btn = QPushButton("EMERGENCY STOP")
         self.emg_stop_btn.setStyleSheet("background-color: red; "
                                         "color: white; "
                                         "font-weight: bold; "

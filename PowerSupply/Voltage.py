@@ -13,11 +13,11 @@
 ########################################################################################################################
 
 # python packages
-from PyQt6.QtCore import *
-from PyQt6.QtWidgets import *
+from PyQt6.QtCore import Qt, QEasingCurve
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton
 # custom packages
 from PowerSupply.py_toggle import PyToggle
-from PowerSupply.SerialSender import *
+from PowerSupply.SerialSender import send_command
 from PowerSupply.Userdef import *
 
 
@@ -56,7 +56,7 @@ class Voltage(QWidget):
         self.hv_toggle = PyToggle(animation_curve=QEasingCurve.Type.InOutQuint)
         self.hv_toggle_previous_state = 0
         # ------------------------------------------------------------------------------------------------------------ #
-        self.current_voltage_lbl = QLabel("Current:")
+        self.current_voltage_lbl = QLabel("Actual:")
         self.current_voltage_lbl.setFixedWidth(75)
         # ------------------------------------------------------------------------------------------------------------ #
         self.current_voltage_value_lbl = QLabel("0")

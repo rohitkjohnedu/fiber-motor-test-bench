@@ -29,6 +29,7 @@ class VoltagePlots(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.plots = plots
+        self.legend = pg.LegendItem()
         
         ## Create a layout for the VoltagePlots widget:
         plot_layout = QHBoxLayout(self)
@@ -39,7 +40,7 @@ class VoltagePlots(QWidget):
         ## Create a plot widget:
         plot_widget = pg.PlotWidget(show=False)
         hv_plot = plot_widget.plotItem
-        hv_plot.setTitle(plot_title)
+        hv_plot.setTitle(plot_title, bold=True)
         hv_plot.setYRange(y_min, y_hv_max)
         hv_plot.setLabel('bottom', 'Time', units='s')
         hv_plot.setLabel('left', 'High Voltage', units='V')
@@ -59,7 +60,7 @@ class VoltagePlots(QWidget):
             ## Handle view resizing:
             def updateViews():
                 ## View has resized; update auxiliary views to match
-                self.lv_plot
+                # self.lv_plot
                 self.lv_plot.setGeometry(hv_plot.vb.sceneBoundingRect())
 
                 ## Need to re-update linked axes since this was called
@@ -81,6 +82,15 @@ class VoltagePlots(QWidget):
             self.lv_plot.addItem(self.lv_now_plot)
         
         # ------------------------------------------------------------------------------------------ #
+
+        self.legend.addItem(self.hv_set_plot, 'HV assigned')
+        self.legend.addItem(self.hv_now_plot, 'HV measured')
+        if self.plots is not None:
+            self.legend.addItem(self.lv_set_plot, 'LV assigned')
+            self.legend.addItem(self.lv_now_plot, 'LV measured')
+
+        self.legend.setParentItem(hv_plot)
+        self.legend.anchor((1.5, 0), (1, 0))
             
         plot_layout.addWidget(plot_widget)
 
@@ -92,3 +102,15 @@ class VoltagePlots(QWidget):
         if self.plots is not None:
             self.lv_set_plot.setData(t, y3)
             self.lv_now_plot.setData(t, y4)
+    
+    def update_legend(self, hv_set, hv_now, lv_set=0, lv_now=0):
+        for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'], [hv_set, hv_now])):
+            self.legend.items[i][1].setText("{}: {} kV".format(variable, value))
+
+        if self.plots is not None:
+            for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'],
+                                                        [hv_set, hv_now])):
+                self.legend.items[i][1].setText("{}: {} kV".format(variable, value))
+                
+            for i, (variable, value)  in enumerate(zip(['LV assigned', 'LV measured'], [lv_set, lv_now])):
+                self.legend.items[i+2][1].setText("{}: {} V".format(variable, value))

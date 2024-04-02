@@ -14,12 +14,14 @@
 ########################################################################################################################
 
 # python packages
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
 import numpy as np
 from serial import *
 import sys
 import time
 # custom packages
-from PowerSupply.ps_plots import VoltagePlots, VoltageLegend, CurrentPlots, CurrentLegend
+from PowerSupply.ps_plots import VoltagePlots, CurrentPlots
 from PowerSupply.ps_modes import *
 from PowerSupply.options import *
 from PowerSupply.StopReboot import *
@@ -43,14 +45,14 @@ class PowerSupply(QWidget):
 
         self.buffer_length = DEFAULT_BUFFER_LENGTH
 
-        if self.display_voltages == 1 and self.display_currents == 0:
-            self.variables_number = 5
-        elif self.display_voltages == 2 and self.display_currents == 0:
-            self.variables_number = 8
-        elif self.display_currents != 0 and self.display_voltages == 0:
-            self.variables_number = 11
-        else:
-            self.variables_number = 0
+        # if self.display_voltages == 1 and self.display_currents == 0:
+        #     self.variables_number = 5
+        # elif self.display_voltages == 2 and self.display_currents == 0:
+        #     self.variables_number = 8
+        # elif self.display_currents != 0 and self.display_voltages == 0:
+        #     self.variables_number = 11
+        # else:
+        #     self.variables_number = 0
         self.variables_number = 11
 
         self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
@@ -64,6 +66,8 @@ class PowerSupply(QWidget):
         # MODULES
         self.em_stop = StopReboot()
         self.voltage = Voltage()
+        # self.main_mode = MainMode()
+
         self.Mode1 = Mode1()
         self.Mode2 = Mode2()
         self.Mode3 = Mode3()
@@ -77,19 +81,15 @@ class PowerSupply(QWidget):
 
         # High voltage plot.
         if self.display_voltages == 1:
-            self.voltage_plots = VoltagePlots(plot_title="Voltage", y_min=0, y_hv_max=hv_vm_plot_max)     
+            self.voltage_plots = VoltagePlots(plot_title="High Voltage of the Power Supply",
+                                              y_min=0, y_hv_max=hv_vm_plot_max)     
 
         # ------------------------------------------------------------------------------------------------------------ #
             
         # High and Low voltage plots.               
         if self.display_voltages == 2:
-            self.voltage_plots = VoltagePlots(plot_title="Voltage", y_min=0, y_hv_max=hv_vm_plot_max,
-                                         y_lv_max=lv_vm_plot_max, plots = "HV + LV")
-
-        # ------------------------------------------------------------------------------------------------------------ #
-            
-        # Voltage labels.
-        # self.voltage_legend = VoltageLegend.VoltageLegend()
+            self.voltage_plots = VoltagePlots(plot_title="High and Low Voltage of the Power Supply", y_min=0,
+                                              y_hv_max=hv_vm_plot_max, y_lv_max=lv_vm_plot_max, plots = "HV + LV")
 
         # ************************************************************************************************************ #
         #                                              CURRENT PLOTS
@@ -98,12 +98,6 @@ class PowerSupply(QWidget):
         # Current plot.
         if self.display_currents != 0:
             self.current_plots = CurrentPlots(y_min=0, y_max=hb_cm_plot_max)
-
-        # ------------------------------------------------------------------------------------------------------------ #
- 
-            # Current labels.
-            # self.current_legend.append(CurrentLegend.CurrentLegend(plot_name=self.y_name[HalfBridges+1],
-            #                                                        plot_index=HalfBridges+1))
            
         # ************************************************************************************************************ #
         #                                           SERIAL COMMUNICATION
@@ -271,6 +265,7 @@ class PowerSupply(QWidget):
     # ************************************************************************************************************ #
 
     def start_recording(self):
+        self.stop_recording()
         self.continuous_reading_flag = True
         self.reading_thread = Thread(target=self.data_reader_callback)
         self.reading_thread.start()
@@ -322,23 +317,23 @@ class PowerSupply(QWidget):
             # -------------------------------------------------------------------------------------------------------- #
                 if self.display_voltages != 0:
                     hv_set = np.float64(data[2])
-                    hv_set_now = format(hv_set, '4.0f')
+                    # hv_set_now = format(hv_set, '4.0f')
 
                     hv_vm = np.float64(data[5])
-                    hv_vm_now = format(hv_vm, '4.0f')
+                    # hv_vm_now = format(hv_vm, '4.0f')
 
                     hv_err = np.float64(data[2]) - np.float64(data[5])
-                    hv_err_now = format(hv_err, '4.0f')
+                    # hv_err_now = format(hv_err, '4.0f')
             # -------------------------------------------------------------------------------------------------------- #    
                 if self.display_voltages == 2:
                     lv_set = np.float64(data[3])
-                    lv_set_now = format(lv_set, '2.1f')
+                    # lv_set_now = format(lv_set, '2.1f')
 
                     lv_vm = np.float64(data[4])
-                    lv_vm_now = format(lv_vm, '2.1f')
+                    # lv_vm_now = format(lv_vm, '2.1f')
 
                     lv_err = np.float64(data[3]) - np.float64(data[4])
-                    lv_err_now = format(lv_err, '2.1f')
+                    # lv_err_now = format(lv_err, '2.1f')
             # -------------------------------------------------------------------------------------------------------- #
                 if self.display_currents != 0:
                     cm_val_w1 = np.float64(data[7])
@@ -383,9 +378,6 @@ class PowerSupply(QWidget):
                                                        hv_set, hv_vm, hv_err,
                                                        lv_set, lv_vm, lv_err, 
                                                        cm_val_w1, cm_val_w2, cm_val_w3]
-
-            # self.values_labels[self.sample,:] = [hv_set_now, hv_vm_now, hv_err_now,
-            #                                      lv_set_now, lv_vm_now, lv_err_now]
             
             self.reading_thread_lock.release()  # Release data lock
             self.sample = self.sample + 1
@@ -408,7 +400,6 @@ class PowerSupply(QWidget):
             self.voltage.update_data(current_voltage=hv_vm[-1])
 
         if self.display_voltages != 0 or self.display_currents != 0:
-            # values = all_data[1]
             epoch_time = data[:, 0]
             tplot = epoch_time - start_time
 
@@ -418,11 +409,6 @@ class PowerSupply(QWidget):
             # Update voltage plots.
             if self.display_voltages != 0:
                 hv_set = data[:, 2]
-                # hv_err = data[:, 4]
-                # if len(tplot) > 0:
-                #     hv_set_now = values[-1, 0]
-                #     hv_vm_now = values[-1, 1]
-                #     hv_err_now = values[-1, 2]
                 if len(tplot) > self.maxPlotHistoryLength:
                                 hv_set = hv_set[-self.maxPlotHistoryLength:]
                                 hv_vm = hv_vm[-self.maxPlotHistoryLength:]
@@ -431,17 +417,12 @@ class PowerSupply(QWidget):
                 if len(tplot) > 0:
                     use = tplot > tplot[-1] - self.plotHistoryLength
                     self.voltage_plots.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use])
-                    # self.voltage_legend.update_label(hv_set_now, hv_vm_now, hv_err_now)
+                    self.voltage_plots.update_legend(hv_set[-1], hv_vm[-1])
 
             if self.display_voltages == 2:
                 lv_set = data[:, 5]
                 lv_vm = data[:, 6]
-                # lv_err = data[:, 7]
-                # if len(tplot) > 0:
-                #     lv_set_now = values[-1, 3]
-                #     lv_vm_now = values[-1, 4]
-                #     lv_err_now = values[-1, 5]
-
+                
                 if len(tplot) > self.maxPlotHistoryLength:
                     lv_set = lv_set[-self.maxPlotHistoryLength:]
                     lv_vm = lv_vm[-self.maxPlotHistoryLength:]
@@ -450,7 +431,7 @@ class PowerSupply(QWidget):
                     use = tplot > tplot[-1] - self.plotHistoryLength
                     self.voltage_plots.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use],
                                                     y3=lv_set[use], y4=lv_vm[use])
-                    # self.voltage_legend.update_label(lv_set_now, lv_vm_now, lv_err_now)
+                    self.voltage_plots.update_legend(hv_set[-1], hv_vm[-1], lv_set[-1], lv_vm[-1])
 
             # Update current plots.
             if self.display_currents == 1:
