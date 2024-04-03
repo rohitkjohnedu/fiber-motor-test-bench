@@ -1,79 +1,38 @@
-########################################################################################################################
-# @project    EPFL-HXL_PS_v1.0
-# @file       hxl_ps.py
-# @brief      Author:             MBE
-#             Institute:          EPFL
-#             Laboratory:         LMTS
-#             Software version:   v1.09 (SYLVAIN/MARTIJN/MYKHAILO)
-#             Created on:         11.03.2024
-#             Last modifications: 11.03.2024
-#
-# Copyright 2021/2024 EPFL-LMTS
-# All rights reserved.
-# NO HELP WILL BE GIVEN IF YOU MODIFY THIS CODE !!!
-########################################################################################################################
+
 
 # python packages
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTabWidget
+from PyQt6.QtWidgets import QWidget
 import numpy as np
-from serial import *
+from serial import Serial
 import sys
 import time
+
 # custom packages
 from PowerSupply.ps_plots import VoltagePlots, CurrentPlots
-from PowerSupply.ps_modes import *
-from PowerSupply.options import *
-from PowerSupply.StopReboot import *
-from PowerSupply.Voltage import *
-
+from PowerSupply.Userdef import hv_vm_plot_max, lv_vm_plot_max, hb_cm_plot_max
+from PowerSupply.StopReboot import send_command
 from threading import Thread, RLock
 
 DEFAULT_BUFFER_LENGTH = 10000000
 
 class PowerSupply(QWidget):
-    def __init__(self, parent=None, port_name=None, currents_display=None, voltage_display=None,
-                 debug_mode=None, record_data=None):
+    def __init__(self, parent=None, port_name=None, voltage_display=None, currents_display=None):
 
         QWidget.__init__(self, parent=parent)
 
         self.port_name = port_name
-        self.display_currents = currents_display
         self.display_voltages = voltage_display
-        self.debug_mode = debug_mode
-        self.record_data = record_data
+        self.display_currents = currents_display
 
         self.buffer_length = DEFAULT_BUFFER_LENGTH
-
-        # if self.display_voltages == 1 and self.display_currents == 0:
-        #     self.variables_number = 5
-        # elif self.display_voltages == 2 and self.display_currents == 0:
-        #     self.variables_number = 8
-        # elif self.display_currents != 0 and self.display_voltages == 0:
-        #     self.variables_number = 11
-        # else:
-        #     self.variables_number = 0
         self.variables_number = 11
-
         self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
         self.values_labels = np.zeros((self.buffer_length, 6), dtype=np.float64)
         self.sample = 0
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
         self.reading_thread_lock = RLock()
-        # ************************************************************************************************************ #
 
-        # MODULES
-        self.em_stop = StopReboot()
-        self.voltage = Voltage()
-
-        self.Mode1 = Mode1()
-        self.Mode2 = Mode2()
-        self.Mode3 = Mode3()
-        self.Mode4 = Mode4()
-        self.OldMode5 = OldMode5()
-        self.Mode5 = Mode5()
- 
         # ************************************************************************************************************ #
         #                                                VOLTAGE PLOTS
         # ************************************************************************************************************ #
@@ -99,7 +58,7 @@ class PowerSupply(QWidget):
             self.current_plots = CurrentPlots(y_min=0, y_max=hb_cm_plot_max)
            
         # ************************************************************************************************************ #
-        #                                           SERIAL COMMUNICATION
+        #                                        SERIAL COMMUNICATION WITH HVPS
         # ************************************************************************************************************ #
 
         # Open serial port.
@@ -115,30 +74,6 @@ class PowerSupply(QWidget):
         # Enable debug.
         to_send = "QName\r\n"
         send_command(self.ser, to_send)
-
-        # ------------------------------------------------------------------------------------------------------- #
-        # Connect widgets to the serial port.
-
-        self.em_stop.attach_serial(serial=self.ser)
-        self.voltage.attach_serial(serial=self.ser)
-
-        if MODE1 == 1:
-            self.Mode1.attach_serial(serial=self.ser)
-
-        if MODE2 == 1:
-            self.Mode2.attach_serial(serial=self.ser)
-
-        if MODE3 == 1:
-            self.Mode3.attach_serial(serial=self.ser)
-
-        if MODE4 == 1:
-            self.Mode4.attach_serial(serial=self.ser)
-
-        if OLD_MODE5 == 1:
-            self.OldMode5.attach_serial(serial=self.ser)
-
-        if MODE5 == 1:
-            self.Mode5.attach_serial(serial=self.ser)
 
         # ************************************************************************************************************ #
         # Read a first time to ensure connection.
@@ -182,83 +117,7 @@ class PowerSupply(QWidget):
             return
 
         self.board_version = line.replace("[QVer] ", "").replace("\n", "")
-
-        # ************************************************************************************************************ #
-
-        # Init file to record data.
-        if self.record_data == 1:
-            self.RecordData = RecordData(board_name=self.board_name,
-                                         board_version=self.board_version,
-                                         port_name=port_name,
-                                         sequential=False)
-            self.SequentialRecord = SequentialRecord(board_name=self.board_name,
-                                                     board_version=self.board_version,
-                                                     port_name=port_name)
-
-
-    # ************************************************************************************************************ #
-    #                                           INITIALIZE PS UI
-    # ************************************************************************************************************ #
-
-        layout_main = QVBoxLayout()
-        self.setLayout(layout_main)
-        layout_main.setSpacing(3)
-
-        layout_top = QHBoxLayout()
-        layout_top.setSpacing(3)
-
-        # Control panel is on the left side.
-        layout_left = QVBoxLayout()
-        layout_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        layout_left.setSpacing(0)
-        layout_top.addLayout(layout_left)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-
-        layout_left.addWidget(self.em_stop)
-        layout_left.addWidget(self.voltage)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-        tab = QTabWidget(self)
-        tab.setFixedWidth(700)
-
-        if MODE1 == 1:
-            tab.addTab(self.Mode1, 'Mode 1')
-
-        if MODE2 == 1:
-            tab.addTab(self.Mode2, 'Mode 2')
-
-        if MODE3 == 1:
-            tab.addTab(self.Mode3, 'Mode 3')
-
-        if MODE4 == 1:
-            tab.addTab(self.Mode4, 'Mode 4')
-
-        if OLD_MODE5 == 1:
-            tab.addTab(self.OldMode5, 'Mode Go and Back')
-
-        if MODE5 == 1:
-            tab.addTab(self.Mode5, 'Mode 5')
-
-        layout_left.addWidget(tab)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-        # Add the top layout to the main layout.
-        layout_main.addLayout(layout_top)
-        
-        # ************************************************************************************************************ #
-
-        # # Data save info.
-        # if self.record_data == 1:
-        #     layout_left.addWidget(self.RecordData)
-        #     layout_left.addWidget(self.SequentialRecord)
-        
-        # ************************************************************************************************************ #
-        
-        # Layout of all widgets not plot.
-        layout_left.addStretch(1)
-        layout_main.addStretch(1)   
-
+    
     # ************************************************************************************************************ #
     #                                           CALLBACK FUNCTION
     # ************************************************************************************************************ #
@@ -380,11 +239,6 @@ class PowerSupply(QWidget):
             self.reading_thread_lock.release()  # Release data lock
             self.sample = self.sample + 1
 
-            # # Save data to file.
-            # if self.record_data == 1:
-            #     self.RecordData.save_data(line)
-            #     self.SequentialRecord.is_recording_now(line)
-
         # ************************************************************************************************************ #
         #                                           UPDATE PLOTS/LABELS
         # ************************************************************************************************************ #
@@ -393,9 +247,6 @@ class PowerSupply(QWidget):
         all_data = self.get_buffer()
         data = all_data
         hv_vm = data[:, 3]
-        # Update voltage button.
-        if len(hv_vm) > 0:
-            self.voltage.update_data(current_voltage=hv_vm[-1])
 
         if self.display_voltages != 0 or self.display_currents != 0:
             epoch_time = data[:, 0]
@@ -449,17 +300,6 @@ class PowerSupply(QWidget):
                     self.current_plots.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])
                     
         # ************************************************************************************************************ #
-        
-            # save data to file
-            # if self.record_data == 1:
-            #     self.RecordData.save_data(self.line)
-            #     self.SequentialRecord.is_recording_now(self.line)   
-            
-            # ************************************************************************************************************ #
-                
-            # Flush input if too much data not handled: avoid keeping very old values.
-            # if self.ser.in_waiting > 200:
-            #     self.ser.reset_input_buffer()
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length
@@ -481,10 +321,4 @@ class PowerSupply(QWidget):
     def stop_comm(self):
         # Disable HV and monitoring.
         send_command(self.ser, "\r\nEStop\r\n")
-        if self.record_data == 1:
-            self.record_data = 0
-            self.RecordData.close_record(sequential=False)
-    
-    ####################################################################################################################
 
-    

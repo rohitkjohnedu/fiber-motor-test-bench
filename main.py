@@ -15,11 +15,16 @@
 
 import sys
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QApplication, QMessageBox, QPushButton
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QApplication, QMessageBox, QPushButton, QTabWidget
 # custom packages
-from PowerSupply.PS_Widget import PowerSupply
+# from PowerSupply.PS_Widget import PowerSupply, StopReboot
+from PowerSupply.PS_Communication import PowerSupply
+from PowerSupply.Voltage import *
 from PowerSupply.Userdef import *
 from ForceSensor import FutekSensor, FutekSensorPlot, FutekSensorControl
+from PowerSupply.ps_modes.static import StaticMode
+from PowerSupply.ps_modes.dynamic import DynamicMode
+from PowerSupply.ps_modes.demo import DemoMode
 import time
 
 class MainWindow(QWidget):
@@ -31,12 +36,16 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
-        record_data = 0                 # 0: no data record;        1: data record.
+        # record_data = 0                 # 0: no data record;        1: data record.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         self.display_currents = 1       # 0: no current plot;       1: current plot.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_force = 1          # 0: no force plot;         1: force plot.
+        # ------------------------------------------------------------------------------------------------------------ #
+        static = 1                      # 0: no static mode;        1: static mode.
+        dynamic = 1                     # 0: no dynamic mode;       1: dynamic mode.
+        demo = 1                        # 0: no demonstration mode; 1: demonstration mode.
 
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
@@ -45,10 +54,14 @@ class MainWindow(QWidget):
         # POWER SUPPLY (High voltage power supply control panel).
         board_1_port = 'COM3'
         self.power_supply = PowerSupply(port_name=board_1_port,
-                                        currents_display=self.display_currents,
                                         voltage_display=self.display_voltages,
-                                        debug_mode=self.debug_mode,
-                                        record_data=record_data)
+                                        currents_display=self.display_currents)
+        serial = self.power_supply.ser
+
+        # Modes
+        self.static = StaticMode(ser=serial)
+        self.dynamic = DynamicMode(ser=serial)
+        self.demo = DemoMode(ser=serial)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
@@ -62,94 +75,135 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #                                                             
 
         self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
-        self.main_layout = QHBoxLayout(self)
+        main_layout = QHBoxLayout(self)
         # self.setStyleSheet("background-color: white;")
 
+        # ************************************************************************************************************ #
+
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
-        self.control_panel_layout = QVBoxLayout()
+        control_panel_layout = QVBoxLayout()
+        
+        # Type of characterization (static, dynamic, demo).
+        characterization_type = QTabWidget()
+        characterization_type.setStyleSheet("background-color: white;")
+
+        if static == 1:
+            characterization_type.addTab(self.static, 'Static Characterization')
+
+        if dynamic == 1:
+            characterization_type.addTab(self.dynamic, 'Dynamic Characterization')
+
+        if demo == 1:
+            characterization_type.addTab(self.demo, 'Performance Demonstration')
+
+        control_panel_layout.addWidget(characterization_type)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # Power supply control panel.
-        self.power_supply_groupBox = QGroupBox(self.power_supply.board_name)
-        self.power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.control_panel_layout.addWidget(self.power_supply_groupBox, stretch=1)
+        # # Power supply control panel.
+        # power_supply_groupBox = QGroupBox(self.power_supply.board_name)
+        # power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        # control_panel_layout.addWidget(power_supply_groupBox, stretch=1)
 
-        self.power_supply_groupBox_layout = QFormLayout(self.power_supply_groupBox)
-        self.power_supply_groupBox_layout.addRow(self.power_supply)
-        self.power_supply_groupBox.setLayout(self.power_supply_groupBox_layout)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-
-        # ACTUATOR (Motorized linear stage / Linear actuator control panel). Plan to make two tabs for the linear stage
-        # and the linear actuator.
-        self.actuator_groupBox = QGroupBox("Actuator")
-        self.actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.control_panel_layout.addWidget(self.actuator_groupBox, stretch=1)
-
-        # Here will be a code for the actuator control panel.
+        # power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
+        # power_supply_groupBox_layout.addRow(self.power_supply)
+        # power_supply_groupBox.setLayout(power_supply_groupBox_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # Unified controller
-        self.uni_groupBox = QGroupBox("Uni controller")
-        self.uni_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.control_panel_layout.addWidget(self.uni_groupBox, stretch=1)
+        # # ACTUATOR (Motorized linear stage / Linear actuator control panel). Plan to make two tabs for the linear stage
+        # # and the linear actuator.
+        # actuator_groupBox = QGroupBox("Actuator")
+        # actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        # control_panel_layout.addWidget(actuator_groupBox, stretch=1)
 
-        # Here will be the code for the unified controller
-        self.button_layout = QVBoxLayout(self.uni_groupBox)
+        # # Here will be a code for the actuator control panel.
+
+        # ------------------------------------------------------------------------------------------------------------ #
+
+        # Control buttons
+        buttons_groupBox = QGroupBox("Control buttons")
+        buttons_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        control_panel_layout.addWidget(buttons_groupBox, stretch=0)
+        
+        button_layout = QVBoxLayout(buttons_groupBox)
+
+        self.tare_button = QPushButton("Tare")
+        self.tare_button.setStyleSheet("background-color: white; "
+                                        "color: black; "
+                                        "font-weight: bold; "
+                                        'font-size: 24px;'
+                                        "position: center; "
+                                        "border: 1px solid black;")
+        button_layout.addWidget(self.tare_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.tare_button.clicked.connect(self.force_sensor.tare)
+        self.tare_button.setFixedWidth(700)
+        self.tare_button.setFixedHeight(50)
+
         self.run_button = QPushButton("Run")
-        self.button_layout.addWidget(self.run_button)
+        self.run_button.setStyleSheet("background-color: green; "
+                                       "color: white; "
+                                       "font-weight: bold; "
+                                       'font-size: 24px;'
+                                       "position: center; "
+                                       "border: 1px solid black;")
+        button_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
         self.run_button.clicked.connect(self.run_button_clicked)
+        self.run_button.setFixedWidth(700)
+        self.run_button.setFixedHeight(50)
+
+        button_layout.addStretch(1)
+
         # ------------------------------------------------------------------------------------------------------------ #
 
-        self.main_layout.addLayout(self.control_panel_layout, 0) # add the control panel on the left side.
+        main_layout.addLayout(control_panel_layout, 0) # add the control panel on the left side.
 
         # ************************************************************************************************************ #
 
         # MONITORING (Right side of the main window: plots of measured and controlled variables: force, voltage, and currents.
         # Position and speed will be added later).
-        self.monitoring_groupBox_layout = QVBoxLayout()
+        monitoring_groupBox_layout = QVBoxLayout()
 
-        self.plots_groupBox = QGroupBox("Monitoring")
-        self.plots_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        self.monitoring_groupBox_layout.addWidget(self.plots_groupBox)
+        plots_groupBox = QGroupBox("Monitoring")
+        plots_groupBox.setStyleSheet('font-weight: bold;'
+                                     'background-color: white;')
+        monitoring_groupBox_layout.addWidget(plots_groupBox)
 
-        self.all_plots_layout = QVBoxLayout(self.plots_groupBox)
-        self.all_plots_layout.setSpacing(0)
+        all_plots_layout = QVBoxLayout(plots_groupBox)
+        all_plots_layout.setSpacing(0)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
         # FORCE SENSOR PLOT
         if self.display_force != 0:
-            self.all_plots_layout.addWidget(self.force_sensor_plot)
+            all_plots_layout.addWidget(self.force_sensor_plot)
 
-            self.force_sensor_layout = QHBoxLayout()
-            self.force_sensor_layout.addWidget(self.force_sensor_plot)
+            force_sensor_layout = QHBoxLayout()
+            force_sensor_layout.addWidget(self.force_sensor_plot)
             # self.force_sensor_layout.addWidget(self.force_sensor_control)
 
-            self.all_plots_layout.addLayout(self.force_sensor_layout)
+            all_plots_layout.addLayout(force_sensor_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
         # POWER SUPPLY VOLTAGE PLOT
         if self.display_voltages != 0:
-            self.voltage_layout = QHBoxLayout()
-            self.voltage_layout.addWidget(self.power_supply.voltage_plots)
-            self.all_plots_layout.addLayout(self.voltage_layout)
+            voltage_layout = QHBoxLayout()
+            voltage_layout.addWidget(self.power_supply.voltage_plots)
+            all_plots_layout.addLayout(voltage_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
         # POWER SUPPLY CURRENT PLOTS
         if self.display_currents != 0:
-            self.currents_layout = QHBoxLayout()
-            self.currents_layout.addWidget(self.power_supply.current_plots)
-            self.all_plots_layout.addLayout(self.currents_layout)
+            currents_layout = QHBoxLayout()
+            currents_layout.addWidget(self.power_supply.current_plots)
+            all_plots_layout.addLayout(currents_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
-        self.plots_groupBox.setLayout(self.all_plots_layout)
-        self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
+        plots_groupBox.setLayout(all_plots_layout)
+        main_layout.addLayout(monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
         # ************************************************************************************************************ #
         #                                          CALLBACK FOR DATA READING
@@ -169,10 +223,22 @@ class MainWindow(QWidget):
             self.power_supply.start_recording()
             self.force_sensor.start_recording()
             self.run_button.setText("Stop")
+            self.run_button.setStyleSheet("background-color: red; "
+                                           "color: white; "
+                                           "font-weight: bold; "
+                                           'font-size: 24px;'
+                                           "position: center; "
+                                           "border: 1px solid black;")
         else:
             self.power_supply.stop_recording()
             self.force_sensor.stop_recording()
             self.run_button.setText("Run")
+            self.run_button.setStyleSheet("background-color: green; "
+                                       "color: white; "
+                                       "font-weight: bold; "
+                                       'font-size: 24px;'
+                                       "position: center; "
+                                       "border: 1px solid black;")
         
     # ------------------------------------------------------------------------------------------------------------ #
         
