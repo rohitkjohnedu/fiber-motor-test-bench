@@ -29,6 +29,7 @@ class PowerSupply(QWidget):
         self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
         self.values_labels = np.zeros((self.buffer_length, 6), dtype=np.float64)
         self.sample = 0
+        self.read_samples = 0
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
         self.reading_thread_lock = RLock()
@@ -170,27 +171,17 @@ class PowerSupply(QWidget):
 
             try:
                 if self.display_voltages != 0 or self.display_currents != 0:
-                    t_save = int(data[1])/1000
+                    t_save = int(data[1])
             # -------------------------------------------------------------------------------------------------------- #
                 if self.display_voltages != 0:
                     hv_set = np.float64(data[2])
-                    # hv_set_now = format(hv_set, '4.0f')
-
                     hv_vm = np.float64(data[5])
-                    # hv_vm_now = format(hv_vm, '4.0f')
-
                     hv_err = np.float64(data[2]) - np.float64(data[5])
-                    # hv_err_now = format(hv_err, '4.0f')
             # -------------------------------------------------------------------------------------------------------- #    
                 if self.display_voltages == 2:
                     lv_set = np.float64(data[3])
-                    # lv_set_now = format(lv_set, '2.1f')
-
                     lv_vm = np.float64(data[4])
-                    # lv_vm_now = format(lv_vm, '2.1f')
-
                     lv_err = np.float64(data[3]) - np.float64(data[4])
-                    # lv_err_now = format(lv_err, '2.1f')
             # -------------------------------------------------------------------------------------------------------- #
                 if self.display_currents != 0:
                     cm_val_w1 = np.float64(data[7])
@@ -242,6 +233,13 @@ class PowerSupply(QWidget):
         # ************************************************************************************************************ #
         #                                           UPDATE PLOTS/LABELS
         # ************************************************************************************************************ #
+
+    def get_new_data(self):
+        self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
+        data = self.buffer_data[self.read_samples:self.sample,:]
+        self.reading_thread_lock.release()  # Release lock
+        self.read_samples = self.sample
+        return data
 
     def plot_update(self, start_time):
         all_data = self.get_buffer()
@@ -297,8 +295,7 @@ class PowerSupply(QWidget):
                     use = tplot > tplot[-1] - self.plotHistoryLength
                     self.current_plots.update_plot(t=tplot[use], y1=cm_val_w1[use],
                                                    y2=cm_val_w2[use], y3=cm_val_w3[use])
-                    self.current_plots.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])
-                    
+                    self.current_plots.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])   
         # ************************************************************************************************************ #
 
     def set_plot_history(self, history_length):

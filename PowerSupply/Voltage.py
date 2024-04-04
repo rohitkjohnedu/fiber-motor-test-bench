@@ -44,11 +44,11 @@ class Voltage(QWidget):
         # TITLES LINE
         # ------------------------------------------------------------------------------------------------------------ #
         self.target_voltage_lbl = QLabel("Target:")
-        self.target_voltage_lbl.setFixedWidth(75)
+        self.target_voltage_lbl.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.target_voltage_edit = QLineEdit("0")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.target_voltage_edit.setFixedWidth(75)
+        self.target_voltage_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.target_voltage_update_btn = QPushButton("Update")
         self.target_voltage_update_btn.setFixedWidth(75)
@@ -66,15 +66,15 @@ class Voltage(QWidget):
         self.voltage_on_off_label = QLabel("OFF")
         self.voltage_label_off()
         self.voltage_on_off_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.voltage_on_off_label.setFixedSize(75, 25)
+        self.voltage_on_off_label.setFixedSize(100, 25)
         # ------------------------------------------------------------------------------------------------------------ #
         self.voltage_groupBox_layout.addWidget(self.target_voltage_lbl, 0, 0)
         self.voltage_groupBox_layout.addWidget(self.target_voltage_edit, 0, 1)
-        self.voltage_groupBox_layout.addWidget(self.target_voltage_update_btn, 0, 2)
-        self.voltage_groupBox_layout.addWidget(self.hv_toggle, 0, 3)
-        self.voltage_groupBox_layout.addWidget(self.current_voltage_lbl, 1, 0)
-        self.voltage_groupBox_layout.addWidget(self.current_voltage_value_lbl, 1, 1)
-        self.voltage_groupBox_layout.addWidget(self.voltage_on_off_label, 1, 2)
+        # self.voltage_groupBox_layout.addWidget(self.target_voltage_update_btn, 0, 2)
+        # self.voltage_groupBox_layout.addWidget(self.hv_toggle, 0, 3)
+        # self.voltage_groupBox_layout.addWidget(self.current_voltage_lbl, 1, 0)
+        # self.voltage_groupBox_layout.addWidget(self.current_voltage_value_lbl, 1, 1)
+        # self.voltage_groupBox_layout.addWidget(self.voltage_on_off_label, 0, 3)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hv_toggle.stateChanged.connect(self.hv_toggled)
         self.target_voltage_edit.returnPressed.connect(self.voltage_set)

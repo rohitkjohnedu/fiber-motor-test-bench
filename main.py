@@ -17,15 +17,19 @@ import sys
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QApplication, QMessageBox, QPushButton, QTabWidget
 # custom packages
-# from PowerSupply.PS_Widget import PowerSupply, StopReboot
 from PowerSupply.PS_Communication import PowerSupply
 from PowerSupply.Voltage import *
 from PowerSupply.Userdef import *
-from ForceSensor import FutekSensor, FutekSensorPlot, FutekSensorControl
+from ForceSensor import FutekSensor, FutekSensorPlot
 from PowerSupply.ps_modes.static import StaticMode
 from PowerSupply.ps_modes.dynamic import DynamicMode
 from PowerSupply.ps_modes.demo import DemoMode
 import time
+import numpy as np
+import os.path
+from datetime import datetime
+
+formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 
 class MainWindow(QWidget):
     def __init__(self, parent=None):
@@ -36,7 +40,6 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
-        # record_data = 0                 # 0: no data record;        1: data record.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         self.display_currents = 1       # 0: no current plot;       1: current plot.
@@ -68,7 +71,6 @@ class MainWindow(QWidget):
         # FUTEK FORCE SENSOR (Load cell).
         self.force_sensor = FutekSensor()
         self.force_sensor_plot = FutekSensorPlot(self.force_sensor, controls=False)
-        self.force_sensor_control = FutekSensorControl(self.force_sensor_plot)
 
         # ************************************************************************************************************ #
         #                                     INITIALIZATION OF THE USER INTERFACE
@@ -85,7 +87,6 @@ class MainWindow(QWidget):
         
         # Type of characterization (static, dynamic, demo).
         characterization_type = QTabWidget()
-        characterization_type.setStyleSheet("background-color: white;")
 
         if static == 1:
             characterization_type.addTab(self.static, 'Static Characterization')
@@ -97,34 +98,14 @@ class MainWindow(QWidget):
             characterization_type.addTab(self.demo, 'Performance Demonstration')
 
         control_panel_layout.addWidget(characterization_type)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-
-        # # Power supply control panel.
-        # power_supply_groupBox = QGroupBox(self.power_supply.board_name)
-        # power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        # control_panel_layout.addWidget(power_supply_groupBox, stretch=1)
-
-        # power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
-        # power_supply_groupBox_layout.addRow(self.power_supply)
-        # power_supply_groupBox.setLayout(power_supply_groupBox_layout)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-
-        # # ACTUATOR (Motorized linear stage / Linear actuator control panel). Plan to make two tabs for the linear stage
-        # # and the linear actuator.
-        # actuator_groupBox = QGroupBox("Actuator")
-        # actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        # control_panel_layout.addWidget(actuator_groupBox, stretch=1)
-
-        # # Here will be a code for the actuator control panel.
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         # Control buttons
         buttons_groupBox = QGroupBox("Control buttons")
         buttons_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        buttons_groupBox.setFixedHeight(150)
         control_panel_layout.addWidget(buttons_groupBox, stretch=0)
+        control_panel_layout.addSpacing(0)
         
         button_layout = QVBoxLayout(buttons_groupBox)
 
@@ -133,11 +114,10 @@ class MainWindow(QWidget):
                                         "color: black; "
                                         "font-weight: bold; "
                                         'font-size: 24px;'
-                                        "position: center; "
-                                        "border: 1px solid black;")
+                                        "position: center; ")
         button_layout.addWidget(self.tare_button, alignment=Qt.AlignmentFlag.AlignCenter)
         self.tare_button.clicked.connect(self.force_sensor.tare)
-        self.tare_button.setFixedWidth(700)
+        self.tare_button.setFixedWidth(680)
         self.tare_button.setFixedHeight(50)
 
         self.run_button = QPushButton("Run")
@@ -145,11 +125,10 @@ class MainWindow(QWidget):
                                        "color: white; "
                                        "font-weight: bold; "
                                        'font-size: 24px;'
-                                       "position: center; "
-                                       "border: 1px solid black;")
+                                       "position: center; ")
         button_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
         self.run_button.clicked.connect(self.run_button_clicked)
-        self.run_button.setFixedWidth(700)
+        self.run_button.setFixedWidth(680)
         self.run_button.setFixedHeight(50)
 
         button_layout.addStretch(1)
@@ -177,11 +156,8 @@ class MainWindow(QWidget):
         # FORCE SENSOR PLOT
         if self.display_force != 0:
             all_plots_layout.addWidget(self.force_sensor_plot)
-
             force_sensor_layout = QHBoxLayout()
             force_sensor_layout.addWidget(self.force_sensor_plot)
-            # self.force_sensor_layout.addWidget(self.force_sensor_control)
-
             all_plots_layout.addLayout(force_sensor_layout)
 
         # ------------------------------------------------------------------------------------------------------------ #
@@ -209,7 +185,7 @@ class MainWindow(QWidget):
         #                                          CALLBACK FOR DATA READING
         # ************************************************************************************************************ #
 
-        self.plot_interval = 10#ms
+        self.plot_interval = 50#ms
         self.start_time = 0
 
         # Set a timer with the callback function which reads and displays data from serial port.
@@ -227,8 +203,7 @@ class MainWindow(QWidget):
                                            "color: white; "
                                            "font-weight: bold; "
                                            'font-size: 24px;'
-                                           "position: center; "
-                                           "border: 1px solid black;")
+                                           "position: center; ")
         else:
             self.power_supply.stop_recording()
             self.force_sensor.stop_recording()
@@ -237,8 +212,7 @@ class MainWindow(QWidget):
                                        "color: white; "
                                        "font-weight: bold; "
                                        'font-size: 24px;'
-                                       "position: center; "
-                                       "border: 1px solid black;")
+                                       "position: center; ")
         
     # ------------------------------------------------------------------------------------------------------------ #
         
@@ -247,8 +221,42 @@ class MainWindow(QWidget):
             self.power_supply.plot_update(self.start_time)
         self.force_sensor_plot.plot_update(self.start_time)
 
+        new_power_supply_data = self.power_supply.get_new_data()
+        new_force_sensor_data = self.force_sensor.get_new_data()
 
-        #save and plot futek data 
+        if len(new_power_supply_data)>0:
+            interpolated_power_supply_data = np.zeros((len(new_force_sensor_data[:,0]), 11))
+            for i1 in range(2, 11):
+                interpolated_power_supply_data[:, i1] = np.interp(new_force_sensor_data[:, 0], new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+
+            time_s = new_force_sensor_data[:,0]
+            force_mN = new_force_sensor_data[:,1]
+            hv_set_kV = interpolated_power_supply_data[:,2]
+            hv_vm_kV = interpolated_power_supply_data[:,3]
+            hv_err_V = interpolated_power_supply_data[:,4]
+            lv_set_V = interpolated_power_supply_data[:,5]
+            lv_vm_V = interpolated_power_supply_data[:,6]
+            lv_err_V = interpolated_power_supply_data[:,7]
+            cm_w1_uA = interpolated_power_supply_data[:,8]
+            cm_w2_uA = interpolated_power_supply_data[:,9]
+            cm_w3_uA = interpolated_power_supply_data[:,10]
+
+            # Create a folder to store the data files if it doesn't exist.
+            folder_name = 'DataFiles'
+            os.makedirs(folder_name, exist_ok=True)
+
+            # Create a new .csv file within the folder with a file name, date and time of the experiment.
+            file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
+            if not os.path.isfile(file_name):
+                with open(file_name, 'w') as f:
+                    f.write(f'Time (s), Force (mN), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
+                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
+                    
+            # Save the data to the .csv file.   
+            save_data = np.column_stack((time_s, force_mN, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
+                                        cm_w1_uA, cm_w2_uA, cm_w3_uA))
+            with open(file_name, 'ab') as f:
+                np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.0f, %4.0f, %.0f, %2.1f, %2.1f, %2.1f, %2.0f, %2.0f, %2.0f')
 
     # **************************************************************************************************************** #
             

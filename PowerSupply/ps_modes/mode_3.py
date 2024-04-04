@@ -45,15 +45,15 @@ class Mode3(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_number_label = QLabel("Nb Output")
         # self.fb_freq_label.setAlignment(Qt.AlignLeft)
-        self.hb_number_label.setFixedWidth(80)
+        self.hb_number_label.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_freq_label = QLabel("Frequency (Hz)")
         # self.fb_freq_label.setAlignment(Qt.AlignLeft)
-        self.hb_freq_label.setFixedWidth(80)
+        self.hb_freq_label.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_pos_duty_label = QLabel("PosDuty (%)")
         # self.fb_duty_label.setAlignment(Qt.AlignLeft)
-        self.hb_pos_duty_label.setFixedWidth(80)
+        self.hb_pos_duty_label.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_neg_duty_label = QLabel("NegDuty (%)")
         # self.fb_duty_label.setAlignment(Qt.AlignLeft)
@@ -65,7 +65,7 @@ class Mode3(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_phase_shift_label = QLabel("Phase Shift (°)")
         # self.fb_phase_label.setAlignment(Qt.AlignLeft)
-        self.hb_phase_shift_label.setFixedWidth(80)
+        self.hb_phase_shift_label.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_on_off_label = QLabel("ON/OFF")
         self.hb_on_off_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -74,10 +74,10 @@ class Mode3(QWidget):
         self.mode3_groupBox_layout.addWidget(self.hb_number_label, 0, 0, Qt.AlignmentFlag.AlignCenter)
         self.mode3_groupBox_layout.addWidget(self.hb_freq_label, 0, 1, Qt.AlignmentFlag.AlignCenter)
         self.mode3_groupBox_layout.addWidget(self.hb_pos_duty_label, 0, 2, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_neg_duty_label, 0, 3, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_pulse_phase_label, 0, 4, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_phase_shift_label, 0, 5, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_on_off_label, 0, 6, Qt.AlignmentFlag.AlignCenter)
+        # self.mode3_groupBox_layout.addWidget(self.hb_neg_duty_label, 0, 3, Qt.AlignmentFlag.AlignCenter)
+        # self.mode3_groupBox_layout.addWidget(self.hb_pulse_phase_label, 0, 4, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.hb_phase_shift_label, 0, 3, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.hb_on_off_label, 0, 4, Qt.AlignmentFlag.AlignCenter)
         # ************************************************************************************************************ #
         # PARAMETERS LINE (LineEdit + ComboBox + PyToggle)
         # ------------------------------------------------------------------------------------------------------------ #
@@ -91,15 +91,18 @@ class Mode3(QWidget):
         self.hb_comboBox.addItem('6')
         self.hb_comboBox.addItem('7')
         self.hb_comboBox.addItem('8')
-        self.hb_comboBox.setFixedWidth(80)
+        self.hb_comboBox.setFixedWidth(100)
+
+        self.hb_comboBox.setCurrentIndex(2)
+        self.hb_comboBox.setDisabled(True)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_freq_edit = QLineEdit("1")
         self.hb_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.hb_freq_edit.setFixedWidth(80)
+        self.hb_freq_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_pos_duty_edit = QLineEdit("50")
         self.hb_pos_duty_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.hb_pos_duty_edit.setFixedWidth(80)
+        self.hb_pos_duty_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_neg_duty_edit = QLineEdit("-")
         self.hb_neg_duty_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -113,17 +116,17 @@ class Mode3(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_phase_shift_edit = QLineEdit("0")
         self.hb_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.hb_phase_shift_edit.setFixedWidth(80)
+        self.hb_phase_shift_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.hb_toggle = PyToggle(animation_curve=QEasingCurve.Type.InOutQuint)
         # ------------------------------------------------------------------------------------------------------------ #
         self.mode3_groupBox_layout.addWidget(self.hb_comboBox, 1, 0, Qt.AlignmentFlag.AlignCenter)
         self.mode3_groupBox_layout.addWidget(self.hb_freq_edit, 1, 1, Qt.AlignmentFlag.AlignCenter)
         self.mode3_groupBox_layout.addWidget(self.hb_pos_duty_edit, 1, 2, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_neg_duty_edit, 1, 3, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_pulse_phase_edit, 1, 4, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_phase_shift_edit, 1, 5, Qt.AlignmentFlag.AlignCenter)
-        self.mode3_groupBox_layout.addWidget(self.hb_toggle, 1, 6, Qt.AlignmentFlag.AlignCenter)
+        # self.mode3_groupBox_layout.addWidget(self.hb_neg_duty_edit, 1, 3, Qt.AlignmentFlag.AlignCenter)
+        # self.mode3_groupBox_layout.addWidget(self.hb_pulse_phase_edit, 1, 4, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.hb_phase_shift_edit, 1, 3, Qt.AlignmentFlag.AlignCenter)
+        self.mode3_groupBox_layout.addWidget(self.hb_toggle, 1, 4, Qt.AlignmentFlag.AlignCenter)
         # ------------------------------------------------------------------------------------------------------------ #
         # ACTIONS
         self.hb_toggle.stateChanged.connect(self.hb_toggled)

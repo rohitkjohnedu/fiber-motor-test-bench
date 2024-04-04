@@ -59,7 +59,6 @@ class Force_vs_Position(QWidget):
         power_supply_groupBox = QGroupBox("Power Supply")
         power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
         experiment_layout.addWidget(power_supply_groupBox, stretch=1)
-        # power_supply_groupBox.setFixedWidth(700)
 
         power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
         power_supply_groupBox_layout.addRow(self.power_supply)
@@ -83,7 +82,7 @@ class PowerSupplyControl(QWidget):
 
         self.ser = ser
 
-        # MODULES
+        # # MODULES
         # self.em_stop = StopReboot()
         # self.voltage = Voltage()
 
@@ -103,7 +102,8 @@ class PowerSupplyControl(QWidget):
         # ------------------------------------------------------------------------------------------------------- #
         # Connect widgets to the serial port.
 
-        # self.em_stop.attach_serial(serial=self.ser)
+        self.em_stop.attach_serial(serial=self.ser)
+
         # self.voltage.attach_serial(serial=self.ser)
 
         # if MODE1 == 1:
@@ -130,10 +130,10 @@ class PowerSupplyControl(QWidget):
 
         layout_main = QVBoxLayout()
         self.setLayout(layout_main)
-        layout_main.setSpacing(3)
+        layout_main.setSpacing(0)
 
         layout_top = QHBoxLayout()
-        layout_top.setSpacing(3)
+        layout_top.setSpacing(0)
 
         # Control panel is on the left side.
         layout_left = QVBoxLayout()
@@ -148,6 +148,7 @@ class PowerSupplyControl(QWidget):
         layout_left.addWidget(self.ps_control)
 
         # ------------------------------------------------------------------------------------------------------------ #
+
         # tab = QTabWidget(self)
         # tab.setFixedWidth(700)
 

@@ -138,6 +138,7 @@ class FutekSensor:
         self.buffer_raw_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
         self.buffer_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
         self.sample = 0
+        self.read_samples = 0
 
         self.continuous_reading_flag = False
         # Thread initialization for continuous reading
@@ -313,6 +314,13 @@ class FutekSensor:
         self.buffer_raw_data = np.zeros((self.buffer_length, 2))
         self.sample = 0
 
+    def get_new_data(self):
+        self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
+        data = self.buffer_data[self.read_samples:self.sample,:]
+        self.reading_thread_lock.release()  # Release lock
+        self.read_samples = self.sample
+        return data
+
     def get_buffer(self):
         """
         Get current force buffer from continuous reading.
@@ -421,10 +429,6 @@ class FutekSensorPlot(QtWidgets.QWidget):
         self.clear_button.setFixedWidth(100)
         self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
 
-        # self.save_data_button = QtWidgets.QPushButton("Save Data")
-        # self.save_data_button.setFixedWidth(100)
-        # self.save_data_button.clicked.connect(self._save_data_button_callback)
-
         # ----------------------------------------------------------------------------------------------- #
 
         if controls == True:
@@ -432,7 +436,6 @@ class FutekSensorPlot(QtWidgets.QWidget):
             control_layout.addWidget(self.heading)
             control_layout.addWidget(self.tare_button)
             control_layout.addWidget(self.clear_button)
-            # control_layout.addWidget(self.save_data_button)
             control_layout.addStretch(1)
             main_layout.addLayout(control_layout)
 
@@ -441,16 +444,10 @@ class FutekSensorPlot(QtWidgets.QWidget):
         self.plot_force_widget = pg.PlotWidget(self, title="<b>Force Sensor Reading</b>")
         # self.plot_force_widget.setMinimumWidth(650)
         self.plot_force_widget.setMinimumHeight(300)
-        self.plot_force_widget.setLabel('left', 'Force', units='mN')
+        self.plot_force_widget.setLabel('left', 'Force', units='N')
         self.plot_force_widget.setLabel('bottom', 'Time', units='s')
         self.plot_force = self.plot_force_widget.plot()
         main_layout.addWidget(self.plot_force_widget)
-
-    # def _save_data_button_callback(self):
-    #     t, pos = self.futek_sensor.get_buffer()
-    #     f = QtWidgets.QFileDialog.getSaveFileName()
-    #     if f[0] != '':
-    #         np.savetxt(f[0], np.transpose([t, pos]))
 
     def _tare_button_callback(self):
         self.futek_sensor.tare()
@@ -466,7 +463,7 @@ class FutekSensorPlot(QtWidgets.QWidget):
 
             if len(tplot)>0:
                 use = tplot>tplot[-1]-self.plotHistoryLength
-                self.plot_force.setData(tplot[use], force[use])
+                self.plot_force.setData(tplot[use], force[use]/1000.0)
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length
@@ -489,22 +486,14 @@ class FutekSensorPlot(QtWidgets.QWidget):
         self.save_data_button
 
 
-class FutekSensorControl(QtWidgets.QWidget):
+# class FutekSensorControl(QtWidgets.QWidget):
 
-    def __init__(self, force_sensor_object_control: FutekSensorPlot):
+#     def __init__(self, force_sensor_object_control: FutekSensorPlot):
 
-        super(FutekSensorControl, self).__init__()
-        self.futek_sensor_contol = force_sensor_object_control
+#         super(FutekSensorControl, self).__init__()
+#         self.futek_sensor_contol = force_sensor_object_control
 
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setSpacing(0)
-
-        control_layout = QtWidgets.QVBoxLayout()
-        # control_layout.setContentsMargins(0, 10, 0, 10)
-        # control_layout.addWidget(self.futek_sensor_contol.heading)
-        control_layout.addWidget(self.futek_sensor_contol.tare_button)
-        # control_layout.addWidget(self.futek_sensor_contol.clear_button)
-        # control_layout.addWidget(self.futek_sensor_contol.save_data_button)
-
-        control_layout.addStretch(1)
-        main_layout.addLayout(control_layout)
+#         main_layout = QtWidgets.QHBoxLayout(self)
+#         main_layout.setSpacing(0)
+#         main_layout.addWidget(self.futek_sensor_contol.tare_button)
+#         main_layout.addStretch(1)

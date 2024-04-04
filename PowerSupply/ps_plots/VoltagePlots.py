@@ -105,12 +105,12 @@ class VoltagePlots(QWidget):
     
     def update_legend(self, hv_set, hv_now, lv_set=0, lv_now=0):
         for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'], [hv_set, hv_now])):
-            self.legend.items[i][1].setText("{}: {} kV".format(variable, value))
+            self.legend.items[i][1].setText("{}: {} V".format(variable, value))
 
         if self.plots is not None:
             for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'],
                                                         [hv_set, hv_now])):
-                self.legend.items[i][1].setText("{}: {} kV".format(variable, value))
+                self.legend.items[i][1].setText("{}: {} V".format(variable, value))
                 
             for i, (variable, value)  in enumerate(zip(['LV assigned', 'LV measured'], [lv_set, lv_now])):
                 self.legend.items[i+2][1].setText("{}: {} V".format(variable, value))

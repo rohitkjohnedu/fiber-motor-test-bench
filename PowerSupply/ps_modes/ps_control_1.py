@@ -15,17 +15,17 @@ class PS_Control_1(QWidget):
 
         mode_layout = QFormLayout(self)
 
-        # Choose phase
-        phase = QLabel("Phase")
+        # # Choose phase
+        # phase = QLabel("Phase")
 
-        phase_comboBox = QComboBox()
-        # phase_comboBox.setStyleSheet("QComboBox { background-color: #DDDDDD; }")
-        phase_comboBox.addItem('A')
-        phase_comboBox.addItem('B')
-        phase_comboBox.addItem('C')
+        # phase_comboBox = QComboBox()
+        # # phase_comboBox.setStyleSheet("QComboBox { background-color: #DDDDDD; }")
+        # phase_comboBox.addItem('A')
+        # phase_comboBox.addItem('B')
+        # phase_comboBox.addItem('C')
 
         
-        mode_layout.addRow(phase, phase_comboBox)
+        # mode_layout.addRow(phase, phase_comboBox)
 
 
 
