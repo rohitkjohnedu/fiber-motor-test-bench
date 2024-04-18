@@ -166,7 +166,7 @@ class Mode1(QWidget):
                 # change the state of the checkbox
                 self.hb_toggle_on(row)
                 # send through the serial port
-                to_send = "\r\nSM1 {} {} {}\r\n" .format(channel_val, 1, 100)
+                to_send = "\r\nSMx 1 {} {} {}\r\n" .format(channel_val, 1, 100)
                 send_command(self.hb_ser, to_send)
                 # display information message
                 print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)")
@@ -176,7 +176,7 @@ class Mode1(QWidget):
                     # change the state of the checkbox
                     self.hb_toggle_on(row)
                     # send through the serial port
-                    to_send = "\r\nSM1 {} {} {}\r\n".format(channel_val, freq_val, pos_duty_val)
+                    to_send = "\r\nSMx 1 {} {} {}\r\n".format(channel_val, freq_val, pos_duty_val)
                     print("[INFO CMD] {} ".format(to_send))
                     send_command(self.hb_ser, to_send)
                     # display information message
@@ -199,7 +199,7 @@ class Mode1(QWidget):
         # change the state of toggle
         self.hb_toggle_off(row)
         # send through the serial port
-        to_send = "\r\nCM1 {}\r\n".format(pow(2, row))
+        to_send = "\r\nCMx 1 {}\r\n".format(pow(2, row))
         print("[INFO CMD] {} ".format(to_send))
         send_command(self.hb_ser, to_send)
         # display information message

@@ -3,6 +3,8 @@ import os
 import sys
 import time
 from threading import Thread, RLock
+from multiprocessing import Process, Queue
+
 
 import numpy as np
 import pyqtgraph as pg
@@ -139,11 +141,15 @@ class FutekSensor:
         self.buffer_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
         self.sample = 0
         self.read_samples = 0
+        self.read_interpolated_samples = 0
 
         self.continuous_reading_flag = False
-        # Thread initialization for continuous reading
+
         self.reading_thread = Thread(target=self._read_device)
         self.reading_thread_lock = RLock()  # Lock for multithreading
+        self.last_force = 0
+        self.sample_rate = 100
+        self.interpolation_stop_time = 0
 
         self.connect()
 
@@ -316,7 +322,10 @@ class FutekSensor:
 
     def get_new_data(self):
         self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
-        data = self.buffer_data[self.read_samples:self.sample,:]
+        if self.read_samples - 500 > 0:
+            data = self.buffer_data[self.read_samples - 500:self.sample,:]
+        else:
+            data = self.buffer_data[0:self.sample,:]
         self.reading_thread_lock.release()  # Release lock
         self.read_samples = self.sample
         return data
@@ -349,16 +358,34 @@ class FutekSensor:
         while self.continuous_reading_flag:  # If flag for stoping data acquisition is not true
             if self.is_connected:  # If connected to force sensor
                 reading = self.futek_dll.Normal_Data_Request(self.device_handle)  # Read current value
+                #baud_rate = self.futek_dll.Get_Baud_Rate(self.device_handle,0)
+                #print(baud_rate)
+                # board_type = self.futek_dll.Get_Type_of_Board(self.device_handle)
+                # board_version = self.futek_dll.Version_of_Board(self.device_handle)
+                # sensor_version = self.futek_dll.Get_Sensor_Identification_Number(self.device_handle,0)
+                # firmware_version = self.futek_dll.Get_Firmware_Version(self.device_handle)
+                # reading = self.futek_dll.Fast_Data_Request(self.device_handle, int(0), int(0),board_version,"4800",firmware_version)
+                #print(self.futek_dll.ErrorDescription)
                 if reading.isnumeric():  # If the value is valid
                     current_time = time.perf_counter()  # Get corresponding reading time
+                    # if current_time - self.last_time <= 1/self.sample_rate:
+                    #     #time.sleep(0.0001)
+                    #     continue    
                     raw_force = np.float64(reading) - self.tare_register_value  # Update raw data
                     current_force = self.sensor_capacity * (raw_force - self.taring_force) / (
                             self.fullscale_value - self.offset)  # Compute current force
+                    # if not self.last_force == current_force:
                     self.reading_thread_lock.acquire()  # Get multithreading lock
                     self.buffer_data[self.sample, :] = [current_time, current_force]
                     self.buffer_raw_data[self.sample, :] = [current_time, raw_force]
                     self.reading_thread_lock.release()  # Release data lock
                     self.sample += 1  # Increment sample counter
+                    # self.last_force = current_force
+                    # self.last_time = current_time
+                    # if self.sample%100==0:
+                    #     print(current_time)
+
+                        
             else:  # If force sensor is not connected
                 time.sleep(0.01)
 
@@ -392,7 +419,7 @@ class FutekSensor:
         :return: current value of the force
         :rtype: float
         """
-        return self.buffer_data[0:self.sample, 1]
+        return self.buffer_data[self.sample-1, 1]
 
     def __del__(self):
         """

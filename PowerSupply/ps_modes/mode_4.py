@@ -169,7 +169,7 @@ class Mode4(QWidget):
                     # change the state of toggle
                     self.fb_toggle_on()
                     # send through the serial port
-                    to_send = "\r\nSM4 {} {} {} {} {} {}\r\n".format(channel_val, freq_val, pos_duty_val, neg_duty_val,
+                    to_send = "\r\nSMx 4 {} {} {} {} {} {}\r\n".format(channel_val, freq_val, pos_duty_val, neg_duty_val,
                                                                      pulse_phase_val, phase_shift_val)
                     print("[CMD]  {} ".format(to_send))
                     send_command(self.fb_ser, to_send)
@@ -189,7 +189,7 @@ class Mode4(QWidget):
         # change the state of toggle
         self.fb_toggle_off()
         # send through the serial port
-        to_send = "\r\nCM4 0\r\n"
+        to_send = "\r\nCMx 4 0\r\n"
         send_command(self.fb_ser, to_send)
         # display information message
         print("[INFO]  Mode 4 OFF")

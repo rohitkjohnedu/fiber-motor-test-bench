@@ -187,6 +187,8 @@ class MainWindow(QWidget):
 
         self.plot_interval = 50#ms
         self.start_time = 0
+        self.sample_rate = 400#Hz
+        self.interpolation_stop_time = 0
 
         # Set a timer with the callback function which reads and displays data from serial port.
         self.timer = QTimer(self)
@@ -224,22 +226,35 @@ class MainWindow(QWidget):
         new_power_supply_data = self.power_supply.get_new_data()
         new_force_sensor_data = self.force_sensor.get_new_data()
 
-        if len(new_power_supply_data)>0:
-            interpolated_power_supply_data = np.zeros((len(new_force_sensor_data[:,0]), 11))
-            for i1 in range(2, 11):
-                interpolated_power_supply_data[:, i1] = np.interp(new_force_sensor_data[:, 0], new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
-            time_s = new_force_sensor_data[:,0]
-            force_mN = new_force_sensor_data[:,1]
-            hv_set_kV = interpolated_power_supply_data[:,2]
-            hv_vm_kV = interpolated_power_supply_data[:,3]
-            hv_err_V = interpolated_power_supply_data[:,4]
-            lv_set_V = interpolated_power_supply_data[:,5]
-            lv_vm_V = interpolated_power_supply_data[:,6]
-            lv_err_V = interpolated_power_supply_data[:,7]
-            cm_w1_uA = interpolated_power_supply_data[:,8]
-            cm_w2_uA = interpolated_power_supply_data[:,9]
-            cm_w3_uA = interpolated_power_supply_data[:,10]
+        if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0:
+            if self.interpolation_stop_time < self.start_time:
+                interpolation_start_time = self.start_time
+            else:
+                interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
+
+            smallest_last_sample = min(new_power_supply_data[-1,0],new_force_sensor_data[-1,0])
+            differential_time_latest_sample = smallest_last_sample - self.start_time
+            interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
+            self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
+
+            interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
+            interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+            interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
+            for i1 in range(1, 11):
+                interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+
+            time_s = interpolation_time
+            force_mN = interpolated_force_sensor_data
+            hv_set_kV = interpolated_power_supply_data[:,1]
+            hv_vm_kV = interpolated_power_supply_data[:,2]
+            hv_err_V = interpolated_power_supply_data[:,3]
+            lv_set_V = interpolated_power_supply_data[:,4]
+            lv_vm_V = interpolated_power_supply_data[:,5]
+            lv_err_V = interpolated_power_supply_data[:,6]
+            cm_w1_uA = interpolated_power_supply_data[:,7]
+            cm_w2_uA = interpolated_power_supply_data[:,8]
+            cm_w3_uA = interpolated_power_supply_data[:,9]
 
             # Create a folder to store the data files if it doesn't exist.
             folder_name = 'DataFiles'

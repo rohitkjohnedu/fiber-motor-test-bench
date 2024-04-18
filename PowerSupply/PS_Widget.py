@@ -67,12 +67,12 @@ class PowerSupply(QWidget):
         self.em_stop = StopReboot()
         self.voltage = Voltage()
 
-        self.Mode1 = Mode1()
-        self.Mode2 = Mode2()
-        self.Mode3 = Mode3()
-        self.Mode4 = Mode4()
-        self.OldMode5 = OldMode5()
-        self.Mode5 = Mode5()
+        # self.Mode1 = Mode1()
+        # self.Mode2 = Mode2()
+        # self.Mode3 = Mode3()
+        # self.Mode4 = Mode4()
+        # self.OldMode5 = OldMode5()
+        # self.Mode5 = Mode5()
  
         # ************************************************************************************************************ #
         #                                                VOLTAGE PLOTS

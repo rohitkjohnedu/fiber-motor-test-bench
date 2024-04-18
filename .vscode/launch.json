@@ -10,6 +10,9 @@
             "request": "launch",
             // "program": "${file}",
             "program": "main.py",
+            //"program": "futek_unit_test.py",
+            //"program": "analyse_datafile.py",
+            //"program": "standa_table/standa_table.py",
             "console": "integratedTerminal"
         }
     ]

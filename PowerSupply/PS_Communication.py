@@ -33,7 +33,7 @@ class PowerSupply(QWidget):
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
         self.reading_thread_lock = RLock()
-
+        self.interpolation_stop_time = 0
         # ************************************************************************************************************ #
         #                                                VOLTAGE PLOTS
         # ************************************************************************************************************ #
@@ -82,7 +82,7 @@ class PowerSupply(QWidget):
         line = self.ser.readline()                                              # can't use the port which is not open
         line = line.decode("utf-8")
         if line == "":
-            print("[ERR.] no data received... ensure that the board has not been disconnected")
+            print("[ERR.] no data received... ensure that the high voltage power supply is connected")
             sys.exit(-1)
 
         # Read from serial.
@@ -236,10 +236,31 @@ class PowerSupply(QWidget):
 
     def get_new_data(self):
         self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
-        data = self.buffer_data[self.read_samples:self.sample,:]
+        if self.read_samples - 500 > 0:
+            data = self.buffer_data[self.read_samples - 500:self.sample,:]
+        else:
+            data = self.buffer_data[0:self.sample,:]
         self.reading_thread_lock.release()  # Release lock
         self.read_samples = self.sample
         return data
+        # if len(data) == 0:
+        #     return np.array([])
+        # if self.interpolation_stop_time < start_time:
+        #     interpolation_start_time = start_time
+        # else:
+        #     interpolation_start_time = self.interpolation_stop_time + 1/sample_rate
+
+        # differential_time_latest_sample = data[-1,0] - start_time
+        # interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/sample_rate))
+        # self.interpolation_stop_time = start_time + interpolated_latest_sample_number*(1/sample_rate)
+
+        # interpolartion_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/sample_rate)
+        # interpolated_data = np.zeros((len(interpolartion_time),11))
+        # for i1 in range(1,11):
+        #     interpolated_data[:,0] =  interpolartion_time            
+        #     interpolated_data[:,1] = np.interp(interpolartion_time, data[:, 0], data[:, i1])
+
+        # return interpolated_data
 
     def plot_update(self, start_time):
         all_data = self.get_buffer()
