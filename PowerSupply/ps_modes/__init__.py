@@ -13,9 +13,9 @@
 # NO HELP WILL BE GIVEN IF YOU MODIFY THIS CODE !!!
 ########################################################################################################################
 
-from . mode_1 import Mode1
-from . mode_2 import Mode2
-from . mode_3 import Mode3
-from . mode_4 import Mode4
-from . old_mode_5 import OldMode5
-from . mode_5 import Mode5
+#from . mode_1 import Mode1
+#from . mode_2 import Mode2
+#from . mode_3 import Mode3
+#from . mode_4 import Mode4
+#from . old_mode_5 import OldMode5
+#from . mode_5 import Mode5

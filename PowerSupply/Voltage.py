@@ -17,13 +17,16 @@ from PyQt6.QtCore import Qt, QEasingCurve
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton
 # custom packages
 from PowerSupply.py_toggle import PyToggle
-from PowerSupply.SerialSender import send_command
-from PowerSupply.Userdef import *
+#from PowerSupply.SerialSender import send_command
+#from PowerSupply.Userdef import *
 
 
 class Voltage(QWidget):
-    def __init__(self, parent=None):
-        QWidget.__init__(self, parent=parent)
+    def __init__(self):
+        QWidget.__init__(self, None)
+
+        self.hv_min = 500
+        self.hv_max = 4500
 
         self.ser = None
         self.label = None
@@ -114,13 +117,13 @@ class Voltage(QWidget):
         try:
             new_hv_val = float(self.target_voltage_edit.text())
             # check value
-            if (new_hv_val >= hv_min) and (new_hv_val <= hv_max):
+            if (new_hv_val >= self.hv_min) and (new_hv_val <= self.hv_max):
                 # change the state of the checkbox
                 self.hv_toggle_on()
                 self.hv_toggle_previous_state = 1
                 # send through the serial port
                 to_send = "\r\nSHV {}\r\n".format(new_hv_val)
-                send_command(self.ser, to_send)
+                self.send_command(self.ser, to_send)
                 # display information message
                 print("[INFO] HV ON: {} V".format(new_hv_val))
             elif new_hv_val == 0:
@@ -130,7 +133,7 @@ class Voltage(QWidget):
                 self.voltage_stop()
                 self.hv_toggle_previous_state = 0
                 # display error message
-                print(f"[ERR] please respect voltage range [{hv_min};{hv_max}] V")
+                print(f"[ERR] please respect voltage range [{self.hv_min};{self.hv_max}] V")
         except Exception as err_voltage_edit:
             # display error message
             print("[ERR] HV VAL: {} - {}".format(self.target_voltage_edit.text(), err_voltage_edit))
@@ -143,7 +146,7 @@ class Voltage(QWidget):
         self.hv_toggle_off()
         # send through the serial port
         to_send = "\r\nSHV 0\r\n"
-        send_command(self.ser, to_send)
+        self.send_command(self.ser, to_send)
         # display information message
         print("[INFO] HV OFF")
 
@@ -174,3 +177,7 @@ class Voltage(QWidget):
                                                 'color: white; '
                                                 'position: center; '
                                                 'border: 1px solid black;')
+        
+    def send_command(self, ser, command):
+        to_send = bytearray(command, encoding="utf-8")
+        ser.write(to_send)

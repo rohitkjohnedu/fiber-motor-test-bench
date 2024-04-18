@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormL
 # custom packages
 from PowerSupply.PS_Communication import PowerSupply
 from PowerSupply.Voltage import *
-from PowerSupply.Userdef import *
+#from PowerSupply.Userdef import *
 from ForceSensor import FutekSensor, FutekSensorPlot
 from PowerSupply.ps_modes.static import StaticMode
 from PowerSupply.ps_modes.dynamic import DynamicMode
@@ -30,6 +30,9 @@ import os.path
 from datetime import datetime
 
 formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
+PROGRAM_NAME = "Actuator Test Bench"
+PROGRAM_VERSION = "v1.0"
+
 
 class MainWindow(QWidget):
     def __init__(self, parent=None):
@@ -62,7 +65,7 @@ class MainWindow(QWidget):
         serial = self.power_supply.ser
 
         # Modes
-        self.static = StaticMode(ser=serial)
+        self.static = StaticMode(ser=serial,parent=self)
         self.dynamic = DynamicMode(ser=serial)
         self.demo = DemoMode(ser=serial)
 
@@ -241,20 +244,20 @@ class MainWindow(QWidget):
             interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
             interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
             interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
-            for i1 in range(1, 11):
+            for i1 in range(2, 11):
                 interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
             time_s = interpolation_time
             force_mN = interpolated_force_sensor_data
-            hv_set_kV = interpolated_power_supply_data[:,1]
-            hv_vm_kV = interpolated_power_supply_data[:,2]
-            hv_err_V = interpolated_power_supply_data[:,3]
-            lv_set_V = interpolated_power_supply_data[:,4]
-            lv_vm_V = interpolated_power_supply_data[:,5]
-            lv_err_V = interpolated_power_supply_data[:,6]
-            cm_w1_uA = interpolated_power_supply_data[:,7]
-            cm_w2_uA = interpolated_power_supply_data[:,8]
-            cm_w3_uA = interpolated_power_supply_data[:,9]
+            hv_set_kV = interpolated_power_supply_data[:,2]
+            hv_vm_kV = interpolated_power_supply_data[:,3]
+            hv_err_V = interpolated_power_supply_data[:,4]
+            lv_set_V = interpolated_power_supply_data[:,5]
+            lv_vm_V = interpolated_power_supply_data[:,6]
+            lv_err_V = interpolated_power_supply_data[:,7]
+            cm_w1_uA = interpolated_power_supply_data[:,8]
+            cm_w2_uA = interpolated_power_supply_data[:,9]
+            cm_w3_uA = interpolated_power_supply_data[:,10]
 
             # Create a folder to store the data files if it doesn't exist.
             folder_name = 'DataFiles'
@@ -271,7 +274,7 @@ class MainWindow(QWidget):
             save_data = np.column_stack((time_s, force_mN, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
                                         cm_w1_uA, cm_w2_uA, cm_w3_uA))
             with open(file_name, 'ab') as f:
-                np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.0f, %4.0f, %.0f, %2.1f, %2.1f, %2.1f, %2.0f, %2.0f, %2.0f')
+                np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.0f, %4.0f, %.0f, %2.2f, %2.2f, %2.2f, %2.0f, %2.0f, %2.0f')
 
     # **************************************************************************************************************** #
             

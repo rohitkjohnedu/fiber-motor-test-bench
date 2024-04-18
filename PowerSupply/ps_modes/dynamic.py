@@ -9,7 +9,7 @@ import time
 
 # custom packages
 from PowerSupply.ps_modes import *
-from PowerSupply.options import *
+#from PowerSupply.options import *
 from PowerSupply.StopReboot import *
 from PowerSupply.Voltage import *
 
@@ -47,15 +47,15 @@ class DynamicMode(QWidget):
 
 
 class PowerSupplyControl(QWidget):
-    def __init__(self, parent=None, ser=None):
-        QWidget.__init__(self, parent=parent)
+    def __init__(self, ser=None):
+        QWidget.__init__(self,None)
 
         self.ser = ser
 
         # MODULES
         self.em_stop = StopReboot()
         self.voltage = Voltage()
-        self.Mode3 = Mode3()
+        #self.Mode3 = Mode3()
 
         # ------------------------------------------------------------------------------------------------------- #
         # Connect widgets to the serial port.
@@ -63,8 +63,8 @@ class PowerSupplyControl(QWidget):
         self.em_stop.attach_serial(serial=self.ser)
         self.voltage.attach_serial(serial=self.ser)
 
-        if MODE3 == 1:
-            self.Mode3.attach_serial(serial=self.ser)
+        # if MODE3 == 1:
+        #     self.Mode3.attach_serial(serial=self.ser)
 
     # ************************************************************************************************************ #
     #                                                  INTERFACE                                                   #
@@ -87,7 +87,7 @@ class PowerSupplyControl(QWidget):
 
         layout_main.addWidget(self.em_stop)
         layout_main.addWidget(self.voltage)
-        layout_main.addWidget(self.Mode3)
+        #layout_main.addWidget(self.Mode3)
 
         # ------------------------------------------------------------------------------------------------------------ #
         

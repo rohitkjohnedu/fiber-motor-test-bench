@@ -13,6 +13,5 @@
 # NO HELP WILL BE GIVEN IF YOU MODIFY THIS CODE !!!
 ########################################################################################################################
 
-from . ColorPlots import *
 from . CurrentPlots import CurrentPlots
 from . VoltagePlots import VoltagePlots

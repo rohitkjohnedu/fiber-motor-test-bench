@@ -17,7 +17,17 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
 import pyqtgraph as pg
 # custom packages
-from PowerSupply.ps_plots import color
+
+color = [(255, 0, 0),    #0) red
+         (0, 255, 0),    #1) green
+         (0, 0, 255),    #2) blue
+         (127, 0, 0),    #3) brown
+         (0, 127, 0),    #4) dark_green
+         (0, 0, 127),    #5) dark_blue
+         (255, 127, 0),  #6) orange
+         (127, 0, 127),  #7) purple
+         (0, 127, 255),  #8) light_blue
+         (0, 0, 0)]      #9) black
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')

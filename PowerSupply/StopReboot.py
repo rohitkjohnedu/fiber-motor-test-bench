@@ -16,7 +16,7 @@
 # python packages
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton
 # custom packages
-from PowerSupply.SerialSender import send_command
+#from PowerSupply.SerialSender import send_command
 
 
 class StopReboot(QWidget):
@@ -47,10 +47,15 @@ class StopReboot(QWidget):
     def attach_serial(self, serial):
         self.ser = serial
 
+    def send_command(self,ser, command):
+        to_send = bytearray(command, encoding="utf-8")
+        ser.write(to_send)
+
+
     # ####################################################################################################################
     def emg_stop_btn_clicked(self):
         # send through the serial port
         to_send = "\r\nEStop\r\n"
-        send_command(self.ser, to_send)
+        self.send_command(self.ser, to_send)
         # display information message
         print("[INFO] Emergency stop")

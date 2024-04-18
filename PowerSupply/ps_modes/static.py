@@ -10,7 +10,7 @@ import time
 # custom packages
 from PowerSupply.ps_modes import *
 from PowerSupply.ps_modes.ps_control_1 import PS_Control_1
-from PowerSupply.options import *
+#from PowerSupply.options import *
 from PowerSupply.StopReboot import *
 from PowerSupply.Voltage import *
 # from PowerSupply.py_toggle import *
@@ -19,14 +19,14 @@ from PowerSupply.Voltage import *
 
 
 class StaticMode(QWidget):
-    def __init__(self, parent=None, ser=None):
+    def __init__(self, parent, ser):
         QWidget.__init__(self, parent=parent)
 
         self.ser = ser
         force_vs_position = 1
         # force_at_position_with_max_force = 1
 
-        self.Force_vs_Position = Force_vs_Position(ser=self.ser)
+        self.Force_vs_Position = Force_vs_Position(self,self.ser)
         # self.Force_at_Position_with_maxForce = Force_at_Position_with_maxForce()
 
         # ------------------------------------------------------------------------------------------------------------ #
@@ -47,11 +47,11 @@ class StaticMode(QWidget):
 ########################################################################################################################
 
 class Force_vs_Position(QWidget):
-    def __init__(self, parent=None, ser=None):
+    def __init__(self, parent, ser):
         QWidget.__init__(self, parent=parent)
 
         self.ser = ser
-        self.power_supply = PowerSupplyControl(ser=self.ser)
+        self.power_supply = PowerSupplyControl(self,self.ser)
 
         experiment_layout = QVBoxLayout(self)
 
@@ -77,7 +77,7 @@ class Force_vs_Position(QWidget):
 ########################################################################################################################
 
 class PowerSupplyControl(QWidget):
-    def __init__(self, parent=None, ser=None):
+    def __init__(self, parent, ser):
         QWidget.__init__(self, parent=parent)
 
         self.ser = ser
@@ -86,12 +86,12 @@ class PowerSupplyControl(QWidget):
 
         self.voltage = Voltage()
 
-        self.Mode1 = Mode1()
-        self.Mode2 = Mode2()
-        self.Mode3 = Mode3()
-        self.Mode4 = Mode4()
-        self.OldMode5 = OldMode5()
-        self.Mode5 = Mode5()
+        # self.Mode1 = Mode1()
+        # self.Mode2 = Mode2()
+        # self.Mode3 = Mode3()
+        # self.Mode4 = Mode4()
+        # self.OldMode5 = OldMode5()
+        # self.Mode5 = Mode5()
 
         # ------------------------------------------------------------------------------------------------------------ #
 
@@ -106,23 +106,23 @@ class PowerSupplyControl(QWidget):
 
         self.voltage.attach_serial(serial=self.ser)
 
-        if MODE1 == 1:
-            self.Mode1.attach_serial(serial=self.ser)
+        # if MODE1 == 1:
+        #     self.Mode1.attach_serial(serial=self.ser)
 
-        if MODE2 == 1:
-            self.Mode2.attach_serial(serial=self.ser)
+        # if MODE2 == 1:
+        #     self.Mode2.attach_serial(serial=self.ser)
 
-        if MODE3 == 1:
-            self.Mode3.attach_serial(serial=self.ser)
+        # if MODE3 == 1:
+        #     self.Mode3.attach_serial(serial=self.ser)
 
-        if MODE4 == 1:
-            self.Mode4.attach_serial(serial=self.ser)
+        # if MODE4 == 1:
+        #     self.Mode4.attach_serial(serial=self.ser)
 
-        if OLD_MODE5 == 1:
-            self.OldMode5.attach_serial(serial=self.ser)
+        # if OLD_MODE5 == 1:
+        #     self.OldMode5.attach_serial(serial=self.ser)
 
-        if MODE5 == 1:
-            self.Mode5.attach_serial(serial=self.ser)
+        # if MODE5 == 1:
+        #     self.Mode5.attach_serial(serial=self.ser)
 
     # ************************************************************************************************************ #
     #                                     POWER SUPPLY CONTROL INTERFACE                                           #
@@ -152,23 +152,23 @@ class PowerSupplyControl(QWidget):
         tab = QTabWidget(self)
         tab.setFixedWidth(700)
 
-        if MODE1 == 1:
-            tab.addTab(self.Mode1, 'Mode 1')
+        # if MODE1 == 1:
+        #     tab.addTab(self.Mode1, 'Mode 1')
 
-        if MODE2 == 1:
-            tab.addTab(self.Mode2, 'Mode 2')
+        # if MODE2 == 1:
+        #     tab.addTab(self.Mode2, 'Mode 2')
 
-        if MODE3 == 1:
-            tab.addTab(self.Mode3, 'Mode 3')
+        # if MODE3 == 1:
+        #     tab.addTab(self.Mode3, 'Mode 3')
 
-        if MODE4 == 1:
-            tab.addTab(self.Mode4, 'Mode 4')
+        # if MODE4 == 1:
+        #     tab.addTab(self.Mode4, 'Mode 4')
 
-        if OLD_MODE5 == 1:
-            tab.addTab(self.OldMode5, 'Mode Go and Back')
+        # if OLD_MODE5 == 1:
+        #     tab.addTab(self.OldMode5, 'Mode Go and Back')
 
-        if MODE5 == 1:
-            tab.addTab(self.Mode5, 'Mode 5')
+        # if MODE5 == 1:
+        #     tab.addTab(self.Mode5, 'Mode 5')
 
         layout_left.addWidget(tab)
 

@@ -18,8 +18,8 @@ from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 # custom packages
 from PowerSupply.py_toggle.py_toggle import *
-from PowerSupply.SerialSender import *
-from PowerSupply.Userdef import *
+#from PowerSupply.SerialSender import *
+#from PowerSupply.Userdef import *
 
 
 class Mode2(QWidget):

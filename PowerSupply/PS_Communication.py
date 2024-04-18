@@ -9,13 +9,33 @@ import time
 
 # custom packages
 from PowerSupply.ps_plots import VoltagePlots, CurrentPlots
-from PowerSupply.Userdef import hv_vm_plot_max, lv_vm_plot_max, hb_cm_plot_max
-from PowerSupply.StopReboot import send_command
 from threading import Thread, RLock
 
 DEFAULT_BUFFER_LENGTH = 10000000
 
 class PowerSupply(QWidget):
+    # Board parameters
+    nbFullBridges = 4
+    nbHalfBridges = 8
+
+    hv_max = 4500
+    hv_min = 350
+
+    f_max = 500
+    f_min = 0.01
+
+    # Interface parameters
+    MODE1 = 1
+    MODE2 = 1
+    MODE3 = 1
+    MODE4 = 1
+    OLD_MODE5 = 1
+    MODE5 = 1
+
+    hv_vm_plot_max = 4500
+    lv_vm_plot_max = 12
+    hb_cm_plot_max = 6
+
     def __init__(self, parent=None, port_name=None, voltage_display=None, currents_display=None):
 
         QWidget.__init__(self, parent=parent)
@@ -41,14 +61,14 @@ class PowerSupply(QWidget):
         # High voltage plot.
         if self.display_voltages == 1:
             self.voltage_plots = VoltagePlots(plot_title="High Voltage of the Power Supply",
-                                              y_min=0, y_hv_max=hv_vm_plot_max)     
+                                              y_min=0, y_hv_max=self.hv_vm_plot_max)     
 
         # ------------------------------------------------------------------------------------------------------------ #
             
         # High and Low voltage plots.               
         if self.display_voltages == 2:
             self.voltage_plots = VoltagePlots(plot_title="High and Low Voltage of the Power Supply", y_min=0,
-                                              y_hv_max=hv_vm_plot_max, y_lv_max=lv_vm_plot_max, plots = "HV + LV")
+                                              y_hv_max=self.hv_vm_plot_max, y_lv_max=self.lv_vm_plot_max, plots = "HV + LV")
 
         # ************************************************************************************************************ #
         #                                              CURRENT PLOTS
@@ -56,7 +76,7 @@ class PowerSupply(QWidget):
         
         # Current plot.
         if self.display_currents != 0:
-            self.current_plots = CurrentPlots(y_min=0, y_max=hb_cm_plot_max)
+            self.current_plots = CurrentPlots(y_min=0, y_max=self.hb_cm_plot_max)
            
         # ************************************************************************************************************ #
         #                                        SERIAL COMMUNICATION WITH HVPS
@@ -74,7 +94,7 @@ class PowerSupply(QWidget):
 
         # Enable debug.
         to_send = "QName\r\n"
-        send_command(self.ser, to_send)
+        self.send_command(self.ser, to_send)
 
         # ************************************************************************************************************ #
         # Read a first time to ensure connection.
@@ -99,7 +119,7 @@ class PowerSupply(QWidget):
 
         # Enable debug.
         to_send = "QVer\r\n"
-        send_command(self.ser, to_send)
+        self.send_command(self.ser, to_send)
 
         for x in range(3):
             line = self.ser.readline()
@@ -157,7 +177,7 @@ class PowerSupply(QWidget):
             if len(line) <= 1:
                 # Enable debug.
                 to_send = "\r\nMoni 1\r\n"
-                send_command(self.ser, to_send)
+                self.send_command(self.ser, to_send)
                 continue
 
             if not line.startswith("[moni]"):
@@ -334,9 +354,13 @@ class PowerSupply(QWidget):
             print("[ERR] connection failed: {}".format(err_connection))
             pass
 
+    def send_command(self, ser, command):
+        to_send = bytearray(command, encoding="utf-8")
+        ser.write(to_send)
+
     ####################################################################################################################
     # STOP COMMUNICATION
     def stop_comm(self):
         # Disable HV and monitoring.
-        send_command(self.ser, "\r\nEStop\r\n")
+        self.send_command(self.ser, "\r\nEStop\r\n")
 
