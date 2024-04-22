@@ -16,7 +16,6 @@
 # python packages
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
 import pyqtgraph as pg
-# custom packages
 
 color = [(255, 0, 0),    #0) red
          (0, 255, 0),    #1) green
@@ -41,13 +40,13 @@ class VoltagePlots(QWidget):
         self.plots = plots
         self.legend = pg.LegendItem()
         
-        ## Create a layout for the VoltagePlots widget:
+        # Create a layout for the VoltagePlots widget:
         plot_layout = QHBoxLayout(self)
         plot_layout.setSpacing(0)
 
         # ------------------------------------------------------------------------------------------ #
 
-        ## Create a plot widget:
+        # Create a plot widget:
         plot_widget = pg.PlotWidget(show=False)
         hv_plot = plot_widget.plotItem
         hv_plot.setTitle(plot_title, bold=True)
@@ -55,7 +54,7 @@ class VoltagePlots(QWidget):
         hv_plot.setLabel('bottom', 'Time', units='s')
         hv_plot.setLabel('left', 'High Voltage', units='V')
         
-        ## Creat a new viewbox for the low voltage plot:
+        # Creat a new viewbox for the low voltage plot:
         if self.plots is not None:
             self.lv_plot = pg.ViewBox()
             hv_plot.showAxis('right')
@@ -67,14 +66,14 @@ class VoltagePlots(QWidget):
         
         # ------------------------------------------------------------------------------------------ #
 
-            ## Handle view resizing:
+            # Handle view resizing:
             def updateViews():
-                ## View has resized; update auxiliary views to match
+                # View has resized; update auxiliary views to match
                 # self.lv_plot
                 self.lv_plot.setGeometry(hv_plot.vb.sceneBoundingRect())
 
-                ## Need to re-update linked axes since this was called
-                ## incorrectly while views had different shapes.
+                # Need to re-update linked axes since this was called
+                # incorrectly while views had different shapes.
                 self.lv_plot.linkedViewChanged(hv_plot.vb, self.lv_plot.XAxis)
             
             updateViews()
@@ -82,7 +81,7 @@ class VoltagePlots(QWidget):
 
         # ------------------------------------------------------------------------------------------ #
 
-        ## Create the plots:
+        # Create the plots:
         self.hv_set_plot = hv_plot.plot(pen=color[2], name="Target high voltage")
         self.hv_now_plot = hv_plot.plot(pen=color[0], name="Output high voltage")
         if self.plots is not None:

@@ -17,8 +17,6 @@ from PyQt6.QtCore import Qt, QEasingCurve
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton
 # custom packages
 from PowerSupply.py_toggle import PyToggle
-#from PowerSupply.SerialSender import send_command
-#from PowerSupply.Userdef import *
 
 
 class Voltage(QWidget):

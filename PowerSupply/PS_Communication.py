@@ -1,4 +1,17 @@
-
+########################################################################################################################
+# @project    EPFL-HXL_PS_v1.0
+# @file       PS_Communication.py
+# @brief      Author:             MBE
+#             Institute:          EPFL
+#             Laboratory:         LMTS
+#             Software version:   v1.09 (SYLVAIN/MARTIJN/MYKHAILO)
+#             Created on:         11.03.2024
+#             Last modifications: 11.03.2024
+#
+# Copyright 2021/2024 EPFL-LMTS
+# All rights reserved.
+# NO HELP WILL BE GIVEN IF YOU MODIFY THIS CODE !!!
+########################################################################################################################
 
 # python packages
 from PyQt6.QtWidgets import QWidget
@@ -54,6 +67,7 @@ class PowerSupply(QWidget):
         self.maxPlotHistoryLength = 100000#samples
         self.reading_thread_lock = RLock()
         self.interpolation_stop_time = 0
+        
         # ************************************************************************************************************ #
         #                                                VOLTAGE PLOTS
         # ************************************************************************************************************ #

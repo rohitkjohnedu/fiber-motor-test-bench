@@ -8,7 +8,7 @@ import sys
 import time
 
 # custom packages
-from PowerSupply.ps_modes import *
+from PowerSupply.ps_modes.old_modes import *
 #from PowerSupply.options import *
 from PowerSupply.StopReboot import *
 from PowerSupply.Voltage import *

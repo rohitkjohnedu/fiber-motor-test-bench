@@ -1,233 +1,240 @@
-
 # python packages
-from PyQt6.QtCore import *
-from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox
+from PyQt6.QtCore import Qt, QEasingCurve
+from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton
 # custom packages
-# from PowerSupply.py_toggle import *
-# from PowerSupply.SerialSender import *
-# from PowerSupply.Userdef import *
+from PowerSupply.py_toggle import PyToggle
 
 
 class PS_Control_1(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
 
+        self.hb_ser = None
+
+        self.f_max = 200
+        self.f_min = 0.01
 
         mode_layout = QFormLayout(self)
 
-        # # Choose phase
-        # phase = QLabel("Phase")
-
-        # phase_comboBox = QComboBox()
-        # # phase_comboBox.setStyleSheet("QComboBox { background-color: #DDDDDD; }")
-        # phase_comboBox.addItem('A')
-        # phase_comboBox.addItem('B')
-        # phase_comboBox.addItem('C')
-
-        
-        # mode_layout.addRow(phase, phase_comboBox)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # self.hb_ser = None
-
-        # # ************************************************************************************************************ #
-        # self.mode3_groupBox = QGroupBox("Multiple outputs in Unipolar")
-        # self.mode3_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        # self.mode3_groupBox.setFixedWidth(680)
-        # # ------------------------------------------------------------------------------------------------------------ #
-        # self.mode3_layout = QVBoxLayout(self)
-        # self.mode3_layout.addWidget(self.mode3_groupBox)
-        # ------------------------------------------------------------------------------------------------------------ #
-        # self.mode3_groupBox_layout = QGridLayout(self.mode3_groupBox)
-        # self.mode3_groupBox_layout.setHorizontalSpacing(25)
-        # # self.mode3_groupBox_layout.setColumnMinimumWidth(80, 80)
-        # self.mode3_groupBox.setLayout(self.mode3_groupBox_layout)
         # ************************************************************************************************************ #
-        # TITLES LINE (only labels)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_number_label = QLabel("Nb Output")
-    #     # self.fb_freq_label.setAlignment(Qt.AlignLeft)
-    #     self.hb_number_label.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_freq_label = QLabel("Frequency (Hz)")
-    #     # self.fb_freq_label.setAlignment(Qt.AlignLeft)
-    #     self.hb_freq_label.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_pos_duty_label = QLabel("PosDuty (%)")
-    #     # self.fb_duty_label.setAlignment(Qt.AlignLeft)
-    #     self.hb_pos_duty_label.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_neg_duty_label = QLabel("NegDuty (%)")
-    #     # self.fb_duty_label.setAlignment(Qt.AlignLeft)
-    #     self.hb_neg_duty_label.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_pulse_phase_label = QLabel("Pulse Phase (°)")
-    #     # self.fb_phase_label.setAlignment(Qt.AlignLeft)
-    #     self.hb_pulse_phase_label.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_phase_shift_label = QLabel("Phase Shift (°)")
-    #     # self.fb_phase_label.setAlignment(Qt.AlignLeft)
-    #     self.hb_phase_shift_label.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_on_off_label = QLabel("ON/OFF")
-    #     self.hb_on_off_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    #     self.hb_on_off_label.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.mode3_groupBox_layout.addWidget(self.hb_number_label, 0, 0, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_freq_label, 0, 1, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_pos_duty_label, 0, 2, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_neg_duty_label, 0, 3, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_pulse_phase_label, 0, 4, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_phase_shift_label, 0, 5, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_on_off_label, 0, 6, Qt.AlignmentFlag.AlignCenter)
-    #     # ************************************************************************************************************ #
-    #     # PARAMETERS LINE (LineEdit + ComboBox + PyToggle)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     # list in the combobox all available options for phase shift
-    #     self.hb_comboBox = QComboBox()
-    #     self.hb_comboBox.addItem('1')
-    #     self.hb_comboBox.addItem('2')
-    #     self.hb_comboBox.addItem('3')
-    #     self.hb_comboBox.addItem('4')
-    #     self.hb_comboBox.addItem('5')
-    #     self.hb_comboBox.addItem('6')
-    #     self.hb_comboBox.addItem('7')
-    #     self.hb_comboBox.addItem('8')
-    #     self.hb_comboBox.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_freq_edit = QLineEdit("1")
-    #     self.hb_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #     self.hb_freq_edit.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_pos_duty_edit = QLineEdit("50")
-    #     self.hb_pos_duty_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #     self.hb_pos_duty_edit.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_neg_duty_edit = QLineEdit("-")
-    #     self.hb_neg_duty_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    #     self.hb_neg_duty_edit.setFixedWidth(80)
-    #     self.hb_neg_duty_edit.setEnabled(False)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_pulse_phase_edit = QLineEdit("-")
-    #     self.hb_pulse_phase_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    #     self.hb_pulse_phase_edit.setFixedWidth(80)
-    #     self.hb_pulse_phase_edit.setEnabled(False)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_phase_shift_edit = QLineEdit("0")
-    #     self.hb_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #     self.hb_phase_shift_edit.setFixedWidth(80)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.hb_toggle = PyToggle(animation_curve=QEasingCurve.Type.InOutQuint)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     self.mode3_groupBox_layout.addWidget(self.hb_comboBox, 1, 0, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_freq_edit, 1, 1, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_pos_duty_edit, 1, 2, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_neg_duty_edit, 1, 3, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_pulse_phase_edit, 1, 4, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_phase_shift_edit, 1, 5, Qt.AlignmentFlag.AlignCenter)
-    #     self.mode3_groupBox_layout.addWidget(self.hb_toggle, 1, 6, Qt.AlignmentFlag.AlignCenter)
-    #     # ------------------------------------------------------------------------------------------------------------ #
-    #     # ACTIONS
-    #     self.hb_toggle.stateChanged.connect(self.hb_toggled)
-    #     self.hb_freq_edit.returnPressed.connect(self.hb_set)
-    #     self.hb_pos_duty_edit.returnPressed.connect(self.hb_set)
-    #     self.hb_phase_shift_edit.returnPressed.connect(self.hb_set)
-    #     self.mode3_layout.addStretch(1)
+        # TITLES ROW (only labels)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.ch_number_label = QLabel("Channels number:")
+        # self.hb_number_label.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.freq_label = QLabel("Frequency (Hz):")
+        # self.hb_freq_label.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.duty_label = QLabel("Duty cycle (%):")
+        # self.hb_duty_label.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.first_set_label = QLabel("First Set:")
+        # self.hb_on_off_label.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.ch1_phase_shift_label = QLabel("Phase shift ch1(°):")
+        # self.hb_phase_shift_label.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.ch2_phase_shift_label = QLabel("Phase shift ch2(°):")
+        # self.hb_phase_shift_label.setFixedWidth(80)   
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.ch3_phase_shift_label = QLabel("Phase shift ch3(°):")
+        # self.hb_phase_shift_label.setFixedWidth(80)   
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.second_set_label = QLabel("Second Set:")
+        # self.hb_on_off_label.setFixedWidth(80)   
 
-    # ####################################################################################################################
-    # # ATTACH SERIAL
-    # def attach_serial(self, serial):
-    #     self.hb_ser = serial
+        # ************************************************************************************************************ #
+        # PARAMETERS LINE (LineEdit + ComboBox + QPushButton)
+        self.ch_comboBox = QComboBox()
+        self.ch_comboBox.addItem('1')
+        self.ch_comboBox.addItem('2')
+        self.ch_comboBox.addItem('3')
+        # self.ch_comboBox.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.freq_edit = QLineEdit("1")
+        # self.freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # self.freq_edit.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.duty_cycle_edit = QLineEdit("50")
+        self.duty_cycle_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # self.hb_pos_duty_edit.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.set_toggle_1 = PyToggle(animation_curve=QEasingCurve.Type.InOutQuint)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.ch1_phase_shift_edit = QLineEdit("0")
+        self.ch1_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # self.phase_shift_edit.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.ch2_phase_shift_edit = QLineEdit("0")
+        self.ch2_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # self.phase_shift_edit.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.ch3_phase_shift_edit = QLineEdit("0")
+        self.ch3_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # self.phase_shift_edit.setFixedWidth(80)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.set_toggle_2 = PyToggle(animation_curve=QEasingCurve.Type.InOutQuint)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.start_button = QPushButton("Start")
+        # self.hb_start_button.setFixedWidth(80)
+        self.stop_button = QPushButton("Stop")
+        # self.hb_stop_button.setFixedWidth(80)
+        # ************************************************************************************************************ #
+        mode_layout.addRow(self.ch_number_label, self.ch_comboBox)
+        mode_layout.addRow(self.freq_label, self.freq_edit)
+        mode_layout.addRow(self.duty_label, self.duty_cycle_edit)
+        mode_layout.addRow(self.first_set_label, self.set_toggle_1)
+        mode_layout.addRow(self.ch1_phase_shift_label, self.ch1_phase_shift_edit)
+        mode_layout.addRow(self.ch2_phase_shift_label, self.ch2_phase_shift_edit)
+        mode_layout.addRow(self.ch3_phase_shift_label, self.ch3_phase_shift_edit)
+        mode_layout.addRow(self.second_set_label, self.set_toggle_2)
+        mode_layout.addRow(self.start_button, self.stop_button)
+        # ************************************************************************************************************ #
+        # ACTIONS
+        self.freq_edit.returnPressed.connect(self.first_set)
+        self.duty_cycle_edit.returnPressed.connect(self.first_set)
+        self.set_toggle_1.stateChanged.connect(self.hb_toggled)
 
-    # ####################################################################################################################
-    # # CHECKBOX TOGGLED
-    # def hb_toggled(self):
-    #     if self.hb_toggle.isChecked() == 1:
-    #         self.hb_set()
-    #     else:
-    #         self.hb_stop()
+        self.ch1_phase_shift_edit.returnPressed.connect(self.second_set)
+        self.ch2_phase_shift_edit.returnPressed.connect(self.second_set)
+        self.ch3_phase_shift_edit.returnPressed.connect(self.second_set)
+        self.set_toggle_2.stateChanged.connect(self.hb_toggled)
 
-    # ####################################################################################################################
-    # # TOGGLE CLICKED = SET STATE
-    # def hb_set(self):
-    #     try:
-    #         channel_val = 0
-    #         hb_val = int(self.hb_comboBox.currentIndex())+1
-    #         for exponent in range(hb_val):
-    #             channel_val += pow(2, exponent)
-    #         freq_val = float(self.hb_freq_edit.text())
-    #         pos_duty_val = float(self.hb_pos_duty_edit.text())
-    #         phase_shift_val = float(self.hb_phase_shift_edit.text())
-    #         # check frequency/duty cycle value
-    #         pos_pulse_width = float(10*(pos_duty_val/freq_val))
-    #         if pos_pulse_width < 2:
-    #             self.hb_stop()
-    #             print("[ERR] Positive pulse width: {} ms < 2 ms".format(pos_pulse_width))
-    #         else:
-    #             # check frequency value
-    #             if (freq_val >= f_min) and (freq_val <= f_max):
-    #                 # change the state of toggle
-    #                 self.hb_toggle_on()
-    #                 # send through the serial port
-    #                 to_send = "\r\nSM3 {} {} {} {} \r\n".format(channel_val, freq_val, pos_duty_val,phase_shift_val)
-    #                 send_command(self.hb_ser, to_send)
-    #                 # display information message
-    #                 print("[INFO] Mode 3 ON ({} Phases | {}Hz | {}% | {}°)".format(channel_val, freq_val, pos_duty_val,
-    #                                                                                phase_shift_val))
-    #             else:
-    #                 self.hb_stop()
-    #     except Exception as err_fb_freq_edit:
-    #         # display error message
-    #         print("[ERR] FB FREQ VAL: {} - {}".format(self.hb_freq_edit.text(), err_fb_freq_edit))
-    #     return
+        self.start_button.clicked.connect(self.start_command)
+        self.stop_button.clicked.connect(self.stop_command)
+        # ************************************************************************************************************ #
 
-    # ####################################################################################################################
-    # # TOGGLE NOT CLICKED = STOP STATE
-    # def hb_stop(self):
-    #     # change the state of toggle
-    #     self.hb_toggle_off()
-    #     # send through the serial port
-    #     to_send = "\r\nCM3 0\r\n"
-    #     send_command(self.hb_ser, to_send)
-    #     # display information message
-    #     print("[INFO] Mode 3 OFF")
+    ####################################################################################################################
+    # ATTACH SERIAL
+    def attach_serial(self, serial):
+        self.hb_ser = serial
 
-    # ####################################################################################################################
-    # def hb_toggle_on(self):
-    #     self.hb_toggle.setChecked(True)
-    #     self.hb_toggle.start_transition(1)
+    ####################################################################################################################
+    # SEND COMMAND
+    def send_command(self, ser, command):
+        to_send = bytearray(command, encoding="utf-8")
+        ser.write(to_send)
 
-    # ####################################################################################################################
-    # def hb_toggle_off(self):
-    #     self.hb_toggle.setChecked(False)
-    #     self.hb_toggle.start_transition(0)
+    ####################################################################################################################
+    # CHECKBOX TOGGLED
+    def hb_toggled(self):
+        if self.set_toggle_1.isChecked() == 1:
+            self.first_set()
+        elif self.set_toggle_1.isChecked() == 1 and self.set_toggle_2.isChecked() == 1:
+            self.second_set()
+        else:
+            self.stop_command()
+
+    ####################################################################################################################
+    # TOGGLE CLICKED = SET STATE
+    def first_set(self):
+        try:
+            channel_val = 0
+            hb_val = int(self.ch_comboBox.currentIndex())+1
+            for exponent in range(hb_val):
+                channel_val += pow(2, exponent)
+            freq_val = float(self.freq_edit.text())
+            duty_val = float(self.duty_cycle_edit.text())
+            # phase_shift_val = float(self.phase_shift_edit.text())
+            # check frequency/duty cycle value
+            pos_pulse_width = float(10*(duty_val/freq_val))
+            if pos_pulse_width < 2:
+                self.stop_command()
+                print("[ERR] Positive pulse width: {} ms < 2 ms".format(pos_pulse_width))
+            else:
+                # check frequency value
+                if (freq_val >= self.f_min) and (freq_val <= self.f_max):
+                    # change the state of toggle
+                    self.first_toggle_on()
+                    # send through the serial port
+                    to_send = "\r\nSMx 5 1 {} {} {} \r\n".format(channel_val, freq_val, duty_val)
+                    self.send_command(self.hb_ser, to_send)
+                    # display information message
+                    print("[INFO] Set: {} Channels | {}Hz | {}%".format(channel_val, freq_val, duty_val))
+                else:
+                    self.stop_command()
+        except Exception as err_fb_freq_edit:
+            # display error message
+            print("[ERR] FB FREQ VAL: {} - {}".format(self.freq_edit.text(), err_fb_freq_edit))
+        return
+
+    ####################################################################################################################
+    # SECOND TOGGLE CLICKED = SET STATE
+    def second_set(self):
+        ch1_phase_shift_val = float(self.ch1_phase_shift_edit.text())
+        ch2_phase_shift_val = float(self.ch2_phase_shift_edit.text())
+        ch3_phase_shift_val = float(self.ch3_phase_shift_edit.text())
+        # change the state of toggle
+        self.second_toggle_on()
+        # send through the serial port
+        to_send = "\r\nSMx 5 2 {} {} {} \r\n".format(ch1_phase_shift_val, ch2_phase_shift_val,
+                                                     ch3_phase_shift_val)
+        self.send_command(self.hb_ser, to_send)
+        # display information message
+        print("[INFO] Set phase shift | ch1: {}° | ch2: {}° | ch3: {}°".format(ch1_phase_shift_val,
+                                                                               ch2_phase_shift_val,
+                                                                               ch3_phase_shift_val)) 
+    
+    ####################################################################################################################
+    # START COMMAND
+    def start_command(self):
+        # lock the mode
+        self.lock_command(state=1)
+        # send through the serial port
+        to_send = "\r\nSMx 5 0\r\n"
+        self.send_command(self.hb_ser, to_send)
+        # display information message
+        print("[INFO] Mode ON")
+
+    ####################################################################################################################
+    # LOCK COMMAND
+    def lock_command(self, state):
+        if state == 1:
+            self.ch_comboBox.setDisabled(True)
+            self.freq_edit.setDisabled(True)
+            self.duty_cycle_edit.setDisabled(True)
+            self.set_toggle_1.setDisabled(True)
+            self.ch1_phase_shift_edit.setDisabled(True)
+            self.ch2_phase_shift_edit.setDisabled(True)
+            self.ch3_phase_shift_edit.setDisabled(True)
+            self.set_toggle_2.setDisabled(True)
+        else:
+            self.ch_comboBox.setDisabled(False)
+            self.freq_edit.setDisabled(False)
+            self.duty_cycle_edit.setDisabled(False)
+            self.set_toggle_1.setDisabled(False)
+            self.ch1_phase_shift_edit.setDisabled(False)
+            self.ch2_phase_shift_edit.setDisabled(False)
+            self.ch3_phase_shift_edit.setDisabled(False)
+            self.set_toggle_2.setDisabled(False)
+        # display information message
+        print("[INFO] Mode locked")
+
+    ####################################################################################################################
+    # TOGGLE NOT CLICKED = STOP STATE
+    def stop_command(self):
+        # unlock the mode
+        self.lock_command(state=0)
+        # change the state of toggle
+        self.hb_toggle_off()
+        # send through the serial port
+        to_send = "\r\nCMx 5 0\r\n"
+        self.send_command(self.hb_ser, to_send)
+        # display information message
+        print("[INFO] Mode OFF")
+
+    ####################################################################################################################
+    def first_toggle_on(self):
+        self.set_toggle_1.setChecked(True)
+        self.set_toggle_1.start_transition(1)
+
+    def second_toggle_on(self):
+        self.set_toggle_2.setChecked(True)
+        self.set_toggle_2.start_transition(1)
+
+    ####################################################################################################################
+    def hb_toggle_off(self):
+        self.set_toggle_1.setChecked(False)
+        self.set_toggle_1.start_transition(0)
+        self.set_toggle_2.setChecked(False)
+        self.set_toggle_2.start_transition(0)

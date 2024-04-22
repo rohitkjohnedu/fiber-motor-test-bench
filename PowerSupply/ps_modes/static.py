@@ -8,14 +8,11 @@ import sys
 import time
 
 # custom packages
-from PowerSupply.ps_modes import *
+from PowerSupply.ps_modes.old_modes import *
 from PowerSupply.ps_modes.ps_control_1 import PS_Control_1
 #from PowerSupply.options import *
 from PowerSupply.StopReboot import *
 from PowerSupply.Voltage import *
-# from PowerSupply.py_toggle import *
-# from PowerSupply.SerialSender import *
-# from PowerSupply.Userdef import *
 
 
 class StaticMode(QWidget):
@@ -83,46 +80,18 @@ class PowerSupplyControl(QWidget):
         self.ser = ser
 
         # MODULES
-
         self.voltage = Voltage()
-
-        # self.Mode1 = Mode1()
-        # self.Mode2 = Mode2()
-        # self.Mode3 = Mode3()
-        # self.Mode4 = Mode4()
-        # self.OldMode5 = OldMode5()
-        # self.Mode5 = Mode5()
-
-        # ------------------------------------------------------------------------------------------------------------ #
-
         self.em_stop = StopReboot()
-        # self.ps_control = PS_Control_1()
+
+        self.ps_control = PS_Control_1()
         
 
         # ------------------------------------------------------------------------------------------------------- #
         # Connect widgets to the serial port.
 
         self.em_stop.attach_serial(serial=self.ser)
-
         self.voltage.attach_serial(serial=self.ser)
-
-        # if MODE1 == 1:
-        #     self.Mode1.attach_serial(serial=self.ser)
-
-        # if MODE2 == 1:
-        #     self.Mode2.attach_serial(serial=self.ser)
-
-        # if MODE3 == 1:
-        #     self.Mode3.attach_serial(serial=self.ser)
-
-        # if MODE4 == 1:
-        #     self.Mode4.attach_serial(serial=self.ser)
-
-        # if OLD_MODE5 == 1:
-        #     self.OldMode5.attach_serial(serial=self.ser)
-
-        # if MODE5 == 1:
-        #     self.Mode5.attach_serial(serial=self.ser)
+        self.ps_control.attach_serial(serial=self.ser)
 
     # ************************************************************************************************************ #
     #                                     POWER SUPPLY CONTROL INTERFACE                                           #
@@ -145,32 +114,7 @@ class PowerSupplyControl(QWidget):
 
         layout_left.addWidget(self.em_stop)
         layout_left.addWidget(self.voltage)
-        # layout_left.addWidget(self.ps_control)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-
-        tab = QTabWidget(self)
-        tab.setFixedWidth(700)
-
-        # if MODE1 == 1:
-        #     tab.addTab(self.Mode1, 'Mode 1')
-
-        # if MODE2 == 1:
-        #     tab.addTab(self.Mode2, 'Mode 2')
-
-        # if MODE3 == 1:
-        #     tab.addTab(self.Mode3, 'Mode 3')
-
-        # if MODE4 == 1:
-        #     tab.addTab(self.Mode4, 'Mode 4')
-
-        # if OLD_MODE5 == 1:
-        #     tab.addTab(self.OldMode5, 'Mode Go and Back')
-
-        # if MODE5 == 1:
-        #     tab.addTab(self.Mode5, 'Mode 5')
-
-        layout_left.addWidget(tab)
+        layout_left.addWidget(self.ps_control)
 
         # ------------------------------------------------------------------------------------------------------------ #
         # Add the top layout to the main layout.
