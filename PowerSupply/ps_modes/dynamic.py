@@ -1,18 +1,9 @@
 
 # python packages
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QGroupBox, QFormLayout
-import numpy as np
-from serial import *
-import sys
-import time
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout
 
 # custom packages
-from PowerSupply.ps_modes.old_modes import *
-#from PowerSupply.options import *
-from PowerSupply.StopReboot import *
-from PowerSupply.Voltage import *
-
 
 class DynamicMode(QWidget):
     def __init__(self, parent=None, ser=None):
@@ -52,19 +43,8 @@ class PowerSupplyControl(QWidget):
 
         self.ser = ser
 
-        # MODULES
-        self.em_stop = StopReboot()
-        self.voltage = Voltage()
         #self.Mode3 = Mode3()
-
-        # ------------------------------------------------------------------------------------------------------- #
-        # Connect widgets to the serial port.
-
-        self.em_stop.attach_serial(serial=self.ser)
-        self.voltage.attach_serial(serial=self.ser)
-
-        # if MODE3 == 1:
-        #     self.Mode3.attach_serial(serial=self.ser)
+        # self.Mode3.attach_serial(serial=self.ser)
 
     # ************************************************************************************************************ #
     #                                                  INTERFACE                                                   #
@@ -85,34 +65,7 @@ class PowerSupplyControl(QWidget):
 
         # ------------------------------------------------------------------------------------------------------------ #
 
-        layout_main.addWidget(self.em_stop)
-        layout_main.addWidget(self.voltage)
         #layout_main.addWidget(self.Mode3)
-
-        # ------------------------------------------------------------------------------------------------------------ #
-        
-        # tab = QTabWidget(self)
-        # tab.setFixedWidth(700)
-
-        # if MODE1 == 1:
-        #     tab.addTab(self.Mode1, 'Mode 1')
-
-        # if MODE2 == 1:
-        #     tab.addTab(self.Mode2, 'Mode 2')
-
-        # if MODE3 == 1:
-        #     tab.addTab(self.Mode3, 'Mode 3')
-
-        # if MODE4 == 1:
-        #     tab.addTab(self.Mode4, 'Mode 4')
-
-        # if OLD_MODE5 == 1:
-        #     tab.addTab(self.OldMode5, 'Mode Go and Back')
-
-        # if MODE5 == 1:
-        #     tab.addTab(self.Mode5, 'Mode 5')
-
-        # layout_left.addWidget(tab)
 
         # ------------------------------------------------------------------------------------------------------------ #
         # Add the top layout to the main layout.

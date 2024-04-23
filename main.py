@@ -14,12 +14,10 @@
 ########################################################################################################################
 
 import sys
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QApplication, QMessageBox, QPushButton, QTabWidget
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QMessageBox, QPushButton, QTabWidget
 # custom packages
 from PowerSupply.PS_Communication import PowerSupply
-from PowerSupply.Voltage import *
-#from PowerSupply.Userdef import *
 from ForceSensor import FutekSensor, FutekSensorPlot
 from PowerSupply.ps_modes.static import StaticMode
 from PowerSupply.ps_modes.dynamic import DynamicMode
@@ -45,7 +43,7 @@ class MainWindow(QWidget):
         self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
-        self.display_currents = 1       # 0: no current plot;       1: current plot.
+        self.display_currents = 0       # 0: no current plot;       1: current plot.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_force = 1          # 0: no force plot;         1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
@@ -106,11 +104,23 @@ class MainWindow(QWidget):
         # Control buttons
         buttons_groupBox = QGroupBox("Control buttons")
         buttons_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        buttons_groupBox.setFixedHeight(150)
-        control_panel_layout.addWidget(buttons_groupBox, stretch=0)
+        # buttons_groupBox.setFixedHeight(150)
+        control_panel_layout.addWidget(buttons_groupBox)
         control_panel_layout.addSpacing(0)
         
         button_layout = QVBoxLayout(buttons_groupBox)
+
+        self.emg_stop_btn = QPushButton("EMERGENCY STOP")
+        self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
+        self.emg_stop_btn.setStyleSheet("background-color: red; "
+                                        "color: white; "
+                                        "font-weight: bold; "
+                                        'font-size: 24px;'
+                                        "position: center; "
+                                        "border: 1px solid black;")
+        button_layout.addWidget(self.emg_stop_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.emg_stop_btn.setFixedWidth(680)
+        self.emg_stop_btn.setFixedHeight(50)
 
         self.tare_button = QPushButton("Tare")
         self.tare_button.setStyleSheet("background-color: white; "
@@ -124,13 +134,13 @@ class MainWindow(QWidget):
         self.tare_button.setFixedHeight(50)
 
         self.run_button = QPushButton("Run")
+        self.run_button.clicked.connect(self.run_button_clicked)
         self.run_button.setStyleSheet("background-color: green; "
                                        "color: white; "
                                        "font-weight: bold; "
                                        'font-size: 24px;'
                                        "position: center; ")
         button_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.run_button.clicked.connect(self.run_button_clicked)
         self.run_button.setFixedWidth(680)
         self.run_button.setFixedHeight(50)
 
@@ -197,6 +207,20 @@ class MainWindow(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.plot_update_callback)
         self.timer.start(self.plot_interval)
+
+    def attach_serial(self, serial):
+        self.ser = serial
+
+    def send_command(self,ser, command):
+        to_send = bytearray(command, encoding="utf-8")
+        ser.write(to_send)
+
+    def emg_stop_btn_clicked(self):
+        # send through the serial port
+        to_send = "\r\nEStop\r\n"
+        self.send_command(self.ser, to_send)
+        # display information message
+        print("[INFO] Emergency stop")
 
     def run_button_clicked(self):
         if self.run_button.text() == "Run":

@@ -1,17 +1,10 @@
 
 # python packages
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QGroupBox, QFormLayout
-import numpy as np
-from serial import *
-import sys
-import time
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout
 
 # custom packages
-from PowerSupply.ps_modes.old_modes import *
-#from PowerSupply.options import *
-from PowerSupply.StopReboot import *
-from PowerSupply.Voltage import *
+
 
 
 class DemoMode(QWidget):
@@ -42,19 +35,6 @@ class PowerSupplyControl(QWidget):
 
         self.ser = ser
 
-        # MODULES
-        self.em_stop = StopReboot()
-        self.voltage = Voltage()
-        #self.Mode3 = Mode3()
-
-        # ------------------------------------------------------------------------------------------------------- #
-        # Connect widgets to the serial port.
-
-        self.em_stop.attach_serial(serial=self.ser)
-        self.voltage.attach_serial(serial=self.ser)
-
-        # if MODE3 == 1:
-        #     self.Mode3.attach_serial(serial=self.ser)
 
     # ************************************************************************************************************ #
     #                                                  INTERFACE                                                   #
@@ -75,8 +55,6 @@ class PowerSupplyControl(QWidget):
 
         # ------------------------------------------------------------------------------------------------------------ #
 
-        layout_main.addWidget(self.em_stop)
-        layout_main.addWidget(self.voltage)
         #layout_main.addWidget(self.Mode3)
 
         # ------------------------------------------------------------------------------------------------------------ #

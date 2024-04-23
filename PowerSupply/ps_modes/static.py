@@ -2,17 +2,12 @@
 # python packages
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QGroupBox, QFormLayout
-import numpy as np
-from serial import *
-import sys
-import time
 
 # custom packages
-from PowerSupply.ps_modes.old_modes import *
 from PowerSupply.ps_modes.ps_control_1 import PS_Control_1
 #from PowerSupply.options import *
-from PowerSupply.StopReboot import *
-from PowerSupply.Voltage import *
+# from PowerSupply.StopReboot import StopReboot
+from PowerSupply.Voltage import Voltage
 
 
 class StaticMode(QWidget):
@@ -79,18 +74,7 @@ class PowerSupplyControl(QWidget):
 
         self.ser = ser
 
-        # MODULES
-        self.voltage = Voltage()
-        self.em_stop = StopReboot()
-
         self.ps_control = PS_Control_1()
-        
-
-        # ------------------------------------------------------------------------------------------------------- #
-        # Connect widgets to the serial port.
-
-        self.em_stop.attach_serial(serial=self.ser)
-        self.voltage.attach_serial(serial=self.ser)
         self.ps_control.attach_serial(serial=self.ser)
 
     # ************************************************************************************************************ #
@@ -111,9 +95,7 @@ class PowerSupplyControl(QWidget):
         layout_top.addLayout(layout_left)
 
         # ------------------------------------------------------------------------------------------------------------ #
-
-        layout_left.addWidget(self.em_stop)
-        layout_left.addWidget(self.voltage)
+        
         layout_left.addWidget(self.ps_control)
 
         # ------------------------------------------------------------------------------------------------------------ #
