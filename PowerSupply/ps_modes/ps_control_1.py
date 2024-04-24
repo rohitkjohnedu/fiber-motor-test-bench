@@ -1,8 +1,6 @@
 # python packages
-from PyQt6.QtCore import Qt, QEasingCurve
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton
-# custom packages
-from PowerSupply.py_toggle import PyToggle
 
 
 class PS_Control_1(QWidget):
@@ -17,6 +15,7 @@ class PS_Control_1(QWidget):
         self.f_min = 0.01
 
         self.extended_flag = 0
+        self.previous_index = 0
 
         self.mode_layout = QFormLayout(self)
         # ************************************************************************************************************ #
@@ -40,25 +39,38 @@ class PS_Control_1(QWidget):
         self.st_comboBox.addItem('Other')
         # self.st_comboBox.setFixedWidth(80)
         # ************************************************************************************************************ #
-        self.start_button = QPushButton("Start")
+        # following widgets are used just for the initialization
+        self.freq_edit = QLineEdit("1")
+        self.duty_cycle_edit = QLineEdit("50")
+        self.ch1_phase_shift_edit = QLineEdit("0")
+        self.ch2_phase_shift_edit = QLineEdit("0")
+        self.ch3_phase_shift_edit = QLineEdit("0")
+        # ************************************************************************************************************ #
+        self.set_button = QPushButton("Set")
         # self.start_button.setFixedWidth(80)
         self.stop_button = QPushButton("Stop")
         # self.stop_button.setFixedWidth(80)
         # ************************************************************************************************************ #
         self.mode_layout.addRow(self.target_voltage_lbl, self.target_voltage_edit)
         self.mode_layout.addRow(self.state, self.st_comboBox)
-        self.mode_layout.addRow(self.start_button, self.stop_button)
+        self.mode_layout.addRow(self.set_button, self.stop_button)
         # ************************************************************************************************************ #
         # ACTIONS
         self.st_comboBox.currentIndexChanged.connect(self.extended_set)
         self.target_voltage_edit.returnPressed.connect(self.set_command)
-        self.start_button.clicked.connect(self.set_command)
+        self.set_button.clicked.connect(self.set_command)
         self.stop_button.clicked.connect(self.stop_command)
+        # ------------------------------------------------------------------------------------------------------------ #
+        self.freq_edit.returnPressed.connect(self.first_set)
+        self.duty_cycle_edit.returnPressed.connect(self.first_set)
+        self.ch1_phase_shift_edit.returnPressed.connect(self.second_set)
+        self.ch2_phase_shift_edit.returnPressed.connect(self.second_set)
+        self.ch3_phase_shift_edit.returnPressed.connect(self.second_set)
 
     ########################################################################################################################
     # ADD BUTTONS ALWAYS TO THE END OF THE LAYOUT
     def add_buttons(self):
-        self.mode_layout.addRow(self.start_button, self.stop_button)
+        self.mode_layout.addRow(self.set_button, self.stop_button)
 
     ########################################################################################################################
     # EXTENDED SET
@@ -118,14 +130,7 @@ class PS_Control_1(QWidget):
         # **************************************************************************************************************** #
         self.add_buttons() # add buttons to the end of the layout
         # **************************************************************************************************************** #
-        # ACTIONS
-        self.freq_edit.returnPressed.connect(self.first_set)
-        self.duty_cycle_edit.returnPressed.connect(self.first_set)
-        self.ch1_phase_shift_edit.returnPressed.connect(self.second_set)
-        self.ch2_phase_shift_edit.returnPressed.connect(self.second_set)
-        self.ch3_phase_shift_edit.returnPressed.connect(self.second_set)
-        # self.start_button.clicked.connect(self.set_command)
-        # self.stop_button.clicked.connect(self.stop_command)
+
 
     ####################################################################################################################
     # ATTACH SERIAL
@@ -170,27 +175,27 @@ class PS_Control_1(QWidget):
         # display information message
         print("[INFO] HV OFF")
         return
-    
 
     def simple_set(self):
-        try:
-            if self.st_comboBox.currentText() == 'A':
-                channel_val = int(pow(2, 0))
-            elif self.st_comboBox.currentText() == 'B':
-                channel_val = int(pow(2, 1))
-            elif self.st_comboBox.currentText() == 'C':
-                channel_val = int(pow(2, 2))
-            # send through the serial port
-            to_send = "\r\nSM1 {} {} {}\r\n" .format(channel_val, 1, 100)
-            self.send_command(self.hb_ser, to_send)
-            # display information message
-            print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)")
-            # else:
-            #     self.stop_command()
-        except Exception as err_hb_freq_edit:
-            # display error message
-            print("[ERR] HB FREQ VAL: {} - {}".format(self.hb_freq_edit[row].text(), err_hb_freq_edit))
-        return
+        if self.st_comboBox.currentText() == 'A':
+            channel_val = int(pow(2, 0))
+            # print(channel_val)
+        elif self.st_comboBox.currentText() == 'B':
+            channel_val = int(pow(2, 1))
+            # print(channel_val)
+        elif self.st_comboBox.currentText() == 'C':
+            channel_val = int(pow(2, 2))
+            # print(channel_val)
+        # send through the serial port
+        to_send = "\r\nSMx 1 {} {} {}\r\n" .format(channel_val, 1, 100)
+        self.send_command(self.ser, to_send)
+        # display information message
+        if self.st_comboBox.currentText() == 'A':
+            print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)".format(1))
+        elif self.st_comboBox.currentText() == 'B':
+            print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)".format(2))
+        elif self.st_comboBox.currentText() == 'C':
+            print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)".format(3))
 
     ####################################################################################################################
     # TOGGLE CLICKED = SET STATE
@@ -201,7 +206,6 @@ class PS_Control_1(QWidget):
             hb_val = 3
             for exponent in range(hb_val):
                 channel_val += pow(2, exponent)
-            
             freq_val = float(self.freq_edit.text())
             duty_val = float(self.duty_cycle_edit.text())
             # check frequency/duty cycle value
@@ -254,26 +258,26 @@ class PS_Control_1(QWidget):
     ####################################################################################################################
     # START COMMAND
     def set_command(self):
-        self.voltage_set()
-        if self.st_comboBox.currentIndex()+1 < 4:
-            self.simple_set()
+        if self.st_comboBox.currentIndex()+1 == self.previous_index:
+            self.voltage_set()
         else:
-            self.first_set()
-            self.second_set()    
-        if self.voltage_stop() == 1 and self.stop_command() == 1:
-            print("[ERR] please respect range of parameters value:\n"
-                  "voltage min = 350 V, voltage max = 4500 V\n"
-                  "frequency min = 0.01 Hz, frequency max = 200 Hz\n")
-                #   "duty cycle min = 0 %, duty cycle max = 100 %\n"
-                #   "phase shift min = 0°, phase shift max = 360°")
-        else:
+            self.previous_index = self.st_comboBox.currentIndex()+1
+            self.voltage_set()
+            if self.st_comboBox.currentIndex()+1 < 4:
+                self.simple_set()
+            else:
+                # print("Here")
+                self.first_set() # frequency and duty cycle set
+                self.second_set() # phase shift set
+
+                # send through the serial port
+                to_send = "\r\nSMx 5 0\r\n"
+                self.send_command(self.ser, to_send)
+                # display information message
+                print("[INFO] Mode ON")
+
             # lock the mode
             self.lock_command(is_on=1)
-            # send through the serial port
-            to_send = "\r\nSMx 5 0\r\n"
-            self.send_command(self.ser, to_send)
-            # display information message
-            print("[INFO] Mode ON")
 
     ####################################################################################################################
     # LOCK COMMAND
@@ -286,6 +290,8 @@ class PS_Control_1(QWidget):
                 self.ch1_phase_shift_edit.setDisabled(True)
                 self.ch2_phase_shift_edit.setDisabled(True)
                 self.ch3_phase_shift_edit.setDisabled(True)
+            # display information message
+            print("[INFO] Mode locked")
         else:
             self.st_comboBox.setDisabled(False)
             if self.st_comboBox.currentIndex()+1 >= 4:
@@ -294,17 +300,38 @@ class PS_Control_1(QWidget):
                 self.ch1_phase_shift_edit.setDisabled(False)
                 self.ch2_phase_shift_edit.setDisabled(False)
                 self.ch3_phase_shift_edit.setDisabled(False)
-        # display information message
-        print("[INFO] Mode locked")
+            # display information message
+            print("[INFO] Mode unlocked")
+        
 
     ####################################################################################################################
     # TOGGLE NOT CLICKED = STOP STATE
     def stop_command(self):
+        if self.st_comboBox.currentText() == 'A':
+            # send through the serial port
+            to_send = "\r\nCMx 1 {}\r\n".format(pow(2, 0))
+            self.send_command(self.ser, to_send)
+            # display information message
+            print("[INFO] Mode 1: Half-Bridge {} OFF".format(1))
+        elif self.st_comboBox.currentText() == 'B':
+            # send through the serial port
+            to_send = "\r\nCMx 1 {}\r\n".format(pow(2, 1))
+            self.send_command(self.ser, to_send)
+            # display information message
+            print("[INFO] Mode 1: Half-Bridge {} OFF".format(2))
+        elif self.st_comboBox.currentText() == 'C':
+            # send through the serial port
+            to_send = "\r\nCMx 1 {}\r\n".format(pow(2, 2))
+            self.send_command(self.ser, to_send)
+            # display information message
+            print("[INFO] Mode 1: Half-Bridge {} OFF".format(3))
+        else:
+            # send through the serial port
+            to_send = "\r\nCMx 5 0\r\n"
+            self.send_command(self.ser, to_send)
+            # display information message
+            print("[INFO] Mode 5: Half-Bridges 1-3 OFF")
+
         # unlock the mode
         self.lock_command(is_on=0)
-        # send through the serial port
-        to_send = "\r\nCMx 5 0\r\n"
-        self.send_command(self.ser, to_send)
-        # display information message
-        print("[INFO] Mode OFF")
 
