@@ -262,6 +262,7 @@ class PowerSupply(QWidget):
                                                        cm_val_w1, cm_val_w2, cm_val_w3]
             
             self.reading_thread_lock.release()  # Release data lock
+            time.sleep(0.001)
             self.sample = self.sample + 1
 
         # ************************************************************************************************************ #

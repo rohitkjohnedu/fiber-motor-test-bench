@@ -17,6 +17,7 @@ import sys
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QMessageBox, QPushButton, QTabWidget
 # custom packages
+from PowerSupply.device import HvpsDevice
 from PowerSupply.PS_Communication import PowerSupply
 from ForceSensor import FutekSensor, FutekSensorPlot
 from PowerSupply.ps_modes.static import StaticMode
@@ -33,8 +34,10 @@ PROGRAM_VERSION = "v1.0"
 
 
 class MainWindow(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, device = HvpsDevice(), parent=None):
         QWidget.__init__(self, parent=parent)
+
+        self.device = device
 
         # ************************************************************************************************************ #
         #                               ASSIGNMENT OF VALUES TO VARIABLES FOR OPTIONS
@@ -63,9 +66,9 @@ class MainWindow(QWidget):
         serial = self.power_supply.ser
 
         # Modes
-        self.static = StaticMode(ser=serial,parent=self)
-        self.dynamic = DynamicMode(ser=serial)
-        self.demo = DemoMode(ser=serial)
+        self.static = StaticMode(ser=serial)
+        self.dynamic = DynamicMode()
+        self.demo = DemoMode()
 
         # ------------------------------------------------------------------------------------------------------------ #
 

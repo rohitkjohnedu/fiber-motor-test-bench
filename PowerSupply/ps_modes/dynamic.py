@@ -6,11 +6,10 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormL
 # custom packages
 
 class DynamicMode(QWidget):
-    def __init__(self, parent=None, ser=None):
+    def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
 
-        self.ser = ser
-        self.power_supply = PowerSupplyControl(ser=self.ser)
+        self.power_supply = PowerSupplyControl()
         # ------------------------------------------------------------------------------------------------------------ #
 
         mode_layout = QVBoxLayout(self)
@@ -38,13 +37,10 @@ class DynamicMode(QWidget):
 
 
 class PowerSupplyControl(QWidget):
-    def __init__(self, ser=None):
+    def __init__(self):
         QWidget.__init__(self,None)
 
-        self.ser = ser
-
         #self.Mode3 = Mode3()
-        # self.Mode3.attach_serial(serial=self.ser)
 
     # ************************************************************************************************************ #
     #                                                  INTERFACE                                                   #

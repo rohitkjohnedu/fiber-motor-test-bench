@@ -2,23 +2,19 @@
 # python packages
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QGroupBox, QFormLayout
-
 # custom packages
 from PowerSupply.ps_modes.ps_control_1 import PS_Control_1
-#from PowerSupply.options import *
-# from PowerSupply.StopReboot import StopReboot
-from PowerSupply.Voltage import Voltage
 
 
 class StaticMode(QWidget):
-    def __init__(self, parent, ser):
+    def __init__(self, parent=None, ser=None):
         QWidget.__init__(self, parent=parent)
 
-        self.ser = ser
+        self.serial=ser
         force_vs_position = 1
         # force_at_position_with_max_force = 1
 
-        self.Force_vs_Position = Force_vs_Position(self,self.ser)
+        self.Force_vs_Position = Force_vs_Position(ser=self.serial)
         # self.Force_at_Position_with_maxForce = Force_at_Position_with_maxForce()
 
         # ------------------------------------------------------------------------------------------------------------ #
@@ -39,11 +35,11 @@ class StaticMode(QWidget):
 ########################################################################################################################
 
 class Force_vs_Position(QWidget):
-    def __init__(self, parent, ser):
+    def __init__(self, parent=None, ser=None):
         QWidget.__init__(self, parent=parent)
 
-        self.ser = ser
-        self.power_supply = PowerSupplyControl(self,self.ser)
+        self.serial=ser
+        self.power_supply = PowerSupplyControl(ser=self.serial)
 
         experiment_layout = QVBoxLayout(self)
 
@@ -69,13 +65,12 @@ class Force_vs_Position(QWidget):
 ########################################################################################################################
 
 class PowerSupplyControl(QWidget):
-    def __init__(self, parent, ser):
+    def __init__(self, parent=None, ser=None):
         QWidget.__init__(self, parent=parent)
 
-        self.ser = ser
-
+        self.serial = ser
         self.ps_control = PS_Control_1()
-        self.ps_control.attach_serial(serial=self.ser)
+        self.ps_control.attach_serial(serial=self.serial)
 
     # ************************************************************************************************************ #
     #                                     POWER SUPPLY CONTROL INTERFACE                                           #
