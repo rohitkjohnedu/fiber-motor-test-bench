@@ -2,9 +2,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton
 
-# custom packages
-from SerialSender import *
-
 
 class PS_Control_1(QWidget):
     def __init__(self, parent=None):
@@ -54,13 +51,13 @@ class PS_Control_1(QWidget):
         # self.stop_button = QPushButton("Stop")
         # # self.stop_button.setFixedWidth(80)
         # ************************************************************************************************************ #
-        self.mode_layout.addRow(self.target_voltage_lbl, self.target_voltage_edit)
+        # self.mode_layout.addRow(self.target_voltage_lbl, self.target_voltage_edit)
         # self.mode_layout.addRow(self.state, self.st_comboBox)
         # self.mode_layout.addRow(self.set_button, self.stop_button)
         # ************************************************************************************************************ #
         # ACTIONS
         # self.st_comboBox.currentIndexChanged.connect(self.extended_set)
-        self.target_voltage_edit.returnPressed.connect(self.voltage_set)
+        # self.target_voltage_edit.returnPressed.connect(self.voltage_set)
         # self.set_button.clicked.connect(self.set_command)
         # self.stop_button.clicked.connect(self.stop_command)
         # ------------------------------------------------------------------------------------------------------------ #
@@ -74,6 +71,71 @@ class PS_Control_1(QWidget):
     # ADD BUTTONS ALWAYS TO THE END OF THE LAYOUT
     # def add_buttons(self):
     #     self.mode_layout.addRow(self.set_button, self.stop_button)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     ########################################################################################################################
     # EXTENDED SET
@@ -135,9 +197,9 @@ class PS_Control_1(QWidget):
         # **************************************************************************************************************** #
 
     ####################################################################################################################
-    # ATTACH SERIAL
-    def attach_serial(self, serial):
-        self.ser = serial
+    # # ATTACH SERIAL
+    # def attach_serial(self, serial):
+    #     self.ser = serial
 
     ####################################################################################################################
     # # SEND COMMAND
@@ -146,61 +208,37 @@ class PS_Control_1(QWidget):
     #     ser.write(to_send)
 
     ####################################################################################################################
-    # SET BTN clicked or ENTER pressed (STATE => ON)
-    def voltage_set(self):
-        try:
-            self.new_hv_val = float(self.target_voltage_edit.text())
-            # check voltage value
-            if (self.new_hv_val >= self.hv_min) and (self.new_hv_val <= self.hv_max):
-                to_send = "\r\nSHV {}\r\n".format(self.new_hv_val)
-                send_command(self.ser, to_send)
-                print("[INFO] HV ON: {} V".format(self.new_hv_val))
-            elif self.new_hv_val == 0:
-                self.voltage_stop()
-                # self.stop_command()
-            else:
-                self.voltage_stop()
-                # self.stop_command()
-                print(f"[ERR] please respect voltage range [{self.hv_min};{self.hv_max}] V")
-        except Exception as err_voltage_edit:
-            print("[ERR] HV VAL: {} - {}".format(self.target_voltage_edit.text(), err_voltage_edit))
-        return
+    # # SET BTN clicked or ENTER pressed (STATE => ON)
+    # def voltage_set(self):
+    #     try:
+    #         self.new_hv_val = float(self.target_voltage_edit.text())
+    #         # check voltage value
+    #         if (self.new_hv_val >= self.hv_min) and (self.new_hv_val <= self.hv_max):
+    #             to_send = "\r\nSHV {}\r\n".format(self.new_hv_val)
+    #             send_command(self.ser, to_send)
+    #             print("[INFO] HV ON: {} V".format(self.new_hv_val))
+    #         elif self.new_hv_val == 0:
+    #             self.voltage_stop()
+    #             # self.stop_command()
+    #         else:
+    #             self.voltage_stop()
+    #             # self.stop_command()
+    #             print(f"[ERR] please respect voltage range [{self.hv_min};{self.hv_max}] V")
+    #     except Exception as err_voltage_edit:
+    #         print("[ERR] HV VAL: {} - {}".format(self.target_voltage_edit.text(), err_voltage_edit))
+    #     return
 
     ####################################################################################################################
     # STOP button clicked or 0 voltage SET (Votlage => OFF)
-    def voltage_stop(self):
-        to_send = "\r\nSHV 0\r\n"
-        send_command(self.ser, to_send)
-        print("[INFO] HV OFF")
-        # unlock the mode
-        # self.lock_command(is_on=0)
-        # reset the previous index
-        # self.previous_index = 0
-        return
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # def voltage_stop(self):
+    #     to_send = "\r\nSHV 0\r\n"
+    #     send_command(self.ser, to_send)
+    #     print("[INFO] HV OFF")
+    #     # unlock the mode
+    #     # self.lock_command(is_on=0)
+    #     # reset the previous index
+    #     # self.previous_index = 0
+    #     return
 
     ####################################################################################################################
     # def simple_set(self):

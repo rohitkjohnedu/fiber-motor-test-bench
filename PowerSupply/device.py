@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from tools.data_tools import CircularDataBuffer
 
-SOFTWARE_VERSION = 1.0
+SOFTWARE_VERSION = 1.1
 BUFFER_LENGTH = 10000
 BUFFER_SLOTS = 15
 INITIAL_PCB_PARAMETERS = {
@@ -327,9 +327,14 @@ class HvpsDevice:
     def hb_stop_multi(self):
         self.write("CMx 3 0\r")
         return self._wait_for_confirmation("[CM3]")
+    
+    # ---------------------------------------------------------------------------------------------------------------------------- #
+    def hb_stop_shift(self):
+        self.write("CMx 5 0\r")
+        return self._wait_for_confirmation("[CM5]")
+    # ---------------------------------------------------------------------------------------------------------------------------- #
 
-
-    def hb_set(self, channel, freq=0, pos_duty=50, phase_shift=None):
+    def hb_set(self, channel, freq=0, pos_duty=50, phase_shift=None, ph_shift1=None, ph_shift2=None, ph_shift3=None):
         """
         Set the output switches in a half bridge with parameters at the channel_key.
 
@@ -361,6 +366,19 @@ class HvpsDevice:
                 return False
             self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
             return self._wait_for_confirmation("[SM3]")
+        # ---------------------------------------------------------------------------------------------------------------------------- #
+        elif ph_shift1 is not None and ph_shift2 is not None and ph_shift3 is not None:
+            print("I am here")
+            # self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
+            self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
+            self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
+            self.write(f"SMx 5 0\r")
+            # return self._wait_for_confirmation("[SM5]")
+        
+        # if self._wait_for_confirmation("[SM5]") == True:
+        #     self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
+        #     return self._wait_for_confirmation("[SM5]")
+        # ---------------------------------------------------------------------------------------------------------------------------- #
         else:
             # no phase shift
             if (freq == 0) or (pos_duty == 100):
