@@ -25,7 +25,7 @@ from datetime import datetime
 # custom packages
 # from PowerSupply.PS_Communication import PowerSupply
 # from ForceSensor import FutekSensor, FutekSensorPlot
-# from PowerSupply.ps_modes.static import StaticMode
+from PowerSupply.ps_modes.static import StaticMode
 # from PowerSupply.ps_modes.dynamic import DynamicMode
 # from PowerSupply.ps_modes.demo import DemoMode
 
@@ -57,7 +57,7 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         # self.display_force = 0          # 0: no force plot;         1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
-        # static = 1                      # 0: no static mode;        1: static mode.
+        static = 1                      # 0: no static mode;        1: static mode.
         # dynamic = 1                     # 0: no dynamic mode;       1: dynamic mode.
         # demo = 1                        # 0: no demonstration mode; 1: demonstration mode.
 
@@ -73,9 +73,10 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         # New Interface Widgets
-        self.voltage = VoltageWidget(self.device)
-        self.mode1 = Mode1Widget(self.device)
-        self.mode5 = Mode5Widget(self.device)
+
+        # self.voltage = VoltageWidget(self.device)
+        # self.mode1 = Mode1Widget(self.device)
+        # self.mode5 = Mode5Widget(self.device)
         self.high_voltage_plot = VoltagePlots(title="High Voltage Monitor", y_max=2200)
 
         # POWER SUPPLY (High voltage power supply control panel).
@@ -86,7 +87,7 @@ class MainWindow(QWidget):
         # serial = self.power_supply.ser
 
         # Modes
-        # self.static = StaticMode(ser=serial)
+        self.static = StaticMode(self.device)
         # self.dynamic = DynamicMode()
         # self.demo = DemoMode()
 
@@ -130,20 +131,20 @@ class MainWindow(QWidget):
 
         control_panel_layout.addLayout(connection_layout)
 
-        control_panel_layout.addWidget(self.voltage)
+        # control_panel_layout.addWidget(self.voltage)
 
-        tabs = QTabWidget()
-        tabs.addTab(self.mode1, "Mode 1")
-        tabs.addTab(self.mode5, "Mode 5")
-        control_panel_layout.addWidget(tabs)
+        # tabs = QTabWidget()
+        # tabs.addTab(self.mode1, "Mode 1")
+        # tabs.addTab(self.mode5, "Mode 5")
+        # control_panel_layout.addWidget(tabs)
 
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # # Type of characterization (static, dynamic, demo).
-        # characterization_type = QTabWidget()
+        # Type of characterization (static, dynamic, demo).
+        characterization_type = QTabWidget()
 
-        # if static == 1:
-        #     characterization_type.addTab(self.static, 'Static Characterization')
+        if static == 1:
+            characterization_type.addTab(self.static, 'Static Characterization')
 
         # if dynamic == 1:
         #     characterization_type.addTab(self.dynamic, 'Dynamic Characterization')
@@ -151,7 +152,7 @@ class MainWindow(QWidget):
         # if demo == 1:
         #     characterization_type.addTab(self.demo, 'Performance Demonstration')
 
-        # control_panel_layout.addWidget(characterization_type)
+        control_panel_layout.addWidget(characterization_type)
         # ------------------------------------------------------------------------------------------------------------ #
 
         # Control buttons
@@ -318,7 +319,7 @@ class MainWindow(QWidget):
         time = (data[:, 1] - data[-1, 1])/1e3
         v_target = data[:, 2]
         v_monitor = data[:, 5]
-        self.voltage.update_label(v_monitor[-1])
+        # self.voltage.update_label(v_monitor[-1])
         self.high_voltage_plot.update_plot(time,
                                            [v_target, v_monitor, v_monitor-v_target],
                                            [v_target[-1], v_monitor[-1], v_monitor[-1]-v_target[-1]])
