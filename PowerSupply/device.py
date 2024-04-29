@@ -335,7 +335,7 @@ class HvpsDevice:
     # ---------------------------------------------------------------------------------------------------------------------------- #
 
     # def hb_set(self, channel, freq=0, pos_duty=50, phase_shift=None):
-    def hb_set(self, channel, freq=0, pos_duty=50, ph_shift1=None, ph_shift2=None, ph_shift3=None):
+    def hb_set(self, channel, freq=1, pos_duty=50, ph_shifts=[]): # ph_shifts = [ph_shift1, ph_shift2, ph_shift3]
         """
         Set the output switches in a half bridge with parameters at the channel_key.
 
@@ -369,22 +369,35 @@ class HvpsDevice:
         #     return self._wait_for_confirmation("[SM3]")
 
         # ---------------------------------------------------------------------------------------------------------------------------- #
-        if ph_shift1 is not None or ph_shift2 is not None or ph_shift3 is not None:
-            # with phase shift
+        if len(ph_shifts) == 3:
+            ph_shift1, ph_shift2, ph_shift3 = ph_shifts
             check_1 = 0 <= ph_shift1 <= 360
             check_2 = 0 <= ph_shift2 <= 360
             check_3 = 0 <= ph_shift3 <= 360
             if not (check_1 and check_2 and check_3):
                 print(f"[ERR] Phase shift range: [0 - 360] °")
                 return False
+            print("Channel key is {}".format(channel_key))
             self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
             self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
             self.write(f"SMx 5 0\r")
             return self._wait_for_confirmation("[SM5]")
+        # if ph_shift1 is not None or ph_shift2 is not None or ph_shift3 is not None:
+        #     # with phase shift
+        #     check_1 = 0 <= ph_shift1 <= 360
+        #     check_2 = 0 <= ph_shift2 <= 360
+        #     check_3 = 0 <= ph_shift3 <= 360
+        #     if not (check_1 and check_2 and check_3):
+        #         print(f"[ERR] Phase shift range: [0 - 360] °")
+        #         return False
+        #     self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
+        #     self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
+        #     self.write(f"SMx 5 0\r")
+        #     return self._wait_for_confirmation("[SM5]")
         # ---------------------------------------------------------------------------------------------------------------------------- #
         else:
             # no phase shift
-            if (freq == 0) or (pos_duty == 100):
+            if (freq == 1) or (pos_duty == 100):
                 self.write(f"SMx 1 {channel_key} 1 100\r")
             else:
                 self.write(f"SMx 1 {channel_key} {freq} {pos_duty} 0 0 0\r")
