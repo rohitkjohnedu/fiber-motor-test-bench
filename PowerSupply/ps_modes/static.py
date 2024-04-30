@@ -16,7 +16,9 @@ class StaticMode(QWidget):
         self.Force_vs_Position = Force_vs_Position(device)
         # self.Force_at_Position_with_maxForce = Force_at_Position_with_maxForce()
 
-        # ------------------------------------------------------------------------------------------------------------ #
+    # ************************************************************************************************************ #
+    #                                     STATIC CHARACTERIZATION INTERFACE                                        #
+    # ************************************************************************************************************ #
 
         self.mode_layout = QVBoxLayout(self)
 
@@ -38,6 +40,10 @@ class Force_vs_Position(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.power_supply = PowerSupplyControl(device)
+
+    # ************************************************************************************************************ #
+    #                                          CONTROL PANEL INTERFACE                                             #
+    # ************************************************************************************************************ #
 
         experiment_layout = QVBoxLayout(self)
 
@@ -69,7 +75,7 @@ class PowerSupplyControl(QWidget):
         self.ps_control = Static_PS(device)
 
     # ************************************************************************************************************ #
-    #                                     POWER SUPPLY CONTROL INTERFACE                                           #
+    #                                    1) POWER SUPPLY CONTROL INTERFACE                                         #
     # ************************************************************************************************************ #
 
         layout_main = QVBoxLayout()
@@ -97,63 +103,3 @@ class PowerSupplyControl(QWidget):
         layout_left.addStretch(1)
         layout_main.addStretch(1)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# class Force_at_Position_with_maxForce(QWidget):
-#     def __init__(self, parent=None):
-#         QWidget.__init__(self, parent=parent)
-
-#         board_1_port = 'COM3'
-#         self.display_currents = 0
-#         self.display_voltages = 1
-#         self.debug_mode = 0
-#         record_data = 0
-
-#         self.power_supply = PowerSupply1(port_name=board_1_port,
-#                                         currents_display=self.display_currents,
-#                                         voltage_display=self.display_voltages,
-#                                         debug_mode=self.debug_mode,
-#                                         record_data=record_data)
-
-#         experiment_layout = QVBoxLayout(self)
-
-#         # Power supply control panel.
-#         power_supply_groupBox = QGroupBox(self.power_supply.board_name)
-#         power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-#         experiment_layout.addWidget(power_supply_groupBox, stretch=1)
-
-#         power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
-#         power_supply_groupBox_layout.addRow(self.power_supply)
-#         power_supply_groupBox.setLayout(power_supply_groupBox_layout)
-
-#         # ------------------------------------------------------------------------------------------------------------ #
-
-#         # ACTUATOR (Motorized linear stage / Linear actuator control panel). Plan to make two tabs for the linear stage
-#         # and the linear actuator.
-#         actuator_groupBox = QGroupBox("Actuator")
-#         actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-#         experiment_layout.addWidget(actuator_groupBox, stretch=1)
-
-#         # Here will be a code for the actuator control panel.
-
-########################################################################################################################

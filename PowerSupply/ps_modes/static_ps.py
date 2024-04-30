@@ -36,7 +36,7 @@ class Static_PS(QWidget):
         self.ch1_phase_shift_edit = QLineEdit("0")
         self.ch2_phase_shift_edit = QLineEdit("0")
         self.ch3_phase_shift_edit = QLineEdit("0")
-        ## ------------------------------------------------------------------------------------------------------------ #
+        # ------------------------------------------------------------------------------------------------------------ #
         self.set_button = QPushButton("Set")
         # self.set_button.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
@@ -46,29 +46,17 @@ class Static_PS(QWidget):
 
         # ************************************************************************************************************ #
         # PARAMETERS
-        self.channels_keys = []
-        num_states = self.st_comboBox.count()
-        for index in range(1, num_states+1):
-            # self.channels_keys.append(int(pow(2, index-1))) # delete later
-            self.channels_keys.append(index-1)
+        self.channels_keys = [] # [0, 1, 2, 3, 4, 5, 6]
+        num_states = self.st_comboBox.count() # 7
+        for index in range(1, num_states+1): # 1-7
+            self.channels_keys.append(index-1) # (0, 1, 2,) (3, 4, 5,) (6)
         self.state_index = self.st_comboBox.currentIndex()
         self.extended_flag_1 = 0
         self.extended_flag_2 = 0
         self.previous_index = -1
         # ------------------------------------------------------------------------------------------------------------ #
-        # self.new_hv_val = float(self.target_voltage_edit.text())
         self.freq_val = float(self.freq_edit.text())
         self.duty_val = float(self.duty_cycle_edit.text())
-        ph_shift_1 = float(self.ch1_phase_shift_edit.text())
-        ph_shift_2 = float(self.ch2_phase_shift_edit.text())
-        ph_shift_3 = float(self.ch3_phase_shift_edit.text())
-        self.ph_shifts = [ph_shift_1, ph_shift_2, ph_shift_3]
-        # ------------------------------------------------------------------------------------------------------------ #
-        # self.parameters = [channels_keys, self.state_index, previous_index, self.new_hv_val]
-        # if self.state_index >= 3:
-        #     self.parameters.append(freq_val, duty_val)
-        #     if self.state_index == 6:
-        #         self.parameters.append(ph_shifts)
 
         # ************************************************************************************************************ #
         # ACTIONS
@@ -181,14 +169,13 @@ class Static_PS(QWidget):
         freq_val = 1
         duty_val = 100
         if self.device.hb_set(channels_keys[state_index], freq_val, duty_val):
-            print(channels_keys[state_index])
+            # print(channels_keys[state_index])
             print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)".format(state_index+1))
 
     ####################################################################################################################
     # SET button clicked or ENTER pressed (state 'A-D' or 'B-E' or 'C-F' or 'other' => ON)
     def AC_set(self, channels_keys, freq_val, duty_val, ph_shifts):
-        # channel_key = channels_keys[2] # all three channels
-        channel_key = list(range(3+1)) # all three channels
+        channel_key = list(range(channels_keys[3])) # all three channels [0, 1, 2]
         three_ch = 3
         if self.device.hb_set(channel_key, freq_val, duty_val, ph_shifts):
             print("[INFO] Set: {} Channels | {}Hz | {}% | {}° | {}° | {}°".format(three_ch, freq_val, duty_val,

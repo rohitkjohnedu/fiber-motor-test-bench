@@ -26,15 +26,15 @@ from datetime import datetime
 # from PowerSupply.PS_Communication import PowerSupply
 # from ForceSensor import FutekSensor, FutekSensorPlot
 from PowerSupply.ps_modes.static import StaticMode
-# from PowerSupply.ps_modes.dynamic import DynamicMode
+from PowerSupply.ps_modes.dynamic import DynamicMode
 # from PowerSupply.ps_modes.demo import DemoMode
 
 # custom packages from a new software version
 from PowerSupply.device import HvpsDevice
-from PowerSupply.ps_modes.voltage_widget import VoltageWidget
+# from PowerSupply.ps_modes.voltage_widget import VoltageWidget
 from PowerSupply.ps_modes.voltage_plots import VoltagePlots
-from PowerSupply.ps_modes.mode_1_widget import Mode1Widget
-from PowerSupply.ps_modes.mode_5_widget import Mode5Widget
+# from PowerSupply.ps_modes.mode_1_widget import Mode1Widget
+# from PowerSupply.ps_modes.mode_5_widget import Mode5Widget
 
 # formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 PROGRAM_NAME = "Actuator Test Bench"
@@ -58,7 +58,7 @@ class MainWindow(QWidget):
         # self.display_force = 0          # 0: no force plot;         1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
         static = 1                      # 0: no static mode;        1: static mode.
-        # dynamic = 1                     # 0: no dynamic mode;       1: dynamic mode.
+        dynamic = 1                     # 0: no dynamic mode;       1: dynamic mode.
         # demo = 1                        # 0: no demonstration mode; 1: demonstration mode.
 
         # ************************************************************************************************************ #
@@ -88,7 +88,7 @@ class MainWindow(QWidget):
 
         # Modes
         self.static = StaticMode(self.device)
-        # self.dynamic = DynamicMode()
+        self.dynamic = DynamicMode(self.device)
         # self.demo = DemoMode()
 
         # ------------------------------------------------------------------------------------------------------------ #
@@ -146,8 +146,8 @@ class MainWindow(QWidget):
         if static == 1:
             characterization_type.addTab(self.static, 'Static Characterization')
 
-        # if dynamic == 1:
-        #     characterization_type.addTab(self.dynamic, 'Dynamic Characterization')
+        if dynamic == 1:
+            characterization_type.addTab(self.dynamic, 'Dynamic Characterization')
 
         # if demo == 1:
         #     characterization_type.addTab(self.demo, 'Performance Demonstration')

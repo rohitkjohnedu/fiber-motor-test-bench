@@ -324,9 +324,9 @@ class HvpsDevice:
         self.write(f"CMx 1 {channel_key}\r")
         return self._wait_for_confirmation("[CM1]")
 
-    # def hb_stop_multi(self):
-    #     self.write("CMx 3 0\r")
-    #     return self._wait_for_confirmation("[CM3]")
+    def hb_stop_multi(self):
+        self.write("CMx 3 0\r")
+        return self._wait_for_confirmation("[CM3]")
     
     # ---------------------------------------------------------------------------------------------------------------------------- #
     def hb_stop_shift(self):
@@ -335,7 +335,8 @@ class HvpsDevice:
     # ---------------------------------------------------------------------------------------------------------------------------- #
 
     # def hb_set(self, channel, freq=0, pos_duty=50, phase_shift=None):
-    def hb_set(self, channel, freq=1, pos_duty=50, ph_shifts=[]): # ph_shifts = [ph_shift1, ph_shift2, ph_shift3]
+    def hb_set(self, channel, freq=1, pos_duty=50, phase_shift=None, ph_shifts=[], seq_freq=None,
+               t_switch_val=None, sequence_time_total_val=None): # ph_shifts = [ph_shift1, ph_shift2, ph_shift3]
         """
         Set the output switches in a half bridge with parameters at the channel_key.
 
@@ -348,6 +349,7 @@ class HvpsDevice:
         Returns:
         bool: True if the operation is successful, False otherwise.
         """
+ 
         channel_key = _channel_to_channel_key(channel)
         if not (self.pcb_parameters['min_freq'] <= freq <= self.pcb_parameters['max_freq']):
             print(f"[ERR] Frequency range: [{self.pcb_parameters['min_freq']} - {self.pcb_parameters['max_freq']}] Hz")
@@ -360,16 +362,32 @@ class HvpsDevice:
             print(f"[ERR] Positive pulse width: {pos_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
             return False
 
-        # if phase_shift is not None and isinstance(channel, Iterable):
-        #     # with phase shift
-        #     if not (0 <= phase_shift <= 360):
-        #         print(f"[ERR] Phase shift range: [0 - 360] °")
-        #         return False
-        #     self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
-        #     return self._wait_for_confirmation("[SM3]")
-
+        if phase_shift is not None and isinstance(channel, Iterable):
+            # with phase shift
+            if not (0 <= phase_shift <= 360):
+                print(f"[ERR] Phase shift range: [0 - 360] °")
+                return False
+            self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
+            return self._wait_for_confirmation("[SM3]")
         # ---------------------------------------------------------------------------------------------------------------------------- #
-        if len(ph_shifts) == 3:
+        # if seq_freq is not None:
+        #     print(f"seq_freq = {seq_freq}")
+        #     self.write(f"SMx 5 7 {freq} {seq_freq}\r")
+        #     return self._wait_for_confirmation("[SM5]")
+        # ---------------------------------------------------------------------------------------------------------------------------- #
+        # if t_switch_val is not None and sequence_time_total_val is not None:
+        #     # self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 180\r")
+        #     for sequence in range (sequence_time_total_val):
+        #         self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 120\r")
+        #         # self._wait_for_confirmation("[SM3]")
+        #         time.sleep(t_switch_val)
+        #         self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 240\r")
+        #         time.sleep(t_switch_val)
+        #         # self._wait_for_confirmation("[SM3]")
+        #     return self._wait_for_confirmation("[SM3]")
+        # ---------------------------------------------------------------------------------------------------------------------------- #
+        # Static characterization with phase shift
+        elif len(ph_shifts) == 3:
             ph_shift1, ph_shift2, ph_shift3 = ph_shifts
             check_1 = 0 <= ph_shift1 <= 360
             check_2 = 0 <= ph_shift2 <= 360
@@ -377,28 +395,17 @@ class HvpsDevice:
             if not (check_1 and check_2 and check_3):
                 print(f"[ERR] Phase shift range: [0 - 360] °")
                 return False
-            print("Channel key is {}".format(channel_key))
             self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
             self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
             self.write(f"SMx 5 0\r")
             return self._wait_for_confirmation("[SM5]")
-        # if ph_shift1 is not None or ph_shift2 is not None or ph_shift3 is not None:
-        #     # with phase shift
-        #     check_1 = 0 <= ph_shift1 <= 360
-        #     check_2 = 0 <= ph_shift2 <= 360
-        #     check_3 = 0 <= ph_shift3 <= 360
-        #     if not (check_1 and check_2 and check_3):
-        #         print(f"[ERR] Phase shift range: [0 - 360] °")
-        #         return False
-        #     self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
-        #     self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
-        #     self.write(f"SMx 5 0\r")
-        #     return self._wait_for_confirmation("[SM5]")
         # ---------------------------------------------------------------------------------------------------------------------------- #
+        # Static characterization with no phase shift
         else:
-            # no phase shift
+            # DC voltage
             if (freq == 1) or (pos_duty == 100):
                 self.write(f"SMx 1 {channel_key} 1 100\r")
+            # AC voltage
             else:
                 self.write(f"SMx 1 {channel_key} {freq} {pos_duty} 0 0 0\r")
             return self._wait_for_confirmation("[SM1]")
