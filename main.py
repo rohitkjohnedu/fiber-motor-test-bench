@@ -15,42 +15,38 @@
 
 # python packages
 import sys
-from PyQt6.QtCore import Qt, QTimer 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QMessageBox, QPushButton, QTabWidget, QComboBox
-import time
-import numpy as np
-import os.path
-from datetime import datetime
+from PyQt6.QtCore import QTimer 
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QComboBox, QMessageBox
+# import time
+# import numpy as np
+# import os.path
+# from datetime import datetime
 
 # custom packages
-# from PowerSupply.PS_Communication import PowerSupply
 # from ForceSensor import FutekSensor, FutekSensorPlot
 from PowerSupply.ps_modes.static_characterization.static import StaticMode
-from PowerSupply.ps_modes.dynamic import DynamicMode
+from PowerSupply.ps_modes.dynamic_characterization.dynamic import DynamicMode
 # from PowerSupply.ps_modes.demo import DemoMode
 
 # custom packages from a new software version
 from PowerSupply.device import HvpsDevice
-# from PowerSupply.ps_modes.voltage_widget import VoltageWidget
 from PowerSupply.ps_modes.voltage_plots import VoltagePlots
-# from PowerSupply.ps_modes.mode_1_widget import Mode1Widget
-# from PowerSupply.ps_modes.mode_5_widget import Mode5Widget
 
 # formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 PROGRAM_NAME = "Actuator Test Bench"
 PROGRAM_VERSION = "v1.0"
 
-PLOT_UPDATE_RATE = 50 # new
+# PLOT_UPDATE_RATE = 50 # new
 
 class MainWindow(QWidget):
     def __init__(self, device = HvpsDevice(), parent=None): # new
         QWidget.__init__(self, parent=parent)
 
         # ************************************************************************************************************ #
-        #                               ASSIGNMENT OF VALUES TO VARIABLES FOR OPTIONS
+        #                                               OPTIONS
         # ************************************************************************************************************ #
 
-        # self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
+        self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 1       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         # self.display_currents = 0       # 0: no current plot;       1: current plot.
@@ -62,22 +58,17 @@ class MainWindow(QWidget):
         # demo = 1                        # 0: no demonstration mode; 1: demonstration mode.
 
         # ************************************************************************************************************ #
-        # NEW
-        self.device = device
-        self.available_boards = []
-
-        # ************************************************************************************************************ #
-
-        # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
         # ************************************************************************************************************ #
 
-        # New Interface Widgets
+        # HIGH VOLTAGE POWER SUPPLY.
+        # New Interface Objects
+        self.device = device
+        self.device.auto_connect()
 
-        # self.voltage = VoltageWidget(self.device)
-        # self.mode1 = Mode1Widget(self.device)
-        # self.mode5 = Mode5Widget(self.device)
+        # New Interface Widgets
         self.high_voltage_plot = VoltagePlots(title="High Voltage Monitor", y_max=2200)
+        self.current_plot = VoltagePlots(title="Current Monitor", y_max=1000)
 
         # POWER SUPPLY (High voltage power supply control panel).
         # board_1_port = 'COM3'
@@ -90,7 +81,6 @@ class MainWindow(QWidget):
         self.static = StaticMode(self.device)
         self.dynamic = DynamicMode(self.device)
         # self.demo = DemoMode()
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         # FUTEK FORCE SENSOR (Load cell).
@@ -104,40 +94,10 @@ class MainWindow(QWidget):
         self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
         main_layout = QHBoxLayout(self)
         # self.setStyleSheet("background-color: white;")
-
         # ************************************************************************************************************ #
 
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
         control_panel_layout = QVBoxLayout()
-
-        # ------------------------------------------------------------------------------------------------------------ #
-        # NEW
-        connection_layout = QHBoxLayout()
-        self.board_select = QComboBox()
-        refresh_button = QPushButton("Refresh")
-        refresh_button.clicked.connect(self._refresh_available_boards)
-        self.connect_button = QPushButton("Connect")
-        self.connect_button.clicked.connect(self._connect)
-        clear_buffer_button = QPushButton("Clear Buffer")
-        clear_buffer_button.clicked.connect(self.device.clear_buffer)
-        save_buffer_button = QPushButton("Save Buffer")
-        save_buffer_button.clicked.connect(lambda: self.device.save_buffer())
-        
-        connection_layout.addWidget(self.board_select)
-        connection_layout.addWidget(refresh_button)
-        connection_layout.addWidget(self.connect_button)
-        connection_layout.addWidget(clear_buffer_button)
-        connection_layout.addWidget(save_buffer_button)
-
-        control_panel_layout.addLayout(connection_layout)
-
-        # control_panel_layout.addWidget(self.voltage)
-
-        # tabs = QTabWidget()
-        # tabs.addTab(self.mode1, "Mode 1")
-        # tabs.addTab(self.mode5, "Mode 5")
-        # control_panel_layout.addWidget(tabs)
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         # Type of characterization (static, dynamic, demo).
@@ -199,7 +159,6 @@ class MainWindow(QWidget):
         # self.run_button.setFixedHeight(50)
 
         # button_layout.addStretch(1)
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         main_layout.addLayout(control_panel_layout, 0) # add the control panel on the left side.
@@ -226,7 +185,6 @@ class MainWindow(QWidget):
         #     force_sensor_layout = QHBoxLayout()
         #     force_sensor_layout.addWidget(self.force_sensor_plot)
         #     all_plots_layout.addLayout(force_sensor_layout)
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         # POWER SUPPLY VOLTAGE PLOT
@@ -239,7 +197,6 @@ class MainWindow(QWidget):
         #     voltage_layout = QHBoxLayout()
         #     voltage_layout.addWidget(self.power_supply.voltage_plots)
         #     all_plots_layout.addLayout(voltage_layout)
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         # POWER SUPPLY CURRENT PLOTS
@@ -247,7 +204,6 @@ class MainWindow(QWidget):
         #     currents_layout = QHBoxLayout()
         #     currents_layout.addWidget(self.power_supply.current_plots)
         #     all_plots_layout.addLayout(currents_layout)
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         plots_groupBox.setLayout(all_plots_layout)
@@ -257,7 +213,7 @@ class MainWindow(QWidget):
         #                                          CALLBACK FOR DATA READING
         # ************************************************************************************************************ #
 
-        # self.plot_interval = 50#ms
+        self.plot_interval = 50#ms
         # self.start_time = 0
         # self.sample_rate = 400#Hz
         # self.interpolation_stop_time = 0
@@ -304,10 +260,10 @@ class MainWindow(QWidget):
         
     # ------------------------------------------------------------------------------------------------------------ #
 
-        self._refresh_available_boards()
-
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_plots)
+
+#############################################################################################################################
 
     def _update_plots(self):
         data = self.device.get_buffer(clear_buffer=False)
@@ -319,28 +275,20 @@ class MainWindow(QWidget):
         time = (data[:, 1] - data[-1, 1])/1e3
         v_target = data[:, 2]
         v_monitor = data[:, 5]
-        # self.voltage.update_label(v_monitor[-1])
         self.high_voltage_plot.update_plot(time,
                                            [v_target, v_monitor, v_monitor-v_target],
                                            [v_target[-1], v_monitor[-1], v_monitor[-1]-v_target[-1]])
         # currents = [data[:, i]/1e6 for i in range(6, 14)]
         # self.current_plot.update_plot(time, currents, [c[-1] for c in currents])
 
-    def _refresh_available_boards(self):
-        self.available_boards = self.device.detect()
-        self.board_select.clear()
-        self.board_select.addItems([f"Board {b['name']}" for b in self.available_boards])
-        self.connect_button.setText("Connect")
-
 
     # def plot_update_callback(self):
-        # if self.display_voltages !=0 or self.display_currents !=0:
-        #     # self.power_supply.plot_update(self.start_time)
+    #     if self.display_voltages !=0: # or self.display_currents !=0:
+            # self.power_supply.plot_update(self.start_time)
         # self.force_sensor_plot.plot_update(self.start_time)
 
         # new_power_supply_data = self.power_supply.get_new_data()
         # new_force_sensor_data = self.force_sensor.get_new_data()
-
 
         # if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0:
         #     if self.interpolation_stop_time < self.start_time:
@@ -389,40 +337,19 @@ class MainWindow(QWidget):
         #         np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.0f, %4.0f, %.0f, %2.2f, %2.2f, %2.2f, %2.0f, %2.0f, %2.0f')
 
     # **************************************************************************************************************** #
-            
-    # def closeEvent(self, event):
-    #     reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?")
-
-    #     if reply == QMessageBox.StandardButton.Yes:
-    #         self.power_supply.stop_comm()
-
-    #         event.accept()
-    #         if self.debug_mode == 1:
-    #             print("[INFO] Program closed.")
-
-    #     else:
-    #         event.ignore()
-
-    # ************************************************************************************************************ #
-    
-    def _connect(self):
-        if self.device.is_open:
-            self.timer.stop()
-            self.device.disconnect()
-            self.connect_button.setText("Connect")
-        else:
-            index = self.board_select.currentIndex()
-            if index == -1:
-                return
-            board = self.available_boards[index]
-            if self.device.connect(board['device']):
-                self.timer.start(PLOT_UPDATE_RATE)
-                self.connect_button.setText("Disconnect")
 
     def closeEvent(self, event):
-        self.timer.stop()
-        self.device.disconnect()
-        event.accept()
+        reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?")
+        if reply == QMessageBox.StandardButton.Yes:
+            self.timer.stop()
+            self.device.disconnect()
+            event.accept()
+            if self.debug_mode == 1:
+                print("[INFO] Program closed.")
+        else:
+            event.ignore()
+
+#############################################################################################################################
 
 def main():
     app = QApplication(sys.argv)

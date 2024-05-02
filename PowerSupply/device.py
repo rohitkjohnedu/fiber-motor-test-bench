@@ -334,9 +334,7 @@ class HvpsDevice:
         return self._wait_for_confirmation("[CM5]")
     # ---------------------------------------------------------------------------------------------------------------------------- #
 
-    # def hb_set(self, channel, freq=0, pos_duty=50, phase_shift=None):
-    def hb_set(self, channel, freq=1, pos_duty=50, phase_shift=None, ph_shifts=[], seq_freq=None,
-               t_switch_val=None, sequence_time_total_val=None): # ph_shifts = [ph_shift1, ph_shift2, ph_shift3]
+    def hb_set(self, channel, freq=1, pos_duty=50, phase_shift=None, ph_shifts=[]): # ph_shifts = [ph_shift1, ph_shift2, ph_shift3]
         """
         Set the output switches in a half bridge with parameters at the channel_key.
 
@@ -361,7 +359,8 @@ class HvpsDevice:
         elif pos_pulse_width < self.pcb_parameters['min_pulse']:
             print(f"[ERR] Positive pulse width: {pos_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
             return False
-
+        # ---------------------------------------------------------------------------------------------------------------------------- #
+        # Dynamic characterization
         if phase_shift is not None and isinstance(channel, Iterable):
             # with phase shift
             if not (0 <= phase_shift <= 360):
@@ -369,22 +368,6 @@ class HvpsDevice:
                 return False
             self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
             return self._wait_for_confirmation("[SM3]")
-        # ---------------------------------------------------------------------------------------------------------------------------- #
-        # if seq_freq is not None:
-        #     print(f"seq_freq = {seq_freq}")
-        #     self.write(f"SMx 5 7 {freq} {seq_freq}\r")
-        #     return self._wait_for_confirmation("[SM5]")
-        # ---------------------------------------------------------------------------------------------------------------------------- #
-        # if t_switch_val is not None and sequence_time_total_val is not None:
-        #     # self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 180\r")
-        #     for sequence in range (sequence_time_total_val):
-        #         self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 120\r")
-        #         # self._wait_for_confirmation("[SM3]")
-        #         time.sleep(t_switch_val)
-        #         self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 240\r")
-        #         time.sleep(t_switch_val)
-        #         # self._wait_for_confirmation("[SM3]")
-        #     return self._wait_for_confirmation("[SM3]")
         # ---------------------------------------------------------------------------------------------------------------------------- #
         # Static characterization with phase shift
         elif len(ph_shifts) == 3:
@@ -411,64 +394,64 @@ class HvpsDevice:
             return self._wait_for_confirmation("[SM1]")
 
 
-    def fb_stop(self, channel):
-        channel_key = _channel_to_channel_key(channel)
-        self.write(f"CMx 2 {channel_key}\r")
-        return self._wait_for_confirmation("[CM2]")
+    # def fb_stop(self, channel):
+    #     channel_key = _channel_to_channel_key(channel)
+    #     self.write(f"CMx 2 {channel_key}\r")
+    #     return self._wait_for_confirmation("[CM2]")
 
-    def fb_stop_multi(self):
-        self.write("CMx 4 0\r")
-        return self._wait_for_confirmation("[CM4]")
+    # def fb_stop_multi(self):
+    #     self.write("CMx 4 0\r")
+    #     return self._wait_for_confirmation("[CM4]")
 
 
-    def fb_set(self, channel, freq=1, pos_duty=50, neg_duty=50, pulse_phase=180, phase_shift=None):
-        """
-        Set the output switches in a full bridge with parameters at the channel_key.
+    # def fb_set(self, channel, freq=1, pos_duty=50, neg_duty=50, pulse_phase=180, phase_shift=None):
+    #     """
+    #     Set the output switches in a full bridge with parameters at the channel_key.
 
-        Parameters:
-        channel (int or list): The channel number or a list of channel numbers.
-        freq (float, optional): The frequency of the burst. Default is 1.
-        pos_duty (float, optional): The positive duty cycle. Default is 50.
-        neg_duty (float, optional): The negative duty cycle. Default is 50.
-        pulse_phase (float, optional): The phase of the pulse. Default is 180.
-        phase_shift (float, optional): The phase shift. Default is None.
+    #     Parameters:
+    #     channel (int or list): The channel number or a list of channel numbers.
+    #     freq (float, optional): The frequency of the burst. Default is 1.
+    #     pos_duty (float, optional): The positive duty cycle. Default is 50.
+    #     neg_duty (float, optional): The negative duty cycle. Default is 50.
+    #     pulse_phase (float, optional): The phase of the pulse. Default is 180.
+    #     phase_shift (float, optional): The phase shift. Default is None.
 
-        Returns:
-        bool: True if the operation is successful, False otherwise.
-        """
-        channel_key = _channel_to_channel_key(channel)
+    #     Returns:
+    #     bool: True if the operation is successful, False otherwise.
+    #     """
+    #     channel_key = _channel_to_channel_key(channel)
 
-        if not (self.pcb_parameters['min_freq'] <= freq <= self.pcb_parameters['max_freq']):
-            print(f"[ERR] Frequency range: [{self.pcb_parameters['min_freq']} - {self.pcb_parameters['max_freq']}] Hz")
-            return False
-        if not (0 <= pos_duty <= 100):
-            print(f"[ERR] Positive duty cycle range: [0 - 100] °")
-            return False
-        pos_pulse_width = float(10 * (pos_duty / freq) * 1000)
-        if pos_pulse_width < self.pcb_parameters['min_pulse']:
-            print(f"[ERR] Positive pulse width: {pos_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
-            return False
-        if not (0 <= neg_duty <= 100):
-            print(f"[ERR] Negative duty cycle range: [0 - 100] °")
-            return False
-        neg_pulse_width = float(10 * (neg_duty / freq) * 1000)
-        if neg_pulse_width < self.pcb_parameters['min_pulse']:
-            print(f"[ERR] Negative pulse width: {neg_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
-            return False
-        if not (0 <= pulse_phase <= 360):
-            print(f"[ERR] Phase shift range: [0 - 360] °")
-            return False
+    #     if not (self.pcb_parameters['min_freq'] <= freq <= self.pcb_parameters['max_freq']):
+    #         print(f"[ERR] Frequency range: [{self.pcb_parameters['min_freq']} - {self.pcb_parameters['max_freq']}] Hz")
+    #         return False
+    #     if not (0 <= pos_duty <= 100):
+    #         print(f"[ERR] Positive duty cycle range: [0 - 100] °")
+    #         return False
+    #     pos_pulse_width = float(10 * (pos_duty / freq) * 1000)
+    #     if pos_pulse_width < self.pcb_parameters['min_pulse']:
+    #         print(f"[ERR] Positive pulse width: {pos_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
+    #         return False
+    #     if not (0 <= neg_duty <= 100):
+    #         print(f"[ERR] Negative duty cycle range: [0 - 100] °")
+    #         return False
+    #     neg_pulse_width = float(10 * (neg_duty / freq) * 1000)
+    #     if neg_pulse_width < self.pcb_parameters['min_pulse']:
+    #         print(f"[ERR] Negative pulse width: {neg_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
+    #         return False
+    #     if not (0 <= pulse_phase <= 360):
+    #         print(f"[ERR] Phase shift range: [0 - 360] °")
+    #         return False
 
-        if phase_shift is not None and isinstance(channel, Iterable):
-            # with phase shift
-            if not (0 <= phase_shift <= 360):
-                print(f"[ERR] Phase shift range: [0 - 360] °")
-                return False
-            self.write(f"SMx 4 {channel_key} {freq} {pos_duty} {neg_duty} {pulse_phase} {phase_shift}\r")
-            return self._wait_for_confirmation("[SM4]")
-        else:
-            self.write(f"SMx 2 {channel_key} {freq} {pos_duty} {neg_duty} {pulse_phase} 0\r")
-            return self._wait_for_confirmation("[SM2]")
+    #     if phase_shift is not None and isinstance(channel, Iterable):
+    #         # with phase shift
+    #         if not (0 <= phase_shift <= 360):
+    #             print(f"[ERR] Phase shift range: [0 - 360] °")
+    #             return False
+    #         self.write(f"SMx 4 {channel_key} {freq} {pos_duty} {neg_duty} {pulse_phase} {phase_shift}\r")
+    #         return self._wait_for_confirmation("[SM4]")
+    #     else:
+    #         self.write(f"SMx 2 {channel_key} {freq} {pos_duty} {neg_duty} {pulse_phase} 0\r")
+    #         return self._wait_for_confirmation("[SM2]")
 
 
 if __name__ == "__main__":
