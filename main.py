@@ -25,7 +25,7 @@ from datetime import datetime
 # custom packages
 # from PowerSupply.PS_Communication import PowerSupply
 # from ForceSensor import FutekSensor, FutekSensorPlot
-from PowerSupply.ps_modes.static import StaticMode
+from PowerSupply.ps_modes.static_characterization.static import StaticMode
 from PowerSupply.ps_modes.dynamic import DynamicMode
 # from PowerSupply.ps_modes.demo import DemoMode
 

@@ -55,8 +55,8 @@ class Static_PS(QWidget):
         self.extended_flag_2 = 0
         self.previous_index = -1
         # ------------------------------------------------------------------------------------------------------------ #
-        self.freq_val = float(self.freq_edit.text())
-        self.duty_val = float(self.duty_cycle_edit.text())
+        # self.freq_val = float(self.freq_edit.text())
+        # self.duty_val = float(self.duty_cycle_edit.text())
 
         # ************************************************************************************************************ #
         # ACTIONS
@@ -81,33 +81,33 @@ class Static_PS(QWidget):
         self.state_index = self.st_comboBox.currentIndex()
         # **************************************************************************************************************** #    
         if self.extended_flag_1 == 0 and self.state_index >= 3:
-            self.freq_label = QLabel("Frequency (Hz):")
+            freq_label = QLabel("Frequency (Hz):")
             self.freq_edit = QLineEdit("1")
             self.freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            self.mode_layout.addRow(self.freq_label, self.freq_edit)
+            self.mode_layout.addRow(freq_label, self.freq_edit)
             # ------------------------------------------------------------------------------------------------------------ #
-            self.duty_cycle_lbl = QLabel("Duty cycle (%):")
+            duty_cycle_lbl = QLabel("Duty cycle (%):")
             self.duty_cycle_edit = QLineEdit("50")
             self.duty_cycle_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            self.mode_layout.addRow(self.duty_cycle_lbl, self.duty_cycle_edit)
+            self.mode_layout.addRow(duty_cycle_lbl, self.duty_cycle_edit)
             # ------------------------------------------------------------------------------------------------------------ #
             self.extended_flag_1 = 1
         # **************************************************************************************************************** # 
         if self.extended_flag_1 == 1 and self.state_index == 6 and self.extended_flag_2 == 0:
-            self.ch1_phase_shift_lbl = QLabel("Phase shift (°), Ch. №1:")
+            ch1_phase_shift_lbl = QLabel("Phase shift (°), Ch. №1:")
             self.ch1_phase_shift_edit = QLineEdit("0")
             self.ch1_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            self.mode_layout.addRow(self.ch1_phase_shift_lbl, self.ch1_phase_shift_edit)
+            self.mode_layout.addRow(ch1_phase_shift_lbl, self.ch1_phase_shift_edit)
             # ------------------------------------------------------------------------------------------------------------ #
-            self.ch2_phase_shift_lbl = QLabel("Phase shift (°), Ch. №2:")
+            ch2_phase_shift_lbl = QLabel("Phase shift (°), Ch. №2:")
             self.ch2_phase_shift_edit = QLineEdit("0")
             self.ch2_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            self.mode_layout.addRow(self.ch2_phase_shift_lbl, self.ch2_phase_shift_edit)
+            self.mode_layout.addRow(ch2_phase_shift_lbl, self.ch2_phase_shift_edit)
             # ------------------------------------------------------------------------------------------------------------ #
-            self.ch3_phase_shift_lbl = QLabel("Phase shift (°), Ch. №3:")
+            ch3_phase_shift_lbl = QLabel("Phase shift (°), Ch. №3:")
             self.ch3_phase_shift_edit = QLineEdit("0")
             self.ch3_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            self.mode_layout.addRow(self.ch3_phase_shift_lbl, self.ch3_phase_shift_edit)
+            self.mode_layout.addRow(ch3_phase_shift_lbl, self.ch3_phase_shift_edit)
             # ------------------------------------------------------------------------------------------------------------ #
             self.extended_flag_2 = 1
         # **************************************************************************************************************** # 
@@ -128,8 +128,8 @@ class Static_PS(QWidget):
     ####################################################################################################################
     # SET BUTTON CLICKED
     def set_pressed(self):
-        self.new_hv_val = float(self.target_voltage_edit.text())
-        if self.new_hv_val == 0 and self.set_button.text() == "Set":
+        new_hv_val = float(self.target_voltage_edit.text())
+        if new_hv_val == 0 and self.set_button.text() == "Set":
             print("\n[INFO] Please, set the voltage value\n------------------------------------")
             return
         else: 
@@ -143,14 +143,14 @@ class Static_PS(QWidget):
     ####################################################################################################################
     # SET button clicked or ENTER pressed (Votlage => ON)
     def voltage_set(self):
-        self.new_hv_val = float(self.target_voltage_edit.text())
-        if self.new_hv_val == 0:
+        new_hv_val = float(self.target_voltage_edit.text())
+        if new_hv_val == 0:
             self.reset_command()
             # reset the set button
             self.set_button.setText("Set")
         else:
-            if self.device.set_voltage(self.new_hv_val):
-                print("\n[INFO] HV ON: {} V\n----------------------".format(self.new_hv_val))
+            if self.device.set_voltage(new_hv_val):
+                print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv_val))
             if self.set_button.text() == "Set":
                 self.set_button.setText("Reset")
 
@@ -177,38 +177,44 @@ class Static_PS(QWidget):
     def AC_set(self, channels_keys, freq_val, duty_val, ph_shifts):
         channel_key = list(range(channels_keys[3])) # all three channels [0, 1, 2]
         three_ch = 3
-        if self.device.hb_set(channel_key, freq_val, duty_val, ph_shifts):
+        if self.device.hb_set(channel_key, freq_val, duty_val, ph_shifts=ph_shifts):
             print("[INFO] Set: {} Channels | {}Hz | {}% | {}° | {}° | {}°".format(three_ch, freq_val, duty_val,
                                                                                   ph_shifts[0], ph_shifts[1], ph_shifts[2]))
 
     ####################################################################################################################
     # SET COMMAND
     def set_command(self):
-        self.new_hv_val = float(self.target_voltage_edit.text())
-        self.state_index = self.st_comboBox.currentIndex()
-        if self.new_hv_val == 0 and self.set_button.text() == "Set":
+        new_hv_val = float(self.target_voltage_edit.text())
+        freq_val = float(self.freq_edit.text())
+        duty_val = float(self.duty_cycle_edit.text())
+        state_index = self.st_comboBox.currentIndex()
+        ch1_phase_shift = float(self.ch1_phase_shift_edit.text())
+        ch2_phase_shift = float(self.ch2_phase_shift_edit.text())
+        ch3_phase_shift = float(self.ch3_phase_shift_edit.text())
+
+        if new_hv_val == 0 and self.set_button.text() == "Set":
             print("\n[INFO] Please, set the voltage value\n------------------------------------")
             return
         else: 
-            if self.state_index == self.previous_index:
+            if state_index == self.previous_index:
                 self.voltage_set()
             else:
-                self.previous_index =  self.state_index
+                self.previous_index =  state_index
                 self.voltage_set()
-                if  self.state_index < 3:
-                    self.DC_set(self.channels_keys,  self.state_index)
-                elif  self.state_index == 3:
+                if  state_index < 3:
+                    self.DC_set(self.channels_keys,  state_index)
+                elif  state_index == 3:
                     ph_shifts = [0, 180, 180]
-                    self.AC_set(self.channels_keys, self.freq_val, self.duty_val, ph_shifts) # phase shift set for A-D
-                elif  self.state_index == 4:
+                    self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for A-D
+                elif  state_index == 4:
                     ph_shifts = [180, 0, 180]
-                    self.AC_set(self.channels_keys, self.freq_val, self.duty_val, ph_shifts) # phase shift set for B-E
-                elif  self.state_index == 5:
+                    self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for B-E
+                elif  state_index == 5:
                     ph_shifts = [180, 180, 0]
-                    self.AC_set(self.channels_keys, self.freq_val, self.duty_val, ph_shifts) # phase shift set for C-F
+                    self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for C-F
                 else:
-                    ph_shifts = [float(self.ch1_phase_shift_edit.text()), float(self.ch2_phase_shift_edit.text()), float(self.ch3_phase_shift_edit.text())]
-                    self.AC_set(self.channels_keys, self.freq_val,  self.duty_val, ph_shifts) # phase shift set for other
+                    ph_shifts = [ch1_phase_shift, ch2_phase_shift, ch3_phase_shift]
+                    self.AC_set(self.channels_keys, freq_val,  duty_val, ph_shifts) # phase shift set for other
                 self.lock_command(is_on=1)
 
     ####################################################################################################################

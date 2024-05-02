@@ -3,7 +3,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QTabWidget
 # custom packages
-from PowerSupply.ps_modes.dynamic_ps import Dynamic_PS
+from PowerSupply.ps_modes.dynamic_ps import Loop_PS
 
 class DynamicMode(QWidget):
     def __init__(self, device, parent=None):
@@ -58,7 +58,7 @@ class PowerSupplyControl(QWidget):
     def __init__(self, device, parent=None):
         QWidget.__init__(self, parent=parent)
 
-        self.ps_control = Dynamic_PS(device)
+        self.ps_control = Loop_PS(device)
 
     # ************************************************************************************************************ #
     #                                    1) POWER SUPPLY CONTROL INTERFACE                                         #
