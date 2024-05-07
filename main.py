@@ -36,7 +36,7 @@ from PowerSupply.ps_modes.voltage_plots import VoltagePlots
 PROGRAM_NAME = "Actuator Test Bench"
 PROGRAM_VERSION = "v1.0"
 
-# PLOT_UPDATE_RATE = 50 # new
+PLOT_UPDATE_RATE = 50 # new
 
 class MainWindow(QWidget):
     def __init__(self, device = HvpsDevice(), parent=None): # new
@@ -64,11 +64,11 @@ class MainWindow(QWidget):
         # HIGH VOLTAGE POWER SUPPLY.
         # New Interface Objects
         self.device = device
-        self.device.auto_connect()
+        
 
         # New Interface Widgets
         self.high_voltage_plot = VoltagePlots(title="High Voltage Monitor", y_max=2200)
-        self.current_plot = VoltagePlots(title="Current Monitor", y_max=1000)
+        # self.current_plot = VoltagePlots(title="Current Monitor", y_max=1000)
 
         # POWER SUPPLY (High voltage power supply control panel).
         # board_1_port = 'COM3'
@@ -213,7 +213,7 @@ class MainWindow(QWidget):
         #                                          CALLBACK FOR DATA READING
         # ************************************************************************************************************ #
 
-        self.plot_interval = 50#ms
+        # self.plot_interval = 50#ms
         # self.start_time = 0
         # self.sample_rate = 400#Hz
         # self.interpolation_stop_time = 0
@@ -262,6 +262,9 @@ class MainWindow(QWidget):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_plots)
+
+        if self.device.auto_connect():
+            self.timer.start(PLOT_UPDATE_RATE)
 
 #############################################################################################################################
 
