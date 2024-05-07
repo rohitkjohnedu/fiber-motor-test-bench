@@ -15,28 +15,30 @@
 
 # python packages
 import sys
-from PyQt6.QtCore import QTimer 
+from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QComboBox, QMessageBox
-# import time
+import time
 # import numpy as np
 # import os.path
 # from datetime import datetime
 
 # custom packages
-# from ForceSensor import FutekSensor, FutekSensorPlot
+from ForceSensor import FutekSensor, FutekSensorPlot
 from PowerSupply.ps_modes.static_characterization.static import StaticMode
 from PowerSupply.ps_modes.dynamic_characterization.dynamic import DynamicMode
 # from PowerSupply.ps_modes.demo import DemoMode
 
 # custom packages from a new software version
 from PowerSupply.device import HvpsDevice
-from PowerSupply.ps_modes.voltage_plots import VoltagePlots
+# from PowerSupply.ps_modes.voltage_plots import VoltagePlots
+from PowerSupply.ps_plots.VoltagePlots import VoltagePlots
+
 
 # formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 PROGRAM_NAME = "Actuator Test Bench"
 PROGRAM_VERSION = "v1.0"
 
-PLOT_UPDATE_RATE = 50 # new
+# PLOT_UPDATE_RATE = 50 # new
 
 class MainWindow(QWidget):
     def __init__(self, device = HvpsDevice(), parent=None): # new
@@ -51,7 +53,7 @@ class MainWindow(QWidget):
         self.display_voltages = 1       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         # self.display_currents = 0       # 0: no current plot;       1: current plot.
         # ------------------------------------------------------------------------------------------------------------ #
-        # self.display_force = 0          # 0: no force plot;         1: force plot.
+        self.display_force = 1          # 0: no force plot;         1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
         static = 1                      # 0: no static mode;        1: static mode.
         dynamic = 1                     # 0: no dynamic mode;       1: dynamic mode.
@@ -64,10 +66,9 @@ class MainWindow(QWidget):
         # HIGH VOLTAGE POWER SUPPLY.
         # New Interface Objects
         self.device = device
-        
 
         # New Interface Widgets
-        self.high_voltage_plot = VoltagePlots(title="High Voltage Monitor", y_max=2200)
+        self.voltage_plot = VoltagePlots(self.device, plot_title="High Voltage Monitor", y_hv_max=2200)
         # self.current_plot = VoltagePlots(title="Current Monitor", y_max=1000)
 
         # POWER SUPPLY (High voltage power supply control panel).
@@ -84,8 +85,8 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
 
         # FUTEK FORCE SENSOR (Load cell).
-        # self.force_sensor = FutekSensor()
-        # self.force_sensor_plot = FutekSensorPlot(self.force_sensor, controls=False)
+        self.force_sensor = FutekSensor()
+        self.force_sensor_plot = FutekSensorPlot(self.force_sensor, controls=False)
 
         # ************************************************************************************************************ #
         #                                     INITIALIZATION OF THE USER INTERFACE
@@ -116,13 +117,13 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
 
         # Control buttons
-        # buttons_groupBox = QGroupBox("Control buttons")
-        # buttons_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        # # buttons_groupBox.setFixedHeight(150)
-        # control_panel_layout.addWidget(buttons_groupBox)
-        # control_panel_layout.addSpacing(0)
+        buttons_groupBox = QGroupBox("Control buttons")
+        buttons_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        # buttons_groupBox.setFixedHeight(150)
+        control_panel_layout.addWidget(buttons_groupBox)
+        control_panel_layout.addSpacing(0)
         
-        # button_layout = QVBoxLayout(buttons_groupBox)
+        button_layout = QVBoxLayout(buttons_groupBox)
 
         # self.emg_stop_btn = QPushButton("EMERGENCY STOP")
         # self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
@@ -136,29 +137,29 @@ class MainWindow(QWidget):
         # self.emg_stop_btn.setFixedWidth(680)
         # self.emg_stop_btn.setFixedHeight(50)
 
-        # self.tare_button = QPushButton("Tare")
-        # self.tare_button.setStyleSheet("background-color: white; "
-        #                                 "color: black; "
-        #                                 "font-weight: bold; "
-        #                                 'font-size: 24px;'
-        #                                 "position: center; ")
-        # button_layout.addWidget(self.tare_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        # self.tare_button.clicked.connect(self.force_sensor.tare)
-        # self.tare_button.setFixedWidth(680)
-        # self.tare_button.setFixedHeight(50)
+        self.tare_button = QPushButton("Tare")
+        self.tare_button.setStyleSheet("background-color: white; "
+                                        "color: black; "
+                                        "font-weight: bold; "
+                                        'font-size: 24px;'
+                                        "position: center; ")
+        button_layout.addWidget(self.tare_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.tare_button.clicked.connect(self.force_sensor.tare)
+        self.tare_button.setFixedWidth(300)
+        self.tare_button.setFixedHeight(50)
 
-        # self.run_button = QPushButton("Run")
-        # self.run_button.clicked.connect(self.run_button_clicked)
-        # self.run_button.setStyleSheet("background-color: green; "
-        #                                "color: white; "
-        #                                "font-weight: bold; "
-        #                                'font-size: 24px;'
-        #                                "position: center; ")
-        # button_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        # self.run_button.setFixedWidth(680)
-        # self.run_button.setFixedHeight(50)
+        self.run_button = QPushButton("Run")
+        self.run_button.clicked.connect(self.run_button_clicked)
+        self.run_button.setStyleSheet("background-color: green; "
+                                       "color: white; "
+                                       "font-weight: bold; "
+                                       'font-size: 24px;'
+                                       "position: center; ")
+        button_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.run_button.setFixedWidth(300)
+        self.run_button.setFixedHeight(50)
 
-        # button_layout.addStretch(1)
+        button_layout.addStretch(1)
         # ------------------------------------------------------------------------------------------------------------ #
 
         main_layout.addLayout(control_panel_layout, 0) # add the control panel on the left side.
@@ -180,17 +181,17 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
 
         # FORCE SENSOR PLOT
-        # if self.display_force != 0:
-        #     all_plots_layout.addWidget(self.force_sensor_plot)
-        #     force_sensor_layout = QHBoxLayout()
-        #     force_sensor_layout.addWidget(self.force_sensor_plot)
-        #     all_plots_layout.addLayout(force_sensor_layout)
+        if self.display_force != 0:
+            all_plots_layout.addWidget(self.force_sensor_plot)
+            force_sensor_layout = QHBoxLayout()
+            force_sensor_layout.addWidget(self.force_sensor_plot)
+            all_plots_layout.addLayout(force_sensor_layout)
         # ------------------------------------------------------------------------------------------------------------ #
 
         # POWER SUPPLY VOLTAGE PLOT
         if self.display_voltages != 0:
             voltage_layout = QHBoxLayout() 
-            voltage_layout.addWidget(self.high_voltage_plot)
+            voltage_layout.addWidget(self.voltage_plot)
             all_plots_layout.addLayout(voltage_layout)
 
         # if self.display_voltages != 0:
@@ -213,22 +214,16 @@ class MainWindow(QWidget):
         #                                          CALLBACK FOR DATA READING
         # ************************************************************************************************************ #
 
-        # self.plot_interval = 50#ms
-        # self.start_time = 0
+        self.plot_interval = 50#ms
+        self.start_time = 0
         # self.sample_rate = 400#Hz
         # self.interpolation_stop_time = 0
 
         # Set a timer with the callback function which reads and displays data from serial port.
-        # self.timer = QTimer(self)
-        # self.timer.timeout.connect(self.plot_update_callback)
-        # self.timer.start(self.plot_interval)
-
-    # def attach_serial(self, serial):
-    #     self.ser = serial
-
-    # def send_command(self,ser, command):
-    #     to_send = bytearray(command, encoding="utf-8")
-    #     ser.write(to_send)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.plot_update_callback)
+        if self.device.auto_connect():
+            self.timer.start(self.plot_interval)
 
     # def emg_stop_btn_clicked(self):
     #     # send through the serial port
@@ -237,58 +232,58 @@ class MainWindow(QWidget):
     #     # display information message
     #     print("[INFO] Emergency stop")
 
-    # def run_button_clicked(self):
-    #     if self.run_button.text() == "Run":
-    #         self.start_time = time.perf_counter()
-    #         # self.power_supply.start_recording()
-    #         self.force_sensor.start_recording()
-    #         self.run_button.setText("Stop")
-    #         self.run_button.setStyleSheet("background-color: red; "
-    #                                        "color: white; "
-    #                                        "font-weight: bold; "
-    #                                        'font-size: 24px;'
-    #                                        "position: center; ")
-    #     else:
-    #         # self.power_supply.stop_recording()
-    #         self.force_sensor.stop_recording()
-    #         self.run_button.setText("Run")
-    #         self.run_button.setStyleSheet("background-color: green; "
-    #                                    "color: white; "
-    #                                    "font-weight: bold; "
-    #                                    'font-size: 24px;'
-    #                                    "position: center; ")
+    def run_button_clicked(self):
+        if self.run_button.text() == "Run":
+            self.start_time = time.perf_counter()
+            self.device.start_recording()
+            self.force_sensor.start_recording()
+            self.run_button.setText("Stop")
+            self.run_button.setStyleSheet("background-color: red; "
+                                           "color: white; "
+                                           "font-weight: bold; "
+                                           'font-size: 24px;'
+                                           "position: center; ")
+        else:
+            self.device.stop_recording()
+            self.force_sensor.stop_recording()
+            self.run_button.setText("Run")
+            self.run_button.setStyleSheet("background-color: green; "
+                                       "color: white; "
+                                       "font-weight: bold; "
+                                       'font-size: 24px;'
+                                       "position: center; ")
         
     # ------------------------------------------------------------------------------------------------------------ #
 
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self._update_plots)
+        # self.timer = QTimer(self)
+        # self.timer.timeout.connect(self._update_plots)
 
-        if self.device.auto_connect():
-            self.timer.start(PLOT_UPDATE_RATE)
+        # if self.device.auto_connect():
+        #     self.timer.start(PLOT_UPDATE_RATE)
 
 #############################################################################################################################
 
-    def _update_plots(self):
-        data = self.device.get_buffer(clear_buffer=False)
-        if data.shape[0] == 0:
-            return
-        # only take the last 50 values
-        length = min(100, data.shape[0])
-        data = data[-length:]
-        time = (data[:, 1] - data[-1, 1])/1e3
-        v_target = data[:, 2]
-        v_monitor = data[:, 5]
-        self.high_voltage_plot.update_plot(time,
-                                           [v_target, v_monitor, v_monitor-v_target],
-                                           [v_target[-1], v_monitor[-1], v_monitor[-1]-v_target[-1]])
+    # def _update_plots(self):
+    #     data = self.device.get_buffer(clear_buffer=False)
+    #     if data.shape[0] == 0:
+    #         return
+    #     # only take the last 50 values
+    #     length = min(100, data.shape[0])
+    #     data = data[-length:]
+    #     time = (data[:, 1] - data[-1, 1])/1e3
+    #     v_target = data[:, 2]
+    #     v_monitor = data[:, 5]
+    #     self.high_voltage_plot.update_plot(time,
+    #                                        [v_target, v_monitor, v_monitor-v_target],
+    #                                        [v_target[-1], v_monitor[-1], v_monitor[-1]-v_target[-1]])
         # currents = [data[:, i]/1e6 for i in range(6, 14)]
         # self.current_plot.update_plot(time, currents, [c[-1] for c in currents])
 
 
-    # def plot_update_callback(self):
-    #     if self.display_voltages !=0: # or self.display_currents !=0:
-            # self.power_supply.plot_update(self.start_time)
-        # self.force_sensor_plot.plot_update(self.start_time)
+    def plot_update_callback(self):
+        if self.display_voltages !=0: # or self.display_currents !=0:
+            self.voltage_plot.plot_update(self.start_time)
+        self.force_sensor_plot.plot_update(self.start_time)
 
         # new_power_supply_data = self.power_supply.get_new_data()
         # new_force_sensor_data = self.force_sensor.get_new_data()

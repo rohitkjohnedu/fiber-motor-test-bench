@@ -1,5 +1,5 @@
 import time
-from threading import Thread, Lock, Event
+from threading import Thread, Lock, Event, RLock
 
 import numpy as np
 from serial import Serial
@@ -8,9 +8,12 @@ from collections.abc import Iterable
 
 import matplotlib.pyplot as plt
 
-from tools.data_tools import CircularDataBuffer
+# from tools.data_tools import CircularDataBuffer
 
 SOFTWARE_VERSION = 1.1
+#--------------------------------
+DEFAULT_BUFFER_LENGTH = 10000000
+#--------------------------------
 BUFFER_LENGTH = 10000
 BUFFER_SLOTS = 15
 INITIAL_PCB_PARAMETERS = {
@@ -66,8 +69,17 @@ class HvpsDevice:
         self.start_time = time.perf_counter_ns()
         self.pcb_parameters = INITIAL_PCB_PARAMETERS
 
+        # ---------------------------------------------------------------------------------------------------------------------------- #
+        # New 
+        self.buffer_length = DEFAULT_BUFFER_LENGTH
+        self.variables_number = 11
+        self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
+        self.sample = 0
+        self.reading_thread_lock = RLock()
+        # ---------------------------------------------------------------------------------------------------------------------------- #
+
         self.buffer_lock = Lock()
-        self.buffer_data = CircularDataBuffer((BUFFER_LENGTH, BUFFER_SLOTS))
+        # self.buffer_data = CircularDataBuffer((BUFFER_LENGTH, BUFFER_SLOTS))
         self.last_values = [0] * BUFFER_SLOTS
 
         self.last_confirmation_match = ''
@@ -93,7 +105,6 @@ class HvpsDevice:
                 boards.append({**port, **params})
                 self.disconnect()
         return boards
-
 
     def auto_connect(self):
         """Detects available serial ports and connects to the first one found"""
@@ -193,29 +204,51 @@ class HvpsDevice:
         self.pcb_parameters = pcb_parameters
         return pcb_parameters
 
-    def get_buffer(self, clear_buffer=True):
-        """Method for retrieving position buffer. clear_buffer=True causes the buffer to be reset"""
-        data = self.buffer_data.copy()
-        if clear_buffer:  # If buffer reset
-            self.buffer_data.clear()
-        return data  # Return time and positions
+    # ---------------------------------------------------------------------------------------------------------------------------- #
+    # NEW
+    def start_recording(self):
+        self.clear_buffer()
+        self.command_buffer.clear()
+        self.reading_thread = Thread(target=self._reading_thread)
+        self.exit_reading.clear()
+        self.reading_thread.start()
 
+    def stop_recording(self):
+        self.exit_reading.set()
+    
     def clear_buffer(self):
-        self.buffer_lock.acquire()
-        self.buffer_data.clear()
-        self.buffer_lock.release()
+        self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
+        self.sample = 0
 
-    def save_buffer(self, filename = None):
-        data = self.get_buffer(clear_buffer=False)
-        if data.shape[0] == 0:
-            print("No data to save")
-            return
-        if filename is None:
-            filename = f"buffer_{time.strftime('%Y%m%d_%H%M%S')}.csv"
-        if not filename.endswith(".csv"):
-            filename += ".csv"
-        np.savetxt(filename, data, delimiter=",",
-                   header="external time, board time, high voltage target, low voltage target, low voltage monitor, high voltage monitor, current global, current ch1, current ch2, current ch3, current ch4, current ch5, current ch6, current ch7, current ch8")
+    def get_buffer(self):
+        self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
+        data = self.buffer_data[0:self.sample,:]
+        self.reading_thread_lock.release()  # Release lock
+        return data  # Return time and positions
+    
+    # def get_buffer(self, clear_buffer=True):
+    #     """Method for retrieving position buffer. clear_buffer=True causes the buffer to be reset"""
+    #     data = self.buffer_data.copy()
+    #     if clear_buffer:  # If buffer reset
+    #         self.buffer_data.clear()
+    #     return data  # Return time and positions
+
+    # def clear_buffer(self):
+    #     self.buffer_lock.acquire()
+    #     self.buffer_data.clear()
+    #     self.buffer_lock.release()
+
+    # def save_buffer(self, filename = None):
+    #     data = self.get_buffer(clear_buffer=False)
+    #     if data.shape[0] == 0:
+    #         print("No data to save")
+    #         return
+    #     if filename is None:
+    #         filename = f"buffer_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    #     if not filename.endswith(".csv"):
+    #         filename += ".csv"
+    #     np.savetxt(filename, data, delimiter=",",
+    #                header="external time, board time, high voltage target, low voltage target, low voltage monitor, high voltage monitor, current global, current ch1, current ch2, current ch3, current ch4, current ch5, current ch6, current ch7, current ch8")
 
     def _reading_thread(self):
         waiting_for_answer = False
@@ -224,19 +257,35 @@ class HvpsDevice:
             if not waiting_for_answer:
                 if len(self.command_buffer) > 0:
                     self._write_serial(self.command_buffer.pop(0))
+                    print("1")
                 else:
                     self._write_serial("Moni 1\r")
+                    print("2")
                 waiting_for_answer = True
                 waiting_for_answer_time = time.perf_counter()
 
             line = self._read_serial()
             if line.startswith("[moni]"):
                 data = line.split(",")
-                num_data = [float(x) for x in data[1:15]]
-                self.last_values = [self.get_external_time()] + num_data
+                # --------------------------------------------------------------------- #
+                t_save = int(data[1])
+                hv_set = np.float64(data[2])
+                hv_vm = np.float64(data[5])
+                hv_err = np.float64(data[2]) - np.float64(data[5])
+                # --------------------------------------------------------------------- #
+                # num_data = [float(x) for x in data[1:15]]
+                # self.last_values = [self.get_external_time()] + num_data
                 self.buffer_lock.acquire()
-                self.buffer_data.append(self.last_values)
+                # --------------------------------------------------------------------- #
+                epoch_time = time.perf_counter()
+                self.buffer_data[self.sample,:] = [epoch_time, t_save,
+                                                   hv_set, hv_vm, hv_err,
+                                                   0, 0, 0, 
+                                                   0, 0, 0]
+                # --------------------------------------------------------------------- #
+                # self.buffer_data.append(self.last_values)
                 self.buffer_lock.release()
+                self.sample += 1
                 waiting_for_answer = False
             elif not line.startswith(">") and len(line) > 1:
                 cleaned_line = line.strip().replace("\n", "").replace("\r", "")

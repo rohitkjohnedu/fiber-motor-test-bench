@@ -497,20 +497,20 @@ class FutekSensorPlot(QtWidgets.QWidget):
 
     # ----------------------------------------------------------------------------------------------- #
         
-    def heading(self):
-        self.heading
+    # def heading(self):
+    #     self.heading
     
-    def tare_button(self):
-        self.tare_button
+    # def tare_button(self):
+    #     self.tare_button
     
-    def clear_button(self):
-        self.clear_button
+    # def clear_button(self):
+    #     self.clear_button
     
-    def continuous_acq(self):
-        self.continuous_acq
+    # def continuous_acq(self):
+    #     self.continuous_acq
     
-    def save_data_button(self):
-        self.save_data_button
+    # def save_data_button(self):
+    #     self.save_data_button
 
 
 # class FutekSensorControl(QtWidgets.QWidget):
