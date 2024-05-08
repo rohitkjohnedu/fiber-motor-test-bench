@@ -1,6 +1,7 @@
 
 # python packages
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QGroupBox, QFormLayout
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QGroupBox, QFormLayout, QPushButton
 # custom packages
 from PowerSupply.ps_modes.static_characterization.static_ps import Static_PS
 
@@ -9,10 +10,14 @@ class StaticMode(QWidget):
     def __init__(self, device, parent=None):
         QWidget.__init__(self, parent=parent)
 
+        self.device = device
+        self.power_supply = Static_PS(device)
+
         force_vs_position = 1
         # force_at_position_with_max_force = 1
 
-        self.Force_vs_Position = Force_vs_Position(device)
+        self.Force_vs_Position = Force_vs_Position(self.power_supply )
+        
         # self.Force_at_Position_with_maxForce = Force_at_Position_with_maxForce()
 
     # ************************************************************************************************************ #
@@ -26,19 +31,32 @@ class StaticMode(QWidget):
 
         if force_vs_position == 1:
             experiment_type.addTab(self.Force_vs_Position, 'Force vs. Position')
-        
         # if force_at_position_with_max_force == 1:
         #     experiment_type.addTab(self.Force_at_Position_with_maxForce, 'Force at position with max force')
-
         self.mode_layout.addWidget(experiment_type)
+
+        emg_stop_btn = QPushButton("EMERGENCY STOP")
+        emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
+        emg_stop_btn.setStyleSheet("background-color: red; "
+                                        "color: white; "
+                                        "font-weight: bold; "
+                                        'font-size: 24px;'
+                                        "position: center; "
+                                        "border: 1px solid black;")
+        emg_stop_btn.setFixedWidth(300)
+        emg_stop_btn.setFixedHeight(50)        
+        self.mode_layout.addWidget(emg_stop_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+    
+    def emg_stop_btn_clicked(self):
+        self.power_supply.emergency_stop(device=self.device)
 
 ########################################################################################################################
 
 class Force_vs_Position(QWidget):
-    def __init__(self, device, parent=None):
+    def __init__(self, power_supply, parent=None):
         QWidget.__init__(self, parent=parent)
 
-        self.power_supply = Static_PS(device)
+        self.power_supply = power_supply
 
     # ************************************************************************************************************ #
     #                                          CONTROL PANEL INTERFACE                                             #

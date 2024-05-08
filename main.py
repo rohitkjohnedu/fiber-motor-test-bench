@@ -32,6 +32,7 @@ from PowerSupply.ps_modes.dynamic_characterization.dynamic import DynamicMode
 from PowerSupply.device import HvpsDevice
 # from PowerSupply.ps_modes.voltage_plots import VoltagePlots
 from PowerSupply.ps_plots.VoltagePlots import VoltagePlots
+from PowerSupply.ps_plots.CurrentPlots import CurrentPlots
 
 
 # formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
@@ -50,8 +51,8 @@ class MainWindow(QWidget):
 
         self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
         # ------------------------------------------------------------------------------------------------------------ #
-        self.display_voltages = 1       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
-        # self.display_currents = 0       # 0: no current plot;       1: current plot.
+        self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
+        self.display_currents = 1       # 0: no current plot;       1: current plot.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_force = 1          # 0: no force plot;         1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
@@ -68,15 +69,8 @@ class MainWindow(QWidget):
         self.device = device
 
         # New Interface Widgets
-        self.voltage_plot = VoltagePlots(self.device, plot_title="High Voltage Monitor", y_hv_max=2200)
-        # self.current_plot = VoltagePlots(title="Current Monitor", y_max=1000)
-
-        # POWER SUPPLY (High voltage power supply control panel).
-        # board_1_port = 'COM3'
-        # self.power_supply = PowerSupply(port_name=board_1_port,
-        #                                 voltage_display=self.display_voltages,
-        #                                 currents_display=self.display_currents)
-        # serial = self.power_supply.ser
+        self.voltage_plot = VoltagePlots(self.device, plot_title="High Voltage Monitor", y_hv_max=2200, y_lv_max=12, plots=2)
+        self.current_plot = CurrentPlots(self.device, y_max=0.002)
 
         # Modes
         self.static = StaticMode(self.device)
@@ -124,18 +118,6 @@ class MainWindow(QWidget):
         control_panel_layout.addSpacing(0)
         
         button_layout = QVBoxLayout(buttons_groupBox)
-
-        # self.emg_stop_btn = QPushButton("EMERGENCY STOP")
-        # self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
-        # self.emg_stop_btn.setStyleSheet("background-color: red; "
-        #                                 "color: white; "
-        #                                 "font-weight: bold; "
-        #                                 'font-size: 24px;'
-        #                                 "position: center; "
-        #                                 "border: 1px solid black;")
-        # button_layout.addWidget(self.emg_stop_btn, alignment=Qt.AlignmentFlag.AlignCenter)
-        # self.emg_stop_btn.setFixedWidth(680)
-        # self.emg_stop_btn.setFixedHeight(50)
 
         self.tare_button = QPushButton("Tare")
         self.tare_button.setStyleSheet("background-color: white; "
@@ -193,18 +175,13 @@ class MainWindow(QWidget):
             voltage_layout = QHBoxLayout() 
             voltage_layout.addWidget(self.voltage_plot)
             all_plots_layout.addLayout(voltage_layout)
-
-        # if self.display_voltages != 0:
-        #     voltage_layout = QHBoxLayout()
-        #     voltage_layout.addWidget(self.power_supply.voltage_plots)
-        #     all_plots_layout.addLayout(voltage_layout)
         # ------------------------------------------------------------------------------------------------------------ #
 
         # POWER SUPPLY CURRENT PLOTS
-        # if self.display_currents != 0:
-        #     currents_layout = QHBoxLayout()
-        #     currents_layout.addWidget(self.power_supply.current_plots)
-        #     all_plots_layout.addLayout(currents_layout)
+        if self.display_currents != 0:
+            currents_layout = QHBoxLayout()
+            currents_layout.addWidget(self.current_plot)
+            all_plots_layout.addLayout(currents_layout)
         # ------------------------------------------------------------------------------------------------------------ #
 
         plots_groupBox.setLayout(all_plots_layout)
@@ -219,21 +196,15 @@ class MainWindow(QWidget):
         # self.sample_rate = 400#Hz
         # self.interpolation_stop_time = 0
 
-        # Set a timer with the callback function which reads and displays data from serial port.
+        # Set a timer with the callback function which reads and displays data from the serial port.
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.plot_update_callback)
         if self.device.auto_connect():
             self.timer.start(self.plot_interval)
 
-    # def emg_stop_btn_clicked(self):
-    #     # send through the serial port
-    #     to_send = "\r\nEStop\r\n"
-    #     self.send_command(self.ser, to_send)
-    #     # display information message
-    #     print("[INFO] Emergency stop")
-
     def run_button_clicked(self):
         if self.run_button.text() == "Run":
+            print("\n[INFO] The measurement is running")
             self.start_time = time.perf_counter()
             self.device.start_recording()
             self.force_sensor.start_recording()
@@ -244,6 +215,7 @@ class MainWindow(QWidget):
                                            'font-size: 24px;'
                                            "position: center; ")
         else:
+            print("\n[INFO] The measurement is stopped")
             self.device.stop_recording()
             self.force_sensor.stop_recording()
             self.run_button.setText("Run")
@@ -252,37 +224,13 @@ class MainWindow(QWidget):
                                        "font-weight: bold; "
                                        'font-size: 24px;'
                                        "position: center; ")
-        
-    # ------------------------------------------------------------------------------------------------------------ #
-
-        # self.timer = QTimer(self)
-        # self.timer.timeout.connect(self._update_plots)
-
-        # if self.device.auto_connect():
-        #     self.timer.start(PLOT_UPDATE_RATE)
 
 #############################################################################################################################
-
-    # def _update_plots(self):
-    #     data = self.device.get_buffer(clear_buffer=False)
-    #     if data.shape[0] == 0:
-    #         return
-    #     # only take the last 50 values
-    #     length = min(100, data.shape[0])
-    #     data = data[-length:]
-    #     time = (data[:, 1] - data[-1, 1])/1e3
-    #     v_target = data[:, 2]
-    #     v_monitor = data[:, 5]
-    #     self.high_voltage_plot.update_plot(time,
-    #                                        [v_target, v_monitor, v_monitor-v_target],
-    #                                        [v_target[-1], v_monitor[-1], v_monitor[-1]-v_target[-1]])
-        # currents = [data[:, i]/1e6 for i in range(6, 14)]
-        # self.current_plot.update_plot(time, currents, [c[-1] for c in currents])
-
 
     def plot_update_callback(self):
         if self.display_voltages !=0: # or self.display_currents !=0:
             self.voltage_plot.plot_update(self.start_time)
+            self.current_plot.plot_update(self.start_time)
         self.force_sensor_plot.plot_update(self.start_time)
 
         # new_power_supply_data = self.power_supply.get_new_data()

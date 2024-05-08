@@ -139,6 +139,7 @@ class Static_PS(QWidget):
             else:
                 self.reset_command()
                 self.set_button.setText("Set")
+                self.target_voltage_edit.setText("0")
 
     ####################################################################################################################
     # SET button clicked or ENTER pressed (Votlage => ON)
@@ -255,5 +256,16 @@ class Static_PS(QWidget):
                 print("[INFO] Mode 5: Half-Bridges 1-3 OFF")
         # unlock the mode
         self.lock_command(is_on=0)
+
+    ####################################################################################################################
+    # EMERGENCY STOP
+    def emergency_stop(self, device):
+        device.emergency_stop()
+        if self.set_button.text() == "Reset":
+            self.reset_command()
+            self.set_button.setText("Set")
+            self.target_voltage_edit.setText("0")
+        print("[INFO] Emergency stop\n"
+              "---------------------")
 
 

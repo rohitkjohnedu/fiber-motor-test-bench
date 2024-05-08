@@ -41,7 +41,7 @@ class VoltagePlots(QWidget):
         self.plots = plots
         self.legend = pg.LegendItem()
 
-        self.display_voltages = 1
+        self.display_voltages = 2
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
         
@@ -133,38 +133,22 @@ class VoltagePlots(QWidget):
                 if len(tplot) > 0:
                     use = tplot > tplot[-1] - self.plotHistoryLength
                     self.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use])
-                    # self.voltage_plots.update_legend(hv_set[-1], hv_vm[-1])
+                    self.update_legend(hv_set[-1], hv_vm[-1])
 
-            # if self.display_voltages == 2:
-            #     lv_set = data[:, 5]
-            #     lv_vm = data[:, 6]
+            if self.display_voltages == 2:
+                lv_set = data[:, 5]
+                lv_vm = data[:, 6]
                 
-            #     if len(tplot) > self.maxPlotHistoryLength:
-            #         lv_set = lv_set[-self.maxPlotHistoryLength:]
-            #         lv_vm = lv_vm[-self.maxPlotHistoryLength:]
+                if len(tplot) > self.maxPlotHistoryLength:
+                    lv_set = lv_set[-self.maxPlotHistoryLength:]
+                    lv_vm = lv_vm[-self.maxPlotHistoryLength:]
 
-            #     if len(tplot) > 0:
-            #         use = tplot > tplot[-1] - self.plotHistoryLength
-            #         self.voltage_plots.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use],
-            #                                         y3=lv_set[use], y4=lv_vm[use])
-            #         self.voltage_plots.update_legend(hv_set[-1], hv_vm[-1], lv_set[-1], lv_vm[-1])
+                if len(tplot) > 0:
+                    use = tplot > tplot[-1] - self.plotHistoryLength
+                    self.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use],
+                                                    y3=lv_set[use], y4=lv_vm[use])
+                    self.update_legend(hv_set[-1], hv_vm[-1], lv_set[-1], lv_vm[-1])
 
-            # Update current plots.
-            # if self.display_currents == 1:
-            #     cm_val_w1 = data[:, 8]
-            #     cm_val_w2 = data[:, 9]
-            #     cm_val_w3 = data[:, 10]
-
-            #     if len(tplot) > self.maxPlotHistoryLength:
-            #         cm_val_w1 = cm_val_w1[:, -self.maxPlotHistoryLength:]
-            #         cm_val_w2 = cm_val_w2[:, -self.maxPlotHistoryLength:]
-            #         cm_val_w3 = cm_val_w3[:, -self.maxPlotHistoryLength:]
-
-            #     if len(tplot) > 0:
-            #         use = tplot > tplot[-1] - self.plotHistoryLength
-            #         self.current_plots.update_plot(t=tplot[use], y1=cm_val_w1[use],
-            #                                        y2=cm_val_w2[use], y3=cm_val_w3[use])
-            #         self.current_plots.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])   
         # ************************************************************************************************************ #
 
     def set_plot_history(self, history_length):
@@ -177,14 +161,14 @@ class VoltagePlots(QWidget):
             self.lv_set_plot.setData(t, y3)
             self.lv_now_plot.setData(t, y4)
     
-    # def update_legend(self, hv_set, hv_now, lv_set=0, lv_now=0):
-    #     for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'], [hv_set, hv_now])):
-    #         self.legend.items[i][1].setText("{}: {} V".format(variable, value))
+    def update_legend(self, hv_set, hv_now, lv_set=0, lv_now=0):
+        for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'], [hv_set, hv_now])):
+            self.legend.items[i][1].setText("{}: {} V".format(variable, value))
 
-    #     if self.plots is not None:
-    #         for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'],
-    #                                                     [hv_set, hv_now])):
-    #             self.legend.items[i][1].setText("{}: {} V".format(variable, value))
+        if self.plots is not None:
+            for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'],
+                                                        [hv_set, hv_now])):
+                self.legend.items[i][1].setText("{}: {} V".format(variable, value))
                 
-    #         for i, (variable, value)  in enumerate(zip(['LV assigned', 'LV measured'], [lv_set, lv_now])):
-    #             self.legend.items[i+2][1].setText("{}: {} V".format(variable, value))
+            for i, (variable, value)  in enumerate(zip(['LV assigned', 'LV measured'], [lv_set, lv_now])):
+                self.legend.items[i+2][1].setText("{}: {} V".format(variable, value))

@@ -68,6 +68,7 @@ class HvpsDevice:
         self.command_buffer = []
         self.start_time = time.perf_counter_ns()
         self.pcb_parameters = INITIAL_PCB_PARAMETERS
+        self.cont_reading = False
 
         # ---------------------------------------------------------------------------------------------------------------------------- #
         # New 
@@ -147,6 +148,12 @@ class HvpsDevice:
 
     def disconnect(self):
         """Closes connection with the HVPS"""
+        if not self.reading_thread.is_alive():
+            self.clear_buffer()
+            self.command_buffer.clear()
+            self.reading_thread = Thread(target=self._reading_thread)
+            self.exit_reading.clear()
+            self.reading_thread.start()
         self.emergency_stop()
         self.exit_reading.set()
         if self.reading_thread.is_alive():
@@ -205,8 +212,9 @@ class HvpsDevice:
         return pcb_parameters
 
     # ---------------------------------------------------------------------------------------------------------------------------- #
-    # NEW
     def start_recording(self):
+        self.stop_recording()
+        self.cont_reading = True
         self.clear_buffer()
         self.command_buffer.clear()
         self.reading_thread = Thread(target=self._reading_thread)
@@ -214,7 +222,10 @@ class HvpsDevice:
         self.reading_thread.start()
 
     def stop_recording(self):
+        self.cont_reading = False
         self.exit_reading.set()
+        if self.reading_thread.is_alive():
+            self.reading_thread.join()  
     
     def clear_buffer(self):
         self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
@@ -225,18 +236,6 @@ class HvpsDevice:
         data = self.buffer_data[0:self.sample,:]
         self.reading_thread_lock.release()  # Release lock
         return data  # Return time and positions
-    
-    # def get_buffer(self, clear_buffer=True):
-    #     """Method for retrieving position buffer. clear_buffer=True causes the buffer to be reset"""
-    #     data = self.buffer_data.copy()
-    #     if clear_buffer:  # If buffer reset
-    #         self.buffer_data.clear()
-    #     return data  # Return time and positions
-
-    # def clear_buffer(self):
-    #     self.buffer_lock.acquire()
-    #     self.buffer_data.clear()
-    #     self.buffer_lock.release()
 
     # def save_buffer(self, filename = None):
     #     data = self.get_buffer(clear_buffer=False)
@@ -257,45 +256,53 @@ class HvpsDevice:
             if not waiting_for_answer:
                 if len(self.command_buffer) > 0:
                     self._write_serial(self.command_buffer.pop(0))
-                    print("1")
                 else:
                     self._write_serial("Moni 1\r")
-                    print("2")
                 waiting_for_answer = True
                 waiting_for_answer_time = time.perf_counter()
 
             line = self._read_serial()
-            if line.startswith("[moni]"):
-                data = line.split(",")
-                # --------------------------------------------------------------------- #
-                t_save = int(data[1])
-                hv_set = np.float64(data[2])
-                hv_vm = np.float64(data[5])
-                hv_err = np.float64(data[2]) - np.float64(data[5])
-                # --------------------------------------------------------------------- #
-                # num_data = [float(x) for x in data[1:15]]
-                # self.last_values = [self.get_external_time()] + num_data
-                self.buffer_lock.acquire()
-                # --------------------------------------------------------------------- #
-                epoch_time = time.perf_counter()
-                self.buffer_data[self.sample,:] = [epoch_time, t_save,
-                                                   hv_set, hv_vm, hv_err,
-                                                   0, 0, 0, 
-                                                   0, 0, 0]
-                # --------------------------------------------------------------------- #
-                # self.buffer_data.append(self.last_values)
-                self.buffer_lock.release()
-                self.sample += 1
-                waiting_for_answer = False
-            elif not line.startswith(">") and len(line) > 1:
-                cleaned_line = line.strip().replace("\n", "").replace("\r", "")
-                if cleaned_line.startswith(self.last_confirmation_match):
-                    self.confirmed.set()
-                    self.last_confirmation_match = ''
+            if line.startswith("[moni]") and self.cont_reading is False:
                     waiting_for_answer = False
+            elif line.startswith("[moni]") and self.cont_reading is True:
+                    data = line.split(",")
+                    # --------------------------------------------------------------------- #
+                    t_save = int(data[1])
+                    hv_set = np.float64(data[2])
+                    hv_vm = np.float64(data[5])
+                    hv_err = np.float64(data[2]) - np.float64(data[5])
+                    # --------------------------------------------------------------------- #
+                    lv_set = np.float64(data[3])
+                    lv_vm = np.float64(data[4])
+                    lv_err = np.float64(data[3]) - np.float64(data[4])
+                    # --------------------------------------------------------------------- #
+                    cm_val_w1 = np.float64(data[7])/1e6
+                    cm_val_w2 = np.float64(data[8])/1e6
+                    cm_val_w3 = np.float64(data[9])/1e6
+                    # --------------------------------------------------------------------- #
+                    # num_data = [float(x) for x in data[1:15]]
+                    # self.last_values = [self.get_external_time()] + num_data
+                    self.buffer_lock.acquire()
+                    # --------------------------------------------------------------------- #
+                    epoch_time = time.perf_counter()
+                    self.buffer_data[self.sample,:] = [epoch_time, t_save,
+                                                    hv_set, hv_vm, hv_err,
+                                                    lv_set, lv_vm, lv_err, 
+                                                    cm_val_w1, cm_val_w2, cm_val_w3]
+                    # --------------------------------------------------------------------- #
+                    # self.buffer_data.append(self.last_values)
+                    self.buffer_lock.release()
+                    self.sample += 1
+                    waiting_for_answer = False
+            elif not line.startswith(">") and len(line) > 1:
+                    cleaned_line = line.strip().replace("\n", "").replace("\r", "")
+                    if cleaned_line.startswith(self.last_confirmation_match):
+                        self.confirmed.set()
+                        self.last_confirmation_match = ''
+                        waiting_for_answer = False
             elif time.perf_counter() - waiting_for_answer_time > 0.3:
-                print("Timeout waiting for answer")
-                waiting_for_answer = False
+                    print("Timeout waiting for answer")
+                    waiting_for_answer = False
 
     def _wait_for_confirmation(self, match, timeout=0.2):
         if not self.ser.is_open:
@@ -442,78 +449,3 @@ class HvpsDevice:
                 self.write(f"SMx 1 {channel_key} {freq} {pos_duty} 0 0 0\r")
             return self._wait_for_confirmation("[SM1]")
 
-
-    # def fb_stop(self, channel):
-    #     channel_key = _channel_to_channel_key(channel)
-    #     self.write(f"CMx 2 {channel_key}\r")
-    #     return self._wait_for_confirmation("[CM2]")
-
-    # def fb_stop_multi(self):
-    #     self.write("CMx 4 0\r")
-    #     return self._wait_for_confirmation("[CM4]")
-
-
-    # def fb_set(self, channel, freq=1, pos_duty=50, neg_duty=50, pulse_phase=180, phase_shift=None):
-    #     """
-    #     Set the output switches in a full bridge with parameters at the channel_key.
-
-    #     Parameters:
-    #     channel (int or list): The channel number or a list of channel numbers.
-    #     freq (float, optional): The frequency of the burst. Default is 1.
-    #     pos_duty (float, optional): The positive duty cycle. Default is 50.
-    #     neg_duty (float, optional): The negative duty cycle. Default is 50.
-    #     pulse_phase (float, optional): The phase of the pulse. Default is 180.
-    #     phase_shift (float, optional): The phase shift. Default is None.
-
-    #     Returns:
-    #     bool: True if the operation is successful, False otherwise.
-    #     """
-    #     channel_key = _channel_to_channel_key(channel)
-
-    #     if not (self.pcb_parameters['min_freq'] <= freq <= self.pcb_parameters['max_freq']):
-    #         print(f"[ERR] Frequency range: [{self.pcb_parameters['min_freq']} - {self.pcb_parameters['max_freq']}] Hz")
-    #         return False
-    #     if not (0 <= pos_duty <= 100):
-    #         print(f"[ERR] Positive duty cycle range: [0 - 100] °")
-    #         return False
-    #     pos_pulse_width = float(10 * (pos_duty / freq) * 1000)
-    #     if pos_pulse_width < self.pcb_parameters['min_pulse']:
-    #         print(f"[ERR] Positive pulse width: {pos_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
-    #         return False
-    #     if not (0 <= neg_duty <= 100):
-    #         print(f"[ERR] Negative duty cycle range: [0 - 100] °")
-    #         return False
-    #     neg_pulse_width = float(10 * (neg_duty / freq) * 1000)
-    #     if neg_pulse_width < self.pcb_parameters['min_pulse']:
-    #         print(f"[ERR] Negative pulse width: {neg_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
-    #         return False
-    #     if not (0 <= pulse_phase <= 360):
-    #         print(f"[ERR] Phase shift range: [0 - 360] °")
-    #         return False
-
-    #     if phase_shift is not None and isinstance(channel, Iterable):
-    #         # with phase shift
-    #         if not (0 <= phase_shift <= 360):
-    #             print(f"[ERR] Phase shift range: [0 - 360] °")
-    #             return False
-    #         self.write(f"SMx 4 {channel_key} {freq} {pos_duty} {neg_duty} {pulse_phase} {phase_shift}\r")
-    #         return self._wait_for_confirmation("[SM4]")
-    #     else:
-    #         self.write(f"SMx 2 {channel_key} {freq} {pos_duty} {neg_duty} {pulse_phase} 0\r")
-    #         return self._wait_for_confirmation("[SM2]")
-
-
-if __name__ == "__main__":
-    hv = HvpsDevice()
-    hv.auto_connect()
-    time.sleep(0.5)
-    print(hv.set_voltage(1000))
-    print(hv.hb_set(1, 50, 50))
-    time.sleep(0.5)
-    print(hv.hb_stop(1))
-    print(hv.voltage_stop())
-    time.sleep(0.5)
-    data = hv.get_buffer()
-    hv.disconnect()
-    plt.plot((data[:, 1] - data[0,1])/1000, data[:, 2])
-    plt.show()
