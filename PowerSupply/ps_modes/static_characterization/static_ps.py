@@ -147,13 +147,16 @@ class Static_PS(QWidget):
         new_hv_val = float(self.target_voltage_edit.text())
         if new_hv_val == 0:
             self.reset_command()
-            # reset the set button
             self.set_button.setText("Set")
+            # return True #
         else:
-            if self.device.set_voltage(new_hv_val):
+            if self.device.set_voltage(new_hv_val) is True:
                 print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv_val))
-            if self.set_button.text() == "Set":
-                self.set_button.setText("Reset")
+                if self.set_button.text() == "Set":
+                    self.set_button.setText("Reset")
+                return True
+            else:
+                return False
 
     ####################################################################################################################
     # RESET button clicked or 0 voltage SET (Votlage => OFF)
@@ -194,29 +197,31 @@ class Static_PS(QWidget):
         ch3_phase_shift = float(self.ch3_phase_shift_edit.text())
 
         if new_hv_val == 0 and self.set_button.text() == "Set":
-            print("\n[INFO] Please, set the voltage value\n------------------------------------")
-            return
+            print("\n[INFO] Please, set the voltage value"
+                  "\n------------------------------------")
         else: 
             if state_index == self.previous_index:
                 self.voltage_set()
             else:
-                self.previous_index =  state_index
-                self.voltage_set()
-                if  state_index < 3:
-                    self.DC_set(self.channels_keys,  state_index)
-                elif  state_index == 3:
-                    ph_shifts = [0, 180, 180]
-                    self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for A-D
-                elif  state_index == 4:
-                    ph_shifts = [180, 0, 180]
-                    self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for B-E
-                elif  state_index == 5:
-                    ph_shifts = [180, 180, 0]
-                    self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for C-F
+                self.previous_index = state_index
+                if self.voltage_set() is True:
+                    if  state_index < 3:
+                        self.DC_set(self.channels_keys,  state_index)
+                    elif  state_index == 3:
+                        ph_shifts = [0, 180, 180]
+                        self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for A-D
+                    elif  state_index == 4:
+                        ph_shifts = [180, 0, 180]
+                        self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for B-E
+                    elif  state_index == 5:
+                        ph_shifts = [180, 180, 0]
+                        self.AC_set(self.channels_keys, freq_val, duty_val, ph_shifts) # phase shift set for C-F
+                    else:
+                        ph_shifts = [ch1_phase_shift, ch2_phase_shift, ch3_phase_shift]
+                        self.AC_set(self.channels_keys, freq_val,  duty_val, ph_shifts) # phase shift set for other
+                    self.lock_command(is_on=1)
                 else:
-                    ph_shifts = [ch1_phase_shift, ch2_phase_shift, ch3_phase_shift]
-                    self.AC_set(self.channels_keys, freq_val,  duty_val, ph_shifts) # phase shift set for other
-                self.lock_command(is_on=1)
+                    self.previous_index = -1
 
     ####################################################################################################################
     # LOCK COMMAND

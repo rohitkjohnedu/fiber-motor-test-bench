@@ -16,30 +16,24 @@
 # python packages
 import sys
 from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QComboBox, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QMessageBox
 import time
-# import numpy as np
-# import os.path
-# from datetime import datetime
+import numpy as np
+import os.path
+from datetime import datetime
 
 # custom packages
 from ForceSensor import FutekSensor, FutekSensorPlot
+from PowerSupply.device import HvpsDevice
+from PowerSupply.ps_plots.VoltagePlots import VoltagePlots
+from PowerSupply.ps_plots.CurrentPlots import CurrentPlots
 from PowerSupply.ps_modes.static_characterization.static import StaticMode
 from PowerSupply.ps_modes.dynamic_characterization.dynamic import DynamicMode
 # from PowerSupply.ps_modes.demo import DemoMode
 
-# custom packages from a new software version
-from PowerSupply.device import HvpsDevice
-# from PowerSupply.ps_modes.voltage_plots import VoltagePlots
-from PowerSupply.ps_plots.VoltagePlots import VoltagePlots
-from PowerSupply.ps_plots.CurrentPlots import CurrentPlots
-
-
-# formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
+formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 PROGRAM_NAME = "Actuator Test Bench"
 PROGRAM_VERSION = "v1.0"
-
-# PLOT_UPDATE_RATE = 50 # new
 
 class MainWindow(QWidget):
     def __init__(self, device = HvpsDevice(), parent=None): # new
@@ -193,8 +187,8 @@ class MainWindow(QWidget):
 
         self.plot_interval = 50#ms
         self.start_time = 0
-        # self.sample_rate = 400#Hz
-        # self.interpolation_stop_time = 0
+        self.sample_rate = 400#Hz
+        self.interpolation_stop_time = 0
 
         # Set a timer with the callback function which reads and displays data from the serial port.
         self.timer = QTimer(self)
@@ -225,62 +219,60 @@ class MainWindow(QWidget):
                                        'font-size: 24px;'
                                        "position: center; ")
 
-#############################################################################################################################
-
     def plot_update_callback(self):
-        if self.display_voltages !=0: # or self.display_currents !=0:
-            self.voltage_plot.plot_update(self.start_time)
-            self.current_plot.plot_update(self.start_time)
+        self.voltage_plot.plot_update(self.start_time)
+        self.current_plot.plot_update(self.start_time)
         self.force_sensor_plot.plot_update(self.start_time)
 
-        # new_power_supply_data = self.power_supply.get_new_data()
-        # new_force_sensor_data = self.force_sensor.get_new_data()
+        new_power_supply_data = self.device.get_new_data()
+        new_force_sensor_data = self.force_sensor.get_new_data()
 
-        # if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0:
-        #     if self.interpolation_stop_time < self.start_time:
-        #         interpolation_start_time = self.start_time
-        #     else:
-        #         interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
+        if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0:
+            if self.interpolation_stop_time < self.start_time:
+                interpolation_start_time = self.start_time
+            else:
+                interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
 
-        #     smallest_last_sample = min(new_power_supply_data[-1,0],new_force_sensor_data[-1,0])
-        #     differential_time_latest_sample = smallest_last_sample - self.start_time
-        #     interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
-        #     self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
+            smallest_last_sample = min(new_power_supply_data[-1,0], new_force_sensor_data[-1,0])
+            smallest_last_sample = min(new_power_supply_data[-1,0], new_power_supply_data[-1,0])
+            differential_time_latest_sample = smallest_last_sample - self.start_time
+            interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
+            self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
 
-        #     interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
-        #     interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
-        #     interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
-        #     for i1 in range(2, 11):
-        #         interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+            interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
+            interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+            interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
+            for i1 in range(2, 11):
+                interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
-        #     time_s = interpolation_time
-        #     force_mN = interpolated_force_sensor_data
-        #     hv_set_kV = interpolated_power_supply_data[:,2]
-        #     hv_vm_kV = interpolated_power_supply_data[:,3]
-        #     hv_err_V = interpolated_power_supply_data[:,4]
-        #     lv_set_V = interpolated_power_supply_data[:,5]
-        #     lv_vm_V = interpolated_power_supply_data[:,6]
-        #     lv_err_V = interpolated_power_supply_data[:,7]
-        #     cm_w1_uA = interpolated_power_supply_data[:,8]
-        #     cm_w2_uA = interpolated_power_supply_data[:,9]
-        #     cm_w3_uA = interpolated_power_supply_data[:,10]
+            time_s = interpolation_time
+            force_mN = interpolated_force_sensor_data
+            hv_set_kV = interpolated_power_supply_data[:,2]
+            hv_vm_kV = interpolated_power_supply_data[:,3]
+            hv_err_V = interpolated_power_supply_data[:,4]
+            lv_set_V = interpolated_power_supply_data[:,5]
+            lv_vm_V = interpolated_power_supply_data[:,6]
+            lv_err_V = interpolated_power_supply_data[:,7]
+            cm_w1_uA = interpolated_power_supply_data[:,8]
+            cm_w2_uA = interpolated_power_supply_data[:,9]
+            cm_w3_uA = interpolated_power_supply_data[:,10]
 
-        #     # Create a folder to store the data files if it doesn't exist.
-        #     folder_name = 'DataFiles'
-        #     os.makedirs(folder_name, exist_ok=True)
+            # Create a folder to store the data files if it doesn't exist.
+            folder_name = 'DataFiles'
+            os.makedirs(folder_name, exist_ok=True)
 
-        #     # Create a new .csv file within the folder with a file name, date and time of the experiment.
-        #     file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
-        #     if not os.path.isfile(file_name):
-        #         with open(file_name, 'w') as f:
-        #             f.write(f'Time (s), Force (mN), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
-        #                     f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
+            # Create a new .csv file within the folder with a file name, date and time of the experiment.
+            file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
+            if not os.path.isfile(file_name):
+                with open(file_name, 'w') as f:
+                    f.write(f'Time (s), Force (mN), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
+                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
                     
-        #     # Save the data to the .csv file.   
-        #     save_data = np.column_stack((time_s, force_mN, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
-        #                                 cm_w1_uA, cm_w2_uA, cm_w3_uA))
-        #     with open(file_name, 'ab') as f:
-        #         np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.0f, %4.0f, %.0f, %2.2f, %2.2f, %2.2f, %2.0f, %2.0f, %2.0f')
+            # Save the data to the .csv file.   
+            save_data = np.column_stack((time_s, force_mN, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
+                                        cm_w1_uA, cm_w2_uA, cm_w3_uA))
+            with open(file_name, 'ab') as f:
+                np.savetxt(f, save_data, fmt='%.8f, %4.6f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
 
     # **************************************************************************************************************** #
 

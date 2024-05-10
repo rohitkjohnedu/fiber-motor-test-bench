@@ -6,10 +6,6 @@ from serial import Serial
 from serial.tools.list_ports import comports
 from collections.abc import Iterable
 
-import matplotlib.pyplot as plt
-
-# from tools.data_tools import CircularDataBuffer
-
 SOFTWARE_VERSION = 1.1
 #--------------------------------
 DEFAULT_BUFFER_LENGTH = 10000000
@@ -56,12 +52,7 @@ def _channel_to_channel_key(channel):
 
 
 class HvpsDevice:
-    def __init__(self, port_name=None, baudrate=115200, timeout=0.5, get_external_time=None):
-
-        if get_external_time is None:
-            self.get_external_time = lambda: int(time.perf_counter_ns()/1000000)
-        else:
-            self.get_external_time = get_external_time
+    def __init__(self, port_name=None, baudrate=115200, timeout=0.5):
 
         self.serial_com_lock = Lock()
         self.ser = Serial()
@@ -76,12 +67,11 @@ class HvpsDevice:
         self.variables_number = 11
         self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
         self.sample = 0
+        self.read_samples = 0
         self.reading_thread_lock = RLock()
         # ---------------------------------------------------------------------------------------------------------------------------- #
 
         self.buffer_lock = Lock()
-        # self.buffer_data = CircularDataBuffer((BUFFER_LENGTH, BUFFER_SLOTS))
-        self.last_values = [0] * BUFFER_SLOTS
 
         self.last_confirmation_match = ''
         self.confirmed = Event()
@@ -139,21 +129,23 @@ class HvpsDevice:
             self.ser.close()
             return False
         print("Connected to %s version %s" % (self.pcb_parameters['name'], self.pcb_parameters['hw_ver']))
-        self.clear_buffer()
-        self.command_buffer.clear()
-        self.reading_thread = Thread(target=self._reading_thread)
-        self.exit_reading.clear()
-        self.reading_thread.start()
+        self.start_thread()
+        # self.clear_buffer()
+        # self.command_buffer.clear()
+        # self.reading_thread = Thread(target=self._reading_thread)
+        # self.exit_reading.clear()
+        # self.reading_thread.start()
         return self.pcb_parameters
 
     def disconnect(self):
         """Closes connection with the HVPS"""
-        if not self.reading_thread.is_alive():
-            self.clear_buffer()
-            self.command_buffer.clear()
-            self.reading_thread = Thread(target=self._reading_thread)
-            self.exit_reading.clear()
-            self.reading_thread.start()
+        # if not self.reading_thread.is_alive():
+        # self.start_thread()
+            # self.clear_buffer()
+            # self.command_buffer.clear()
+            # self.reading_thread = Thread(target=self._reading_thread)
+            # self.exit_reading.clear()
+            # self.reading_thread.start()
         self.emergency_stop()
         self.exit_reading.set()
         if self.reading_thread.is_alive():
@@ -236,18 +228,14 @@ class HvpsDevice:
         data = self.buffer_data[0:self.sample,:]
         self.reading_thread_lock.release()  # Release lock
         return data  # Return time and positions
-
-    # def save_buffer(self, filename = None):
-    #     data = self.get_buffer(clear_buffer=False)
-    #     if data.shape[0] == 0:
-    #         print("No data to save")
-    #         return
-    #     if filename is None:
-    #         filename = f"buffer_{time.strftime('%Y%m%d_%H%M%S')}.csv"
-    #     if not filename.endswith(".csv"):
-    #         filename += ".csv"
-    #     np.savetxt(filename, data, delimiter=",",
-    #                header="external time, board time, high voltage target, low voltage target, low voltage monitor, high voltage monitor, current global, current ch1, current ch2, current ch3, current ch4, current ch5, current ch6, current ch7, current ch8")
+    
+    def start_thread(self):
+        if not self.reading_thread.is_alive():
+            self.clear_buffer()
+            self.command_buffer.clear()
+            self.reading_thread = Thread(target=self._reading_thread)
+            self.exit_reading.clear()
+            self.reading_thread.start()
 
     def _reading_thread(self):
         waiting_for_answer = False
@@ -280,17 +268,12 @@ class HvpsDevice:
                     cm_val_w2 = np.float64(data[8])/1e6
                     cm_val_w3 = np.float64(data[9])/1e6
                     # --------------------------------------------------------------------- #
-                    # num_data = [float(x) for x in data[1:15]]
-                    # self.last_values = [self.get_external_time()] + num_data
                     self.buffer_lock.acquire()
-                    # --------------------------------------------------------------------- #
                     epoch_time = time.perf_counter()
                     self.buffer_data[self.sample,:] = [epoch_time, t_save,
                                                     hv_set, hv_vm, hv_err,
                                                     lv_set, lv_vm, lv_err, 
                                                     cm_val_w1, cm_val_w2, cm_val_w3]
-                    # --------------------------------------------------------------------- #
-                    # self.buffer_data.append(self.last_values)
                     self.buffer_lock.release()
                     self.sample += 1
                     waiting_for_answer = False
@@ -303,6 +286,16 @@ class HvpsDevice:
             elif time.perf_counter() - waiting_for_answer_time > 0.3:
                     print("Timeout waiting for answer")
                     waiting_for_answer = False
+
+    def get_new_data(self):
+        self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
+        if self.read_samples - 500 > 0:
+            data = self.buffer_data[self.read_samples - 500:self.sample,:]
+        else:
+            data = self.buffer_data[0:self.sample,:]
+        self.reading_thread_lock.release()  # Release lock
+        self.read_samples = self.sample
+        return data
 
     def _wait_for_confirmation(self, match, timeout=0.2):
         if not self.ser.is_open:
@@ -358,34 +351,40 @@ class HvpsDevice:
         return self.ser.isOpen()
 
     def emergency_stop(self):
+        self.start_thread()
         self.write("EStop\r")
         return self._wait_for_confirmation("[EStop]")
 
     def voltage_stop(self):
+        self.start_thread()
         self.write("SHV 0\r")
         return self._wait_for_confirmation("[HV]")
 
     def set_voltage(self, voltage = 0):
+        self.start_thread()
         if voltage == 0:
             self.write(f"SHV 0\r")
-        elif (voltage >= self.pcb_parameters['min_hv']) and (voltage <= self.pcb_parameters['max_hv']):
+        elif (voltage >= self.pcb_parameters['min_hv']) and (voltage <= 2500): # (voltage <= self.pcb_parameters['max_hv']):
             self.write(f"SHV {voltage}\r")
         else:
-            print(f"[ERR] please respect voltage range [{self.pcb_parameters['min_hv']};{self.pcb_parameters['max_hv']}] V")
+            print(f"\n[ERR] Please respect voltage range [{self.pcb_parameters['min_hv']}; {self.pcb_parameters['max_hv']}] V")
             return False
         return self._wait_for_confirmation("[HV]")
 
     def hb_stop(self, channel):
+        self.start_thread()
         channel_key = _channel_to_channel_key(channel)
         self.write(f"CMx 1 {channel_key}\r")
         return self._wait_for_confirmation("[CM1]")
 
     def hb_stop_multi(self):
+        self.start_thread()
         self.write("CMx 3 0\r")
         return self._wait_for_confirmation("[CM3]")
     
     # ---------------------------------------------------------------------------------------------------------------------------- #
     def hb_stop_shift(self):
+        self.start_thread()
         self.write("CMx 5 0\r")
         return self._wait_for_confirmation("[CM5]")
     # ---------------------------------------------------------------------------------------------------------------------------- #
@@ -403,7 +402,7 @@ class HvpsDevice:
         Returns:
         bool: True if the operation is successful, False otherwise.
         """
- 
+        # self.start_thread()
         channel_key = _channel_to_channel_key(channel)
         if not (self.pcb_parameters['min_freq'] <= freq <= self.pcb_parameters['max_freq']):
             print(f"[ERR] Frequency range: [{self.pcb_parameters['min_freq']} - {self.pcb_parameters['max_freq']}] Hz")
