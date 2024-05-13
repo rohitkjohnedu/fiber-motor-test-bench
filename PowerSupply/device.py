@@ -356,15 +356,15 @@ class HvpsDevice:
         return self._wait_for_confirmation("[EStop]")
 
     def voltage_stop(self):
-        self.start_thread()
         self.write("SHV 0\r")
         return self._wait_for_confirmation("[HV]")
 
     def set_voltage(self, voltage = 0):
-        self.start_thread()
         if voltage == 0:
+            self.start_thread()
             self.write(f"SHV 0\r")
         elif (voltage >= self.pcb_parameters['min_hv']) and (voltage <= 2500): # (voltage <= self.pcb_parameters['max_hv']):
+            self.start_thread()
             self.write(f"SHV {voltage}\r")
         else:
             print(f"\n[ERR] Please respect voltage range [{self.pcb_parameters['min_hv']}; {self.pcb_parameters['max_hv']}] V")
@@ -372,13 +372,11 @@ class HvpsDevice:
         return self._wait_for_confirmation("[HV]")
 
     def hb_stop(self, channel):
-        self.start_thread()
         channel_key = _channel_to_channel_key(channel)
         self.write(f"CMx 1 {channel_key}\r")
         return self._wait_for_confirmation("[CM1]")
 
     def hb_stop_multi(self):
-        self.start_thread()
         self.write("CMx 3 0\r")
         return self._wait_for_confirmation("[CM3]")
     
@@ -402,7 +400,6 @@ class HvpsDevice:
         Returns:
         bool: True if the operation is successful, False otherwise.
         """
-        # self.start_thread()
         channel_key = _channel_to_channel_key(channel)
         if not (self.pcb_parameters['min_freq'] <= freq <= self.pcb_parameters['max_freq']):
             print(f"[ERR] Frequency range: [{self.pcb_parameters['min_freq']} - {self.pcb_parameters['max_freq']}] Hz")

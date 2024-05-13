@@ -281,6 +281,7 @@ class MainWindow(QWidget):
         if reply == QMessageBox.StandardButton.Yes:
             self.timer.stop()
             self.device.disconnect()
+            self.force_sensor.disconnect()
             event.accept()
             if self.debug_mode == 1:
                 print("[INFO] Program closed.")
