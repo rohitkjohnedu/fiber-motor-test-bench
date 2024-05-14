@@ -15,15 +15,15 @@ class Static_PS(QWidget):
         self.mode_layout = QFormLayout(self)
         # ------------------------------------------------------------------------------------------------------------ #
         target_voltage_lbl = QLabel("Voltage:")
-        # target_voltage_lbl.setFixedWidth(80)
+        target_voltage_lbl.setFixedWidth(150)
 
-        state_lbl = QLabel("State:")
-        # state.setFixedWidth(80)
-        # ------------------------------------------------------------------------------------------------------------ #
         self.target_voltage_edit = QLineEdit("0")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # target_voltage_edit.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
+        state_lbl = QLabel("State:")
+        state_lbl.setFixedWidth(150)
+
         self.st_comboBox = QComboBox()
         states = ['A', 'B', 'C', 'D', 'E', 'F', 'A-D', 'B-E', 'C-F', 'Other']
         for state in states:
@@ -38,7 +38,8 @@ class Static_PS(QWidget):
         self.ch3_phase_shift_edit = QLineEdit("0")
         # ------------------------------------------------------------------------------------------------------------ #
         self.set_button = QPushButton("Set")
-        # self.set_button.setFixedWidth(80)
+        self.set_button.setFixedWidth(150)
+
         self.update_button = QPushButton("Update")
         # self.update_button.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
@@ -75,11 +76,13 @@ class Static_PS(QWidget):
         # **************************************************************************************************************** #    
         if self.extended_flag_1 == 0 and self.state_index >= 6:
             freq_label = QLabel("Frequency (Hz):")
+            freq_label.setFixedWidth(150)
             self.freq_edit = QLineEdit("1")
             self.freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(freq_label, self.freq_edit)
             # ------------------------------------------------------------------------------------------------------------ #
             duty_cycle_lbl = QLabel("Duty cycle (%):")
+            duty_cycle_lbl.setFixedWidth(150)
             self.duty_cycle_edit = QLineEdit("50")
             self.duty_cycle_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(duty_cycle_lbl, self.duty_cycle_edit)
@@ -88,16 +91,19 @@ class Static_PS(QWidget):
         # **************************************************************************************************************** # 
         if self.extended_flag_1 == 1 and self.state_index == 9 and self.extended_flag_2 == 0:
             ch1_phase_shift_lbl = QLabel("Phase shift (°), Ch. №1:")
+            ch1_phase_shift_lbl.setFixedWidth(150)
             self.ch1_phase_shift_edit = QLineEdit("0")
             self.ch1_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(ch1_phase_shift_lbl, self.ch1_phase_shift_edit)
             # ------------------------------------------------------------------------------------------------------------ #
             ch2_phase_shift_lbl = QLabel("Phase shift (°), Ch. №2:")
+            ch2_phase_shift_lbl.setFixedWidth(150)
             self.ch2_phase_shift_edit = QLineEdit("0")
             self.ch2_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(ch2_phase_shift_lbl, self.ch2_phase_shift_edit)
             # ------------------------------------------------------------------------------------------------------------ #
             ch3_phase_shift_lbl = QLabel("Phase shift (°), Ch. №3:")
+            ch3_phase_shift_lbl.setFixedWidth(150)
             self.ch3_phase_shift_edit = QLineEdit("0")
             self.ch3_phase_shift_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(ch3_phase_shift_lbl, self.ch3_phase_shift_edit)
@@ -137,11 +143,8 @@ class Static_PS(QWidget):
         else: 
             if self.set_button.text() =="Set":
                 self.set_command()
-                self.set_button.setText("Reset")
             else:
                 self.reset_command()
-                self.set_button.setText("Set")
-                self.target_voltage_edit.setText("0")
 
     ####################################################################################################################
     # SET button clicked or ENTER pressed (Votlage => ON)
@@ -149,15 +152,12 @@ class Static_PS(QWidget):
         new_hv_val = float(self.target_voltage_edit.text())
         if new_hv_val == 0:
             self.reset_command()
-            self.set_button.setText("Set")
         else:
             if self.device.set_voltage(new_hv_val) is True:
                 print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv_val))
                 if self.set_button.text() == "Set":
                     self.set_button.setText("Reset")
                 return True
-            else:
-                return False
 
     ####################################################################################################################
     # RESET button clicked or 0 voltage SET (Votlage => OFF)
@@ -187,7 +187,6 @@ class Static_PS(QWidget):
             elif state_index == 5:
                 if self.device.hb_set(first_ch, freq_val, duty_val) and self.device.hb_set(second_ch, freq_val, duty_val):
                     print("[INFO] Mode 1: Half-Bridges 1-2 ON (NO SWITCH)")
-        
 
     ####################################################################################################################
     # SET button clicked or ENTER pressed (state 'A-D' or 'B-E' or 'C-F' or 'other' => ON)
@@ -249,6 +248,8 @@ class Static_PS(QWidget):
     ####################################################################################################################
     # RESET COMMAND
     def reset_command(self):
+        self.set_button.setText("Set")
+        self.target_voltage_edit.setText("0")
         self.voltage_reset()
         if self.state_index < 6:
             if self.device.hb_stop(self.channels_keys[self.state_index]):

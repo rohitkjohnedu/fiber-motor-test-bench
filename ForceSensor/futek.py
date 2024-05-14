@@ -105,7 +105,7 @@ def _error_display(error):
         logging.error(error)  # Printing in the console
 
 
-class FutekSensor:
+class FutekSensor():
     """
     Class for reading Futek Force Sensor
     """
@@ -443,7 +443,7 @@ class FutekSensorPlot(QtWidgets.QWidget):
         
         self.plot_force_widget = pg.PlotWidget(self, title="<b>Force Sensor Reading</b>")
         # self.plot_force_widget.setMinimumWidth(650)
-        self.plot_force_widget.setMinimumHeight(300)
+        self.plot_force_widget.setMinimumHeight(200)
         self.plot_force_widget.setLabel('left', 'Force', units='N')
         self.plot_force_widget.setLabel('bottom', 'Time', units='s')
         self.plot_force = self.plot_force_widget.plot()
@@ -497,3 +497,5 @@ class FutekSensorPlot(QtWidgets.QWidget):
 #         main_layout.setSpacing(0)
 #         main_layout.addWidget(self.futek_sensor_contol.tare_button)
 #         main_layout.addStretch(1)
+
+

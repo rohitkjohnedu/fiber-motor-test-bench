@@ -24,4 +24,4 @@ http://files.xisupport.com/Software.en.html
 """
 __all__ = ["StandaTable", "StandaTableWidget","interface"]
 
-from .standa_table import StandaTable, StandaTableWidget, interface
+from .standa_table import StandaTable, StandaTableWidget #, interface

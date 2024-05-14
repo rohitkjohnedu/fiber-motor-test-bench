@@ -3,7 +3,12 @@ import logging
 import time
 from threading import Thread, Lock, RLock
 
+from PyQt6.QtWidgets import QWidget, QHBoxLayout
 import pyqtgraph as pg
+
+import numpy as np
+
+# import pyqtgraph as pg
 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -15,9 +20,9 @@ else:
     from . import pyximc
 from PyQt6 import QtCore, QtWidgets, QtGui
 
-from tools.data_tools import CircularDataBuffer # change according to your data buffer implementation
+# from tools.data_tools import CircularDataBuffer # change according to your data buffer implementation
 
-DEFAULT_BUFFER_LENGTH = 1000000
+DEFAULT_BUFFER_LENGTH = 10000000
 
 
 def check_connection(func):
@@ -44,7 +49,7 @@ def check_connection(func):
     return is_connected_wrapper
 
 
-class StandaTable():
+class StandaTable:
     """
     Class for driving StandaTable controller.
     The position and speed might be different depending on which table you're using.
@@ -62,6 +67,12 @@ class StandaTable():
         self.deceleration = 0
         self.available_devices = []
 
+        self.buffer_length = DEFAULT_BUFFER_LENGTH
+        self.buffer_raw_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
+        self.buffer_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
+        self.sample = 0
+        self.read_samples = 0
+
         self.lib = pyximc.lib
 
         # State Flags
@@ -74,8 +85,8 @@ class StandaTable():
         self.data_lock = Lock()
         self.motor_lock = RLock()
 
-        self.buffer_length = DEFAULT_BUFFER_LENGTH
-        self.buffer_data = CircularDataBuffer((self.buffer_length, 2))
+        # self.buffer_length = DEFAULT_BUFFER_LENGTH
+        # self.buffer_data = CircularDataBuffer((self.buffer_length, 2))
 
         # AutoConnect
         self.get_available_devices()
@@ -113,7 +124,7 @@ class StandaTable():
             self.device_id = self.lib.open_device(open_name)
             if self.device_id > 0:
                 self.is_connected = True
-                self.start_reading()
+                # self.start_recording()
         return self.is_connected
 
     @check_connection
@@ -305,39 +316,64 @@ class StandaTable():
         self.deceleration = int(mvst.Decel)
         return mvst.Speed / self.scaling_factor
 
-    def start_reading(self):
+    def start_recording(self):
         """
         Routine for starting continuous position reading.
         """
+        self.stop_recording()
         self.continuous_reading_flag = True  # Flag set to true
-        self.buffer_data.clear()
-        self.reading_thread = Thread()  # Thread for continuous reading
-        self.reading_thread.run = self._read_device  # Method associated to thread
+        self.reading_thread = Thread(target=self._read_device)  # Thread for continuous reading
+        # self.reading_thread.run = self._read_device  # Method associated to thread
         self.reading_thread.start()  # Starting Thread
+        self.clear_buffer()
 
-    def stop_reading(self):
+    def stop_recording(self):
         """
         Routine for stopping continuous position reading
         """
         self.continuous_reading_flag = False  # Set Flag to False
         if self.reading_thread.is_alive():
             self.reading_thread.join()
+    
+    def clear_buffer(self):
+        """
+        Clear both data buffer and raw data buffer
+        :return: None
+        """
+        self.buffer_data = np.zeros((self.buffer_length, 2))
+        # self.buffer_raw_data = np.zeros((self.buffer_length, 2))
+        self.sample = 0
 
-    def get_buffer(self, clear_buffer=True, initial_t=None):
+    def get_new_data(self):
+        self.data_lock.acquire()  # Get multithreading lock to avoir data buffer modification
+        if self.read_samples - 500 > 0:
+            data = self.buffer_data[self.read_samples - 500:self.sample,:]
+        else:
+            data = self.buffer_data[0:self.sample,:]
+        self.data_lock.release()  # Release lock
+        self.read_samples = self.sample
+        return data
+
+    def get_buffer(self):
         """
         Method for retrieving position buffer. clearBuffer=True causes the buffer to be reset
 
         :returns: time vector and position vector
         """
-        self.data_lock.acquire()  # Get Data lock for multithreading
-        data = self.buffer_data.copy()
-        if initial_t:
-            data[:, 0] -= data[0, 0]
-            data[:, 0] += initial_t
-        if clear_buffer:  # If buffer reset
-            self.buffer_data.clear()
+        self.data_lock.acquire()  # Get multithreading lock to avoir data buffer modification
+        data = self.buffer_data[0:self.sample,:] 
         self.data_lock.release()  # Release lock
-        return data[:, 0], data[:, 1]  # Return time and positions
+        return data[:, 0], data[:, 1]  # Return time and forces buffers
+    
+        # self.data_lock.acquire()  # Get Data lock for multithreading
+        # data = self.buffer_data.copy()
+        # if initial_t:
+        #     data[:, 0] -= data[0, 0]
+        #     data[:, 0] += initial_t
+        # if clear_buffer:  # If buffer reset
+        #     self.buffer_data.clear()
+        # self.data_lock.release()  # Release lock
+        # return data[:, 0], data[:, 1]  # Return time and positions
 
     def get_current_position(self):
         """
@@ -353,7 +389,7 @@ class StandaTable():
         """
         Close device communication.
         """
-        self.stop_reading()
+        self.stop_recording()
         if self.is_connected:
             pyximc.lib.close(ctypes.byref(ctypes.cast(self.device_id, ctypes.POINTER(ctypes.c_int))))
             self.is_connected = False
@@ -469,13 +505,15 @@ class StandaTable():
             if isinstance(pos, (int, float)):
                 self.data_lock.acquire()  # Set Lock for data manipulation
                 current_time = time.perf_counter()  # Current time
-                self.buffer_data.append([current_time, pos])
+                self.buffer_data[self.sample, :] = [current_time, pos]
+                # self.buffer_data.append([current_time, pos])
                 self.data_lock.release()  # Release data lock
+                self.sample += 1 
 
-    def __del__(self):
-        self.stop_reading()
-        self.close()
-        time.sleep(0.1)
+    # def __del__(self):
+    #     self.stop_recording()
+    #     self.close()
+    #     time.sleep(0.1)
 
 
 class StandaTableWidget(QtWidgets.QWidget):
@@ -484,24 +522,24 @@ class StandaTableWidget(QtWidgets.QWidget):
 
     def __init__(self, Motor: StandaTable, display_graph=False):
         super(StandaTableWidget, self).__init__()
-        self.setMaximumWidth(self.buttonMaxWidth)
+        # self.setMaximumWidth(self.buttonMaxWidth)
         self.display_graph = display_graph
         self.Motor = Motor  # Motor controller object
-        self.mainLayout = QtWidgets.QHBoxLayout(self)
-        self.buttonLayout = QtWidgets.QFormLayout()
-        self.mainLayout.addLayout(self.buttonLayout, stretch=0)
+        # self.mainLayout = QtWidgets.QHBoxLayout(self)
+        self.buttonLayout = QtWidgets.QFormLayout(self)
+        # self.mainLayout.addLayout(self.buttonLayout, stretch=1)
         # self.buttonLayout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
-        title = QtWidgets.QLabel("Motor Control")
-        title.setFont(QtGui.QFont('Arial', 15, weight=10))
-        self.buttonLayout.addRow(title)
-        self.connectButton = QtWidgets.QPushButton("Connect")
+        # title = QtWidgets.QLabel("Motor Control")
+        # title.setFont(QtGui.QFont('Arial', 15, weight=10))
+        # self.buttonLayout.addRow(title)
+        # self.connectButton = QtWidgets.QPushButton("Connect")
         # self.connectButton.setMaximumWidth(self.buttonMaxWidth)
-        self.buttonLayout.addRow(self.connectButton)
-        self.connectButton.setCheckable(True)
-        if (self.Motor.is_connected):
-            self.connectButton.setChecked(True)
-            self.connectButton.setText("Connected")
-        self.connectButton.clicked.connect(self.connectCallback)
+        # self.buttonLayout.addRow(self.connectButton)
+        # self.connectButton.setCheckable(True)
+        # if (self.Motor.is_connected):
+        #     self.connectButton.setChecked(True)
+        #     self.connectButton.setText("Connected")
+        # self.connectButton.clicked.connect(self.connectCallback)
 
         homeButton = QtWidgets.QPushButton("HOME")
         self.buttonLayout.addRow(homeButton)
@@ -532,58 +570,58 @@ class StandaTableWidget(QtWidgets.QWidget):
 
         self.speedSlider.valueChanged.connect(self.speedSliderCallback)
 
-        self.position_label = QtWidgets.QLabel("0")
-        self.buttonLayout.addRow("Current Pos", self.position_label)
-        if self.display_graph:
-            graph = pg.PlotWidget(self, title="Position")
-            graph.setMinimumWidth(600)
-            graph.setLabel('left', 'Position', units='mm')
-            graph.setLabel('bottom', 'Time', units='s')
-            self.mainLayout.addWidget(graph, stretch=100)
-            self.positionPlot = graph.plot()
+        # self.position_label = QtWidgets.QLabel("0")
+        # self.buttonLayout.addRow("Current Pos", self.position_label)
+        # if self.display_graph:
+        #     graph = pg.PlotWidget(self, title="Position")
+        #     graph.setMinimumWidth(600)
+        #     graph.setLabel('left', 'Position', units='mm')
+        #     graph.setLabel('bottom', 'Time', units='s')
+        #     self.mainLayout.addWidget(graph, stretch=100)
+        #     self.positionPlot = graph.plot()
         # else:
         #     self.mainLayout.addStretch(1)
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.plotUpdate)
-        self.timer.setInterval(100)
-        self.startDisplayTimer()
+        # self.timer = QtCore.QTimer(self)
+        # self.timer.timeout.connect(self.plotUpdate)
+        # self.timer.setInterval(100)
+        # self.startDisplayTimer()
 
     def goToPositionCallback(self):
         target_position = float(self.positionEdit.text())
         self.Motor.move(target_position, 0)
 
-    def connectCallback(self):
-        if self.Motor.is_connected:
-            self.Motor.close()
-        else:
-            self.Motor.get_available_devices()
-            self.Motor.connect()
-        self.connectButton.setChecked(self.Motor.is_connected)
-        if self.Motor.is_connected:
-            self.speedSlider.setValue(int(self.Motor.get_speed() * 100))
-            self.connectButton.setText("Disconnect")
-        else:
-            self.connectButton.setText("Connect")
+    # def connectCallback(self):
+    #     if self.Motor.is_connected:
+    #         self.Motor.close()
+    #     else:
+    #         self.Motor.get_available_devices()
+    #         self.Motor.connect()
+    #     self.connectButton.setChecked(self.Motor.is_connected)
+    #     if self.Motor.is_connected:
+    #         self.speedSlider.setValue(int(self.Motor.get_speed() * 100))
+    #         self.connectButton.setText("Disconnect")
+    #     else:
+    #         self.connectButton.setText("Connect")
 
     def speedSliderCallback(self):
         self.Motor.set_speed(float(self.speedSlider.value()) / 100)
 
-    def plotUpdate(self):
-        t, pos = self.Motor.get_buffer(clear_buffer=False)
-        if pos.size > 0:
-            self.position_label.setText("%.3f" % pos[-1])
-        if self.display_graph:
-            self.positionPlot.setData(t[-self.graphHistory:], pos[-self.graphHistory:])
-        if not self.Motor.is_connected:
-            self.connectButton.setChecked(self.Motor.is_connected)
-            self.connectButton.setText("Connect")
+    # def plotUpdate(self):
+    #     t, pos = self.Motor.get_buffer(clear_buffer=False)
+    #     if pos.size > 0:
+    #         self.position_label.setText("%.3f" % pos[-1])
+    #     if self.display_graph:
+    #         self.positionPlot.setData(t[-self.graphHistory:], pos[-self.graphHistory:])
+        # if not self.Motor.is_connected:
+        #     self.connectButton.setChecked(self.Motor.is_connected)
+        #     self.connectButton.setText("Connect")
 
     #        QtWidgets.QApplication.processEvents()
-    def startDisplayTimer(self):
-        self.timer.start()
+    # def startDisplayTimer(self):
+    #     self.timer.start()
 
-    def stopDisplayTimer(self):
-        self.timer.stop()
+    # def stopDisplayTimer(self):
+    #     self.timer.stop()
 
 def interface():
     APP_NAME = "Standa motor control"
@@ -595,3 +633,47 @@ def interface():
 
 if __name__ == '__main__':
     interface()
+
+
+class ActuatorPlots(QWidget):
+    def __init__(self, actuator, parent=None):
+        QWidget.__init__(self, parent=parent)
+
+        self.actuator = actuator
+        self.legend = pg.LegendItem()
+
+        self.display_position = 1
+        self.plotHistoryLength = 10#seconds
+        self.maxPlotHistoryLength = 100000#samples
+        
+        # Create a layout for the VoltagePlots widget:
+        plot_layout = QHBoxLayout(self)
+        plot_layout.setSpacing(0)
+
+        # ------------------------------------------------------------------------------------------ #
+
+        # Create a plot widget:
+        plot_widget = pg.PlotWidget(self, title="<b>Force Sensor Reading</b>")
+        # plot_widget.setMinimumWidth(600)
+        plot_widget.setMinimumHeight(200)
+        plot_widget.setLabel('bottom', 'Time', units='s')
+        plot_widget.setLabel('left', 'Position', units='mm')
+        self.plot_position = plot_widget.plot()
+        plot_layout.addWidget(plot_widget)
+
+    ####################################################################################################################
+    def plot_update(self, start_time):
+        if self.actuator.is_connected:
+            epoch_time_position, position = self.actuator.get_buffer()
+            tplot = epoch_time_position - start_time
+
+            if len(tplot) > self.maxPlotHistoryLength:
+                    tplot = tplot[-self.maxPlotHistoryLength:]
+                    position = position[-self.maxPlotHistoryLength:]
+
+            if len(tplot)>0:
+                use = tplot>tplot[-1]-self.plotHistoryLength
+                self.plot_position.setData(tplot[use], position[use])
+
+    def set_plot_history(self, history_length):
+        self.plotHistoryLength = history_length

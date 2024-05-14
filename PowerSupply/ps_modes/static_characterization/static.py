@@ -1,15 +1,19 @@
 # python packages
-from PyQt6.QtWidgets import QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QComboBox
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QComboBox 
 # custom packages
 from PowerSupply.ps_modes.static_characterization.static_ps import Static_PS
+from StandaTable.standa_table import StandaTableWidget
 
 
 class StaticMode(QWidget):
-    def __init__(self, device, parent=None):
+    def __init__(self, power_supply, actuator, parent=None):
         QWidget.__init__(self, parent=parent)
 
-        self.device = device
-        self.power_supply = Static_PS(device)
+        self.power_supply = power_supply
+        self.actuator = actuator
+        self.power_supply = Static_PS(self.power_supply)
+        self.actuator_widget = StandaTableWidget(self.actuator)
 
     # ************************************************************************************************************ #
     #                                     STATIC CHARACTERIZATION INTERFACE                                        #
@@ -54,7 +58,8 @@ class StaticMode(QWidget):
         actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
         mode_layout.addRow(actuator_groupBox)
 
-        # Here will be a code for the actuator control panel.
+        self.actuator_groupBox_layout = QFormLayout(actuator_groupBox)
+        self.actuator_groupBox_layout.addRow(self.actuator_widget)
     
     # ************************************************************************************************************ #
     def experiment_type_changed(self):
@@ -74,7 +79,7 @@ class StaticMode(QWidget):
 
     # ************************************************************************************************************ #
     def emg_stop_btn_clicked(self):
-        self.power_supply.emergency_stop(device=self.device)
+        self.power_supply.emergency_stop(device=self.power_supply)
 
 
 

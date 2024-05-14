@@ -46,6 +46,7 @@ class CurrentPlots(QWidget):
         plot_layout.setSpacing(0)
 
         plot_widget = pg.PlotWidget()
+        # plot_widget.setMinimymHeight(200)
         self.legend = pg.LegendItem()
 
         current_plot = plot_widget.plotItem

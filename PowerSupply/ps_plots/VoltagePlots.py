@@ -53,6 +53,7 @@ class VoltagePlots(QWidget):
 
         # Create a plot widget:
         plot_widget = pg.PlotWidget(show=False)
+        # plot_widget.setMinimumHeight(200)
         hv_plot = plot_widget.plotItem
         hv_plot.setTitle(plot_title, bold=True)
         hv_plot.setYRange(y_min, y_hv_max)

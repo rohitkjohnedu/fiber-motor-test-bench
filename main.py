@@ -30,6 +30,7 @@ from PowerSupply.ps_plots.CurrentPlots import CurrentPlots
 from PowerSupply.ps_modes.static_characterization.static import StaticMode
 from PowerSupply.ps_modes.dynamic_characterization.dynamic import DynamicMode
 # from PowerSupply.ps_modes.demo import DemoMode
+from StandaTable.standa_table import StandaTable, ActuatorPlots
 
 formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 PROGRAM_NAME = "Actuator Test Bench"
@@ -50,6 +51,8 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_force = 1          # 0: no force plot;         1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
+        self.display_actuator = 1       # 0: no actuator plot;      1: actuator plot.
+        # ------------------------------------------------------------------------------------------------------------ #
         static = 1                      # 0: no static mode;        1: static mode.
         dynamic = 1                     # 0: no dynamic mode;       1: dynamic mode.
         # demo = 1                        # 0: no demonstration mode; 1: demonstration mode.
@@ -66,9 +69,13 @@ class MainWindow(QWidget):
         self.voltage_plot = VoltagePlots(self.device, plot_title="High Voltage Monitor", y_hv_max=2200, y_lv_max=12, plots=2)
         self.current_plot = CurrentPlots(self.device, y_max=0.002)
 
+        # ACTUATOR
+        self.actuator = StandaTable()
+        self.actuator_plot = ActuatorPlots(self.actuator)
+
         # Modes
-        self.static = StaticMode(self.device)
-        self.dynamic = DynamicMode(self.device)
+        self.static = StaticMode(self.device, self.actuator)
+        self.dynamic = DynamicMode(self.device, self.actuator)
         # self.demo = DemoMode()
         # ------------------------------------------------------------------------------------------------------------ #
 
@@ -178,6 +185,12 @@ class MainWindow(QWidget):
             all_plots_layout.addLayout(currents_layout)
         # ------------------------------------------------------------------------------------------------------------ #
 
+        # ACTUATOR PLOT
+        if self.display_actuator != 0:
+            actuator_layout = QHBoxLayout()
+            actuator_layout.addWidget(self.actuator_plot)
+            all_plots_layout.addLayout(actuator_layout)
+
         plots_groupBox.setLayout(all_plots_layout)
         main_layout.addLayout(monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
@@ -202,6 +215,7 @@ class MainWindow(QWidget):
             self.start_time = time.perf_counter()
             self.device.start_recording()
             self.force_sensor.start_recording()
+            self.actuator.start_recording()
             self.run_button.setText("Stop")
             self.run_button.setStyleSheet("background-color: red; "
                                            "color: white; "
@@ -212,6 +226,7 @@ class MainWindow(QWidget):
             print("\n[INFO] The measurement is stopped")
             self.device.stop_recording()
             self.force_sensor.stop_recording()
+            self.actuator.stop_recording()
             self.run_button.setText("Run")
             self.run_button.setStyleSheet("background-color: green; "
                                        "color: white; "
@@ -223,9 +238,11 @@ class MainWindow(QWidget):
         self.voltage_plot.plot_update(self.start_time)
         self.current_plot.plot_update(self.start_time)
         self.force_sensor_plot.plot_update(self.start_time)
+        self.actuator_plot.plot_update(self.start_time)
 
         new_power_supply_data = self.device.get_new_data()
         new_force_sensor_data = self.force_sensor.get_new_data()
+        new_actuator_data = self.actuator.get_new_data()
 
         if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0:
             if self.interpolation_stop_time < self.start_time:
@@ -282,6 +299,7 @@ class MainWindow(QWidget):
             self.timer.stop()
             self.device.disconnect()
             self.force_sensor.disconnect()
+            self.actuator.close()
             event.accept()
             if self.debug_mode == 1:
                 print("[INFO] Program closed.")
