@@ -1,5 +1,4 @@
 # python packages
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QComboBox 
 # custom packages
 from PowerSupply.ps_modes.static_characterization.static_ps import Static_PS
@@ -47,7 +46,6 @@ class StaticMode(QWidget):
                                         'font-size: 24px;'
                                         "position: center; "
                                         "border: 1px solid black;")
-        self.emg_stop_btn.setFixedWidth(300)
         self.emg_stop_btn.setFixedHeight(50)        
         self.power_supply_groupBox_layout.addRow(self.emg_stop_btn)
 

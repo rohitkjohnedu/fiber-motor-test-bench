@@ -130,22 +130,10 @@ class HvpsDevice:
             return False
         print("Connected to %s version %s" % (self.pcb_parameters['name'], self.pcb_parameters['hw_ver']))
         self.start_thread()
-        # self.clear_buffer()
-        # self.command_buffer.clear()
-        # self.reading_thread = Thread(target=self._reading_thread)
-        # self.exit_reading.clear()
-        # self.reading_thread.start()
         return self.pcb_parameters
 
     def disconnect(self):
         """Closes connection with the HVPS"""
-        # if not self.reading_thread.is_alive():
-        # self.start_thread()
-            # self.clear_buffer()
-            # self.command_buffer.clear()
-            # self.reading_thread = Thread(target=self._reading_thread)
-            # self.exit_reading.clear()
-            # self.reading_thread.start()
         self.emergency_stop()
         self.exit_reading.set()
         if self.reading_thread.is_alive():
@@ -203,7 +191,6 @@ class HvpsDevice:
         self.pcb_parameters = pcb_parameters
         return pcb_parameters
 
-    # ---------------------------------------------------------------------------------------------------------------------------- #
     def start_recording(self):
         self.stop_recording()
         self.cont_reading = True
@@ -380,12 +367,10 @@ class HvpsDevice:
         self.write("CMx 3 0\r")
         return self._wait_for_confirmation("[CM3]")
     
-    # ---------------------------------------------------------------------------------------------------------------------------- #
     def hb_stop_shift(self):
         self.start_thread()
         self.write("CMx 5 0\r")
         return self._wait_for_confirmation("[CM5]")
-    # ---------------------------------------------------------------------------------------------------------------------------- #
 
     def hb_set(self, channel, freq=1, pos_duty=50, phase_shift=None, ph_shifts=[]): # ph_shifts = [ph_shift1, ph_shift2, ph_shift3]
         """

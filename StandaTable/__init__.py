@@ -22,6 +22,6 @@ http://files.xisupport.com/Software.en.html
     >>> pp.show()
 
 """
-__all__ = ["StandaTable", "StandaTableWidget","interface"]
+__all__ = ["StandaTable", "StandaTableWidget", "PositionPlot", "interface"]
 
-from .standa_table import StandaTable, StandaTableWidget #, interface
+from .standa_table import StandaTable, StandaTableWidget, PositionPlot #, interface

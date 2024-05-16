@@ -34,22 +34,19 @@ pg.setConfigOptions(antialias=True)
 
 
 class VoltagePlots(QWidget):
-    def __init__(self, device, parent=None, plot_title=None, y_min=0, y_hv_max=0, y_lv_max=0, plots=None):
+    def __init__(self, device, parent=None, plot_title=None, y_min=0, y_hv_max=0, y_lv_max=0, display_index=None):
         QWidget.__init__(self, parent=parent)
 
         self.device = device
-        self.plots = plots
+        self.display_index = display_index
         self.legend = pg.LegendItem()
-
-        self.display_voltages = 2
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
-        
+
+        # ------------------------------------------------------------------------------------------ #
         # Create a layout for the VoltagePlots widget:
         plot_layout = QHBoxLayout(self)
         plot_layout.setSpacing(0)
-
-        # ------------------------------------------------------------------------------------------ #
 
         # Create a plot widget:
         plot_widget = pg.PlotWidget(show=False)
@@ -61,7 +58,7 @@ class VoltagePlots(QWidget):
         hv_plot.setLabel('left', 'High Voltage', units='V')
         
         # Creat a new viewbox for the low voltage plot:
-        if self.plots is not None:
+        if self.display_index is not None:
             self.lv_plot = pg.ViewBox()
             hv_plot.showAxis('right')
             hv_plot.scene().addItem(self.lv_plot)
@@ -90,7 +87,7 @@ class VoltagePlots(QWidget):
         # Create the plots:
         self.hv_set_plot = hv_plot.plot(pen=color[2], name="Target high voltage")
         self.hv_now_plot = hv_plot.plot(pen=color[0], name="Output high voltage")
-        if self.plots is not None:
+        if self.display_index is not None:
             self.lv_set_plot = pg.PlotCurveItem(pen=color[8], name="Target low voltage")
             self.lv_plot.addItem(self.lv_set_plot)
             self.lv_now_plot = pg.PlotCurveItem(pen=color[6], name="Output low voltage")
@@ -100,7 +97,7 @@ class VoltagePlots(QWidget):
 
         self.legend.addItem(self.hv_set_plot, 'HV assigned')
         self.legend.addItem(self.hv_now_plot, 'HV measured')
-        if self.plots is not None:
+        if self.display_index is not None:
             self.legend.addItem(self.lv_set_plot, 'LV assigned')
             self.legend.addItem(self.lv_now_plot, 'LV measured')
 
@@ -116,27 +113,26 @@ class VoltagePlots(QWidget):
         data = all_data
         hv_vm = data[:, 3]
 
-        if self.display_voltages != 0: # or self.display_currents != 0:
+        if self.display_index != 0:
             epoch_time = data[:, 0]
             tplot = epoch_time - start_time
 
             if len(tplot) > self.maxPlotHistoryLength:
                 tplot = tplot[-self.maxPlotHistoryLength:]
 
-            # Update voltage plots.
-            if self.display_voltages != 0:
+            if self.display_index != 0:
                 hv_set = data[:, 2]
                 if len(tplot) > self.maxPlotHistoryLength:
                                 hv_set = hv_set[-self.maxPlotHistoryLength:]
                                 hv_vm = hv_vm[-self.maxPlotHistoryLength:]
             
-            if self.display_voltages == 1:
+            if self.display_index == 1:
                 if len(tplot) > 0:
                     use = tplot > tplot[-1] - self.plotHistoryLength
                     self.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use])
                     self.update_legend(hv_set[-1], hv_vm[-1])
 
-            if self.display_voltages == 2:
+            if self.display_index == 2:
                 lv_set = data[:, 5]
                 lv_vm = data[:, 6]
                 
@@ -150,23 +146,25 @@ class VoltagePlots(QWidget):
                                                     y3=lv_set[use], y4=lv_vm[use])
                     self.update_legend(hv_set[-1], hv_vm[-1], lv_set[-1], lv_vm[-1])
 
-        # ************************************************************************************************************ #
+    # ------------------------------------------------------------------------------------------------------------------ #
 
-    def set_plot_history(self, history_length):
-        self.plotHistoryLength = history_length
+    # def set_plot_history(self, history_length):
+    #     self.plotHistoryLength = history_length
 
     def update_plot(self, t, y1, y2, y3=0, y4=0):
         self.hv_set_plot.setData(t, y1) 
         self.hv_now_plot.setData(t, y2)
-        if self.plots is not None:
+        if self.display_index is not None:
             self.lv_set_plot.setData(t, y3)
             self.lv_now_plot.setData(t, y4)
+    
+    # ------------------------------------------------------------------------------------------------------------------ #
     
     def update_legend(self, hv_set, hv_now, lv_set=0, lv_now=0):
         for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'], [hv_set, hv_now])):
             self.legend.items[i][1].setText("{}: {} V".format(variable, value))
 
-        if self.plots is not None:
+        if self.display_index is not None:
             for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'],
                                                         [hv_set, hv_now])):
                 self.legend.items[i][1].setText("{}: {} V".format(variable, value))

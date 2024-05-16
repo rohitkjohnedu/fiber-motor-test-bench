@@ -395,14 +395,9 @@ class FutekSensor():
         """
         return self.buffer_data[self.sample-1, 1]
 
-    # def __del__(self):
-    #     """
-    #     Class Destructor
-    #     """
-    #     self.disconnect()
+############################################################################################################
 
-
-class FutekSensorPlot(QtWidgets.QWidget):
+class ForcePlot(QtWidgets.QWidget):
     """Widget for plotting the Force sensor"""
     plotHistoryLength = 10 #s
     maxPlotHistoryLength = 100000 #samples
@@ -411,7 +406,7 @@ class FutekSensorPlot(QtWidgets.QWidget):
         """
         :param force_sensor_object: Force sensor object to display
         """
-        super(FutekSensorPlot, self).__init__()
+        super(ForcePlot, self).__init__()
         self.futek_sensor = force_sensor_object
 
         main_layout = QtWidgets.QHBoxLayout(self)
@@ -441,7 +436,7 @@ class FutekSensorPlot(QtWidgets.QWidget):
 
         # ----------------------------------------------------------------------------------------------- #
         
-        self.plot_force_widget = pg.PlotWidget(self, title="<b>Force Sensor Reading</b>")
+        self.plot_force_widget = pg.PlotWidget(self, title="<b>Force</b>")
         # self.plot_force_widget.setMinimumWidth(650)
         self.plot_force_widget.setMinimumHeight(200)
         self.plot_force_widget.setLabel('left', 'Force', units='N')
@@ -467,35 +462,4 @@ class FutekSensorPlot(QtWidgets.QWidget):
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length
-
-    # ----------------------------------------------------------------------------------------------- #
-        
-    # def heading(self):
-    #     self.heading
-    
-    # def tare_button(self):
-    #     self.tare_button
-    
-    # def clear_button(self):
-    #     self.clear_button
-    
-    # def continuous_acq(self):
-    #     self.continuous_acq
-    
-    # def save_data_button(self):
-    #     self.save_data_button
-
-
-# class FutekSensorControl(QtWidgets.QWidget):
-
-#     def __init__(self, force_sensor_object_control: FutekSensorPlot):
-
-#         super(FutekSensorControl, self).__init__()
-#         self.futek_sensor_contol = force_sensor_object_control
-
-#         main_layout = QtWidgets.QHBoxLayout(self)
-#         main_layout.setSpacing(0)
-#         main_layout.addWidget(self.futek_sensor_contol.tare_button)
-#         main_layout.addStretch(1)
-
 

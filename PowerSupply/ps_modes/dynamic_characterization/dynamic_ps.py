@@ -129,7 +129,7 @@ class Dynamic_PS(QWidget):
         self.hb_comboBox.setCurrentIndex(2)
         self.hb_comboBox.setDisabled(True)
         # ------------------------------------------------------------------------------------------------------------ #
-        modul_freq_lbl = QLabel("Modulation frequency (Hz):")
+        modul_freq_lbl = QLabel("Frequency (Hz):")
         modul_freq_lbl.setFixedWidth(150)
         
         self.modul_freq_edit = QLineEdit("1")
@@ -143,11 +143,11 @@ class Dynamic_PS(QWidget):
         self.duty_cycle_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # self.duty_cycle_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
-        sequence_freq_lbl = QLabel("Sequence frequency (Hz):")
-        sequence_freq_lbl.setFixedWidth(150)
+        # sequence_freq_lbl = QLabel("Sequence frequency (Hz):")
+        # sequence_freq_lbl.setFixedWidth(150)
         
-        self.sequence_freq_edit = QLineEdit("0")
-        self.sequence_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # self.sequence_freq_edit = QLineEdit("0")
+        # self.sequence_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # self.sequence_freq_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.moving_time_label = QLabel("Time (s):")
@@ -181,7 +181,7 @@ class Dynamic_PS(QWidget):
         # self.mode_layout.addRow(hb_number_lbl, self.hb_comboBox)
         self.mode_layout.addRow(modul_freq_lbl, self.modul_freq_edit)
         self.mode_layout.addRow(duty_cycle_lbl, self.duty_cycle_edit)
-        self.mode_layout.addRow(sequence_freq_lbl, self.sequence_freq_edit)
+        # self.mode_layout.addRow(sequence_freq_lbl, self.sequence_freq_edit)
         self.mode_layout.addRow(self.moving_time_label, self.moving_time_edit)
         self.mode_layout.addRow(self.direction_label, self.direction_edit)
         self.mode_layout.addRow(self.repeated_mode_lbl, self.repeated_mode_checkbox)
@@ -266,7 +266,7 @@ class Dynamic_PS(QWidget):
                     self.lock_command(is_on=1)
                     modul_freq = float(self.modul_freq_edit.text())
                     duty_cycle = float(self.duty_cycle_edit.text())
-                    sequence_freq = float(self.sequence_freq_edit.text())
+                    sequence_freq = None # float(self.sequence_freq_edit.text())
                     if self.repeated_mode_checkbox.isChecked() == False:
                         moving_time = float(self.moving_time_edit.text())
                     else:

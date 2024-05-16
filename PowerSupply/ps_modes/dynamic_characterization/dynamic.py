@@ -1,5 +1,5 @@
 # python packages
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLabel, QPushButton, QComboBox
+from PyQt6.QtWidgets import QWidget, QGroupBox, QFormLayout, QLabel, QPushButton, QComboBox
 # custom packages
 from PowerSupply.ps_modes.dynamic_characterization.dynamic_ps import Dynamic_PS
 from StandaTable.standa_table import StandaTableWidget
@@ -44,7 +44,6 @@ class DynamicMode(QWidget):
                                         'font-size: 24px;'
                                         "position: center; "
                                         "border: 1px solid black;")
-        self.emg_stop_btn.setFixedWidth(300)
         self.emg_stop_btn.setFixedHeight(50)        
         self.power_supply_groupBox_layout.addRow(self.emg_stop_btn)
 
