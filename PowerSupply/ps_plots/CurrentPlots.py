@@ -34,11 +34,10 @@ pg.setConfigOptions(antialias=True)
 
 
 class CurrentPlots(QWidget):
-    def __init__(self, device, parent=None, plot_title=None, y_min=0, y_max=0, display_index=None):
+    def __init__(self, device=None, parent=None, plot_title=None, y_min=0, y_max=0):
         QWidget.__init__(self, parent=parent)
 
         self.device = device
-        self.display_index = display_index
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
 
@@ -76,27 +75,25 @@ class CurrentPlots(QWidget):
         all_data = self.device.get_buffer()
         data = all_data
 
-        if self.display_index != 0:
-            epoch_time = data[:, 0]
-            tplot = epoch_time - start_time
+        epoch_time = data[:, 0]
+        tplot = epoch_time - start_time
 
-            if len(tplot) > self.maxPlotHistoryLength:
-                tplot = tplot[-self.maxPlotHistoryLength:]
+        if len(tplot) > self.maxPlotHistoryLength:
+            tplot = tplot[-self.maxPlotHistoryLength:]
 
-            if self.display_index == 1:
-                cm_val_w1 = data[:, 8]
-                cm_val_w2 = data[:, 9]
-                cm_val_w3 = data[:, 10]
+        cm_val_w1 = data[:, 8]
+        cm_val_w2 = data[:, 9]
+        cm_val_w3 = data[:, 10]
 
-                if len(tplot) > self.maxPlotHistoryLength:
-                    cm_val_w1 = cm_val_w1[:, -self.maxPlotHistoryLength:]
-                    cm_val_w2 = cm_val_w2[:, -self.maxPlotHistoryLength:]
-                    cm_val_w3 = cm_val_w3[:, -self.maxPlotHistoryLength:]
+        if len(tplot) > self.maxPlotHistoryLength:
+            cm_val_w1 = cm_val_w1[:, -self.maxPlotHistoryLength:]
+            cm_val_w2 = cm_val_w2[:, -self.maxPlotHistoryLength:]
+            cm_val_w3 = cm_val_w3[:, -self.maxPlotHistoryLength:]
 
-                if len(tplot) > 0:
-                    use = tplot > tplot[-1] - self.plotHistoryLength
-                    self.update_plot(t=tplot[use], y1=cm_val_w1[use], y2=cm_val_w2[use], y3=cm_val_w3[use])
-                    self.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])
+        if len(tplot) > 0:
+            use = tplot > tplot[-1] - self.plotHistoryLength
+            self.update_plot(t=tplot[use], y1=cm_val_w1[use], y2=cm_val_w2[use], y3=cm_val_w3[use])
+            self.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])
     
     # ------------------------------------------------------------------------------------------------------------------ #
 

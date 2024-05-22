@@ -43,7 +43,7 @@ class Thread(QThread):
         print("\n[INFO] Loop started.")
         for repetition in range(self.repetitions):
             if not self.stop_flag:
-                    if self.sequence_freq == 0:
+                    if self.sequence_freq is None:
                         if self.device.hb_set(self.channels_keys, self.modul_freq, self.duty_cycle, phase_shift_1):
                             print(direction_1)
                     else:
@@ -99,7 +99,7 @@ class Thread(QThread):
 
 
 class Dynamic_PS(QWidget):
-    def __init__(self, device, parent=None):
+    def __init__(self, device=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # PS device
@@ -112,8 +112,9 @@ class Dynamic_PS(QWidget):
         # INTERFACE ELEMENTS
         self.mode_layout = QFormLayout(self)
         # ------------------------------------------------------------------------------------------------------------ #
-        target_voltage_lbl = QLabel("Voltage:")
+        target_voltage_lbl = QLabel("Voltage (V):")
         target_voltage_lbl.setFixedWidth(150)
+        # target_voltage_lbl.setFixedHeight(50)
         
         self.target_voltage_edit = QLineEdit("0")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -129,14 +130,14 @@ class Dynamic_PS(QWidget):
         self.hb_comboBox.setCurrentIndex(2)
         self.hb_comboBox.setDisabled(True)
         # ------------------------------------------------------------------------------------------------------------ #
-        modul_freq_lbl = QLabel("Frequency (Hz):")
+        modul_freq_lbl = QLabel("Stepping frequency (Hz):")
         modul_freq_lbl.setFixedWidth(150)
         
         self.modul_freq_edit = QLineEdit("1")
         self.modul_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # self.modul_freq_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
-        duty_cycle_lbl = QLabel("Duty cycle (%):")
+        duty_cycle_lbl = QLabel("Stepping duty cycle (%):")
         duty_cycle_lbl.setFixedWidth(150)
 
         self.duty_cycle_edit = QLineEdit("50")
@@ -194,9 +195,10 @@ class Dynamic_PS(QWidget):
 
         # ************************************************************************************************************ #
         # ACTIONS
-        self.set_button.clicked.connect(self.set_pressed)
+        if self.device is not None:
+            self.set_button.clicked.connect(self.set_pressed)
         self.repeated_mode_checkbox.stateChanged.connect(self.repeated_mode_changed)
-    
+        
     ########################################################################################################################
     # ADD BUTTONS ALWAYS TO THE END OF THE LAYOUT
     def add_buttons(self):
@@ -320,7 +322,7 @@ class Dynamic_PS(QWidget):
             self.duty_cycle_edit.setDisabled(True)
             if self.repeated_mode_checkbox.isChecked() == False:
                 self.moving_time_edit.setDisabled(True)
-            self.sequence_freq_edit.setDisabled(True)
+            # self.sequence_freq_edit.setDisabled(True)
             self.direction_edit.setDisabled(True)
             self.repeated_mode_checkbox.setDisabled(True)
             if self.repeated_mode_checkbox.isChecked():
@@ -335,7 +337,7 @@ class Dynamic_PS(QWidget):
             self.duty_cycle_edit.setDisabled(False)
             if self.repeated_mode_checkbox.isChecked() == False:
                 self.moving_time_edit.setDisabled(False)
-            self.sequence_freq_edit.setDisabled(False)
+            # self.sequence_freq_edit.setDisabled(False)
             self.direction_edit.setDisabled(False)
             self.repeated_mode_checkbox.setDisabled(False)
             if self.repeated_mode_checkbox.isChecked():

@@ -81,9 +81,14 @@ class StandaTable:
         self.data_lock = Lock()
         self.motor_lock = RLock()
 
-        # AutoConnect
         self.get_available_devices()
         self.connect(id)
+
+    # AutoConnect
+    # def auto_connect(self):
+    #     self.get_available_devices()
+    #     self.connect(id)
+    #     return self
 
     def get_available_devices(self):
         """Get Available devices list"""
@@ -499,47 +504,49 @@ class StandaTableWidget(QWidget):
     graphHistory = 10000  # Number of point for graph history
     buttonMaxWidth = 150
 
-    def __init__(self, Motor: StandaTable, display_graph=False):
+    def __init__(self, Motor: StandaTable=None):
         super(StandaTableWidget, self).__init__()
-        self.display_graph = display_graph
         self.Motor = Motor  # Motor controller object
+        if self.Motor is not None:
+            speed_val = str(self.Motor.get_speed())
+            position_val = '{:.2f}'.format(self.Motor.get_position())
+        else:
+            speed_val = '0'
+            position_val = '0'
+
         buttonLayout = QFormLayout(self)
         
-
         homeButton = QPushButton("HOME")
         buttonLayout.addRow(homeButton)
-        homeButton.released.connect(self.Motor.home_zero)
 
         upButton = QPushButton("Forward")
         upButton.setFixedWidth(145)
-        upButton.pressed.connect(self.Motor.left)
-        upButton.released.connect(self.Motor.stop)
         downButton = QPushButton("Backward")
         downButton.setFixedWidth(145)
-        downButton.pressed.connect(self.Motor.right)
-        downButton.released.connect(self.Motor.stop)
         buttonLayout.addRow(upButton, downButton)
-
-        speed_val = str(self.Motor.get_speed())
+        
         self.speed_edit = QLineEdit(speed_val)
         buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
-        self.speed_edit.textChanged.connect(self.setSpeedCallback)
-
-        position_val = '{:.2f}'.format(self.Motor.get_position())
+       
         self.positionEdit = QLineEdit(position_val)
         buttonLayout.addRow("Position (mm):", self.positionEdit)
 
         stopButton = QPushButton("STOP")
         buttonLayout.addRow(stopButton)
-        stopButton.released.connect(self.Motor.stop)
 
         goToPosition = QPushButton("Move")
         buttonLayout.addRow(goToPosition)
-        goToPosition.clicked.connect(self.goToPositionCallback)
-
-        # buttonLayout.ExpandingFieldsGrow = True
-        buttonLayout.setLabelAlignment(Qt.AlignmentFlag.AlignCenter)
-        buttonLayout.setFormAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Actions
+        if self.Motor is not None:
+            homeButton.released.connect(self.Motor.home_zero)
+            upButton.pressed.connect(self.Motor.left)
+            upButton.released.connect(self.Motor.stop)
+            downButton.pressed.connect(self.Motor.right)
+            downButton.released.connect(self.Motor.stop)
+            stopButton.released.connect(self.Motor.stop)
+            self.speed_edit.textChanged.connect(self.setSpeedCallback)
+            goToPosition.clicked.connect(self.goToPositionCallback)
 
     def goToPositionCallback(self):
         target_position = float(self.positionEdit.text())
@@ -555,7 +562,7 @@ class StandaTableWidget(QWidget):
 ############################################################################################################
 
 class PositionPlot(QWidget):
-    def __init__(self, actuator, parent=None):
+    def __init__(self, actuator=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         self.actuator = actuator

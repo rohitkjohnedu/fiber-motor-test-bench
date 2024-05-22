@@ -34,7 +34,7 @@ pg.setConfigOptions(antialias=True)
 
 
 class VoltagePlots(QWidget):
-    def __init__(self, device, parent=None, plot_title=None, y_min=0, y_hv_max=0, y_lv_max=0, display_index=None):
+    def __init__(self, device=None, parent=None, plot_title=None, y_min=0, y_hv_max=0, y_lv_max=0, display_index=None):
         QWidget.__init__(self, parent=parent)
 
         self.device = device

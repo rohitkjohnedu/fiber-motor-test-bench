@@ -146,6 +146,10 @@ class FutekSensor():
 
         self.connect()
 
+    # def auto_connect(self):  
+    #     self.connect()
+    #     return self
+
     @property
     def is_connected(self):
         return self.futek_dll.DeviceStatus == 0 and self.futek_dll.DeviceHandle.ToInt64() > 0
@@ -174,6 +178,17 @@ class FutekSensor():
             _error_display(f"Device Error {self.futek_dll.DeviceStatus} \nImpossible to connect force sensor.")
 
         return self.is_connected  # Returns connection state
+    
+    def disconnect(self):
+        """
+        Disconnect force sensor
+        """
+        self.stop_recording()  # Stop continuous reading thread
+        # Calling Dll close method
+        if self.device_handle:
+            self.futek_dll.Close_Device_Connection(self.device_handle)
+        return self.is_connected
+
 
     def get_sensor_load(self):
         """
@@ -376,16 +391,6 @@ class FutekSensor():
         """
         return displacement - force / self.sensor_stiffness
 
-    def disconnect(self):
-        """
-        Disconnect force sensor
-        """
-        self.stop_recording()  # Stop continuous reading thread
-        # Calling Dll close method
-        if self.device_handle:
-            self.futek_dll.Close_Device_Connection(self.device_handle)
-        return self.is_connected
-
     def get_current_force(self):
         """
         Get last measured force
@@ -402,7 +407,7 @@ class ForcePlot(QtWidgets.QWidget):
     plotHistoryLength = 10 #s
     maxPlotHistoryLength = 100000 #samples
 
-    def __init__(self, force_sensor_object: FutekSensor, controls=False):
+    def __init__(self, force_sensor_object: FutekSensor=None):
         """
         :param force_sensor_object: Force sensor object to display
         """
@@ -418,22 +423,14 @@ class ForcePlot(QtWidgets.QWidget):
 
         self.tare_button = QtWidgets.QPushButton("Tare")
         self.tare_button.setFixedWidth(100)
-        self.tare_button.clicked.connect(self._tare_button_callback)
 
         self.clear_button = QtWidgets.QPushButton("Clear")
         self.clear_button.setFixedWidth(100)
-        self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
-
-        # ----------------------------------------------------------------------------------------------- #
-
-        if controls == True:
-            control_layout = QtWidgets.QVBoxLayout()
-            control_layout.addWidget(self.heading)
-            control_layout.addWidget(self.tare_button)
-            control_layout.addWidget(self.clear_button)
-            control_layout.addStretch(1)
-            main_layout.addLayout(control_layout)
-
+        
+        if self.futek_sensor is not None:
+            # self.tare_button.clicked.connect(self._tare_button_callback)
+            self.tare_button.clicked.connect(self.futek_sensor.tare)
+            self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
         # ----------------------------------------------------------------------------------------------- #
         
         self.plot_force_widget = pg.PlotWidget(self, title="<b>Force</b>")
@@ -444,8 +441,8 @@ class ForcePlot(QtWidgets.QWidget):
         self.plot_force = self.plot_force_widget.plot()
         main_layout.addWidget(self.plot_force_widget)
 
-    def _tare_button_callback(self):
-        self.futek_sensor.tare()
+    # def _tare_button_callback(self):
+    #     self.futek_sensor.tare()
 
     def plot_update(self, start_time):
         if self.futek_sensor.is_connected:

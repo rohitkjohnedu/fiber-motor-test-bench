@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, 
 
 
 class Static_PS(QWidget):
-    def __init__(self, device, parent=None):
+    def __init__(self, device=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # PS device
@@ -14,7 +14,7 @@ class Static_PS(QWidget):
         # INTERFACE ELEMENTS
         self.mode_layout = QFormLayout(self)
         # ------------------------------------------------------------------------------------------------------------ #
-        target_voltage_lbl = QLabel("Voltage:")
+        target_voltage_lbl = QLabel("Voltage (V):")
         target_voltage_lbl.setFixedWidth(150)
 
         self.target_voltage_edit = QLineEdit("0")
@@ -59,10 +59,11 @@ class Static_PS(QWidget):
 
         # ************************************************************************************************************ #
         # ACTIONS
+        if self.device is not None:
+            self.target_voltage_edit.returnPressed.connect(self.set_command)
+            self.update_button.clicked.connect(self.set_command)
+            self.set_button.clicked.connect(self.set_pressed)
         self.st_comboBox.currentIndexChanged.connect(self.extended_set)
-        self.target_voltage_edit.returnPressed.connect(self.set_command)
-        self.update_button.clicked.connect(self.set_command)
-        self.set_button.clicked.connect(self.set_pressed)
 
     ########################################################################################################################
     # ADD BUTTONS ALWAYS TO THE END OF THE LAYOUT
@@ -75,21 +76,21 @@ class Static_PS(QWidget):
         self.state_index = self.st_comboBox.currentIndex()
         # **************************************************************************************************************** #    
         if self.extended_flag_1 == 0 and self.state_index >= 6:
-            freq_label = QLabel("Frequency (Hz):")
+            freq_label = QLabel("Modulation frequency (Hz):")
             freq_label.setFixedWidth(150)
             self.freq_edit = QLineEdit("1")
             self.freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(freq_label, self.freq_edit)
             # ------------------------------------------------------------------------------------------------------------ #
-            duty_cycle_lbl = QLabel("Duty cycle (%):")
+            self.extended_flag_1 = 1
+        # **************************************************************************************************************** # 
+        if self.extended_flag_1 == 1 and self.state_index == 9 and self.extended_flag_2 == 0:
+            duty_cycle_lbl = QLabel("Modulation duty cycle (%):")
             duty_cycle_lbl.setFixedWidth(150)
             self.duty_cycle_edit = QLineEdit("50")
             self.duty_cycle_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(duty_cycle_lbl, self.duty_cycle_edit)
             # ------------------------------------------------------------------------------------------------------------ #
-            self.extended_flag_1 = 1
-        # **************************************************************************************************************** # 
-        if self.extended_flag_1 == 1 and self.state_index == 9 and self.extended_flag_2 == 0:
             ch1_phase_shift_lbl = QLabel("Phase shift (°), Ch. №1:")
             ch1_phase_shift_lbl.setFixedWidth(150)
             self.ch1_phase_shift_edit = QLineEdit("0")
@@ -112,10 +113,10 @@ class Static_PS(QWidget):
         # **************************************************************************************************************** # 
         if self.extended_flag_1 == 1 and self.state_index < 6:
             self.mode_layout.removeRow(self.freq_edit)
-            self.mode_layout.removeRow(self.duty_cycle_edit)
             self.extended_flag_1 = 0
         # **************************************************************************************************************** # 
         if self.extended_flag_2 == 1 and self.state_index < 9:
+            self.mode_layout.removeRow(self.duty_cycle_edit)
             self.mode_layout.removeRow(self.ch1_phase_shift_edit)
             self.mode_layout.removeRow(self.ch2_phase_shift_edit)
             self.mode_layout.removeRow(self.ch3_phase_shift_edit)
@@ -126,8 +127,8 @@ class Static_PS(QWidget):
         # ACTIONS
         if self.state_index > 5:
             self.freq_edit.returnPressed.connect(self.set_command)
-            self.duty_cycle_edit.returnPressed.connect(self.set_command)
             if self.state_index == 9:
+                self.duty_cycle_edit.returnPressed.connect(self.set_command)
                 self.ch1_phase_shift_edit.returnPressed.connect(self.set_command)
                 self.ch2_phase_shift_edit.returnPressed.connect(self.set_command)
                 self.ch3_phase_shift_edit.returnPressed.connect(self.set_command)
@@ -211,8 +212,9 @@ class Static_PS(QWidget):
             if self.voltage_set() is True:
                     if self.state_index >= 5:
                         freq_val = float(self.freq_edit.text())
-                        duty_val = float(self.duty_cycle_edit.text())
+                        duty_val = 50 #%
                         if self.state_index == 9:
+                            duty_val = float(self.duty_cycle_edit.text())
                             ch1_phase_shift = float(self.ch1_phase_shift_edit.text())
                             ch2_phase_shift = float(self.ch2_phase_shift_edit.text())
                             ch3_phase_shift = float(self.ch3_phase_shift_edit.text())

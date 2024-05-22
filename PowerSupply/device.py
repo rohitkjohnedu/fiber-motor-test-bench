@@ -120,8 +120,8 @@ class HvpsDevice:
             self.serial_com_lock.release()
 
         self.serial_com_lock.acquire()
-        self.ser.flushInput()
-        self.ser.flushOutput()
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
         self.serial_com_lock.release()
 
         self.pcb_parameters = self.get_parameters()
@@ -350,7 +350,7 @@ class HvpsDevice:
         if voltage == 0:
             self.start_thread()
             self.write(f"SHV 0\r")
-        elif (voltage >= self.pcb_parameters['min_hv']) and (voltage <= 2500): # (voltage <= self.pcb_parameters['max_hv']):
+        elif (voltage >= self.pcb_parameters['min_hv']) and (voltage <= self.pcb_parameters['max_hv']):
             self.start_thread()
             self.write(f"SHV {voltage}\r")
         else:

@@ -39,7 +39,11 @@ class MainWindow(QWidget):
         #                                               OPTIONS
         # ************************************************************************************************************ #
 
-        self.debug_mode = 0             # 0: no debug mode;         1: debug mode.
+        # Debug options.
+        self.debug = 1                  # 0: full debug OFF;        1: full debug ON.
+        self.power_supply_debug = 0     # 0: no power supply;       1: power supply.
+        self.force_sensor_debug = 0     # 0: no force sensor;       1: force sensor.
+        self.actuator_debug = 0         # 0: no actuator;           1: actuator.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         self.display_currents = 1       # 0: no current plot;       1: current plot.
@@ -47,31 +51,40 @@ class MainWindow(QWidget):
         self.display_force = 1          # 0: no force plot;         1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_position = 1       # 0: no actuator plot;      1: actuator plot.
-        # ------------------------------------------------------------------------------------------------------------ #
-        static = 1                      # 0: no static mode;        1: static mode.
-        dynamic = 1                     # 0: no dynamic mode;       1: dynamic mode.
 
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
         # ************************************************************************************************************ #
 
         # HIGH VOLTAGE POWER SUPPLY.
-        self.power_supply = HvpsDevice()
-        self.voltage_plot = VoltagePlots(self.power_supply, plot_title='Voltage', y_hv_max=2200, y_lv_max=12, display_index=self.display_voltages)
-        self.current_plot = CurrentPlots(self.power_supply, plot_title='Current', y_max=0.001, display_index=self.display_currents)
+        if self.power_supply_debug == 1: # if power supply is connected
+            self.power_supply = HvpsDevice()
+        else:
+            self.power_supply = None # else no power supply
 
         # FUTEK FORCE SENSOR (Load cell).
-        self.force_sensor = FutekSensor()
-        self.force_plot = ForcePlot(self.force_sensor, controls=False)
+        if self.force_sensor_debug == 1: # if force sensor is connected
+            self.force_sensor = FutekSensor()
+        else:
+            self.force_sensor = None # else no force sensor
 
         # ACTUATOR (Translation stage)
-        self.actuator = StandaTable()
+        if self.actuator_debug == 1: # if actuator is connected
+            self.actuator = StandaTable()
+        else:
+            self.actuator = None # else no actuator
+        # ------------------------------------------------------------------------------------------------------------ #
+        
+        # Plots.
+        self.voltage_plot = VoltagePlots(self.power_supply, plot_title='Voltage', y_hv_max=4500,
+                                         y_lv_max=12, display_index=self.display_voltages)
+        self.current_plot = CurrentPlots(self.power_supply, plot_title='Current', y_max=0.001)
+        self.force_plot = ForcePlot(self.force_sensor)
         self.position_plot = PositionPlot(self.actuator)
 
-        # ------------------------------------------------------------------------------------------------------------ #
-        # Modes
-        self.static = StaticMode(self.power_supply, self.actuator)
-        self.dynamic = DynamicMode(self.power_supply, self.actuator)
+        # Modes.
+        self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator)
+        self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator)
         
         # ************************************************************************************************************ #
         #                                     INITIALIZATION OF THE USER INTERFACE
@@ -89,55 +102,31 @@ class MainWindow(QWidget):
         # Type of characterization (static, dynamic, demo).
         characterization_type = QTabWidget()
 
-        if static == 1:
-            characterization_type.addTab(self.static, 'Static Characterization')
-
-        if dynamic == 1:
-            characterization_type.addTab(self.dynamic, 'Dynamic Characterization')
+        characterization_type.addTab(self.static, 'Static Characterization')
+        characterization_type.addTab(self.dynamic, 'Dynamic Characterization')
 
         control_panel_layout.addWidget(characterization_type)
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # Control buttons
-        buttons_groupBox = QGroupBox("Control buttons")
-        buttons_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        # buttons_groupBox.setFixedHeight(150)
-        control_panel_layout.addWidget(buttons_groupBox)
-        control_panel_layout.addSpacing(0)
-        
-        button_layout = QVBoxLayout(buttons_groupBox)
-
-        self.tare_button = QPushButton("Tare")
-        self.tare_button.setStyleSheet("background-color: white; "
-                                        "color: black; "
-                                        "font-weight: bold; "
-                                        'font-size: 24px;'
-                                        "position: center; ")
-        button_layout.addWidget(self.tare_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.tare_button.clicked.connect(self.force_sensor.tare)
-        self.tare_button.setFixedWidth(300)
-        self.tare_button.setFixedHeight(50)
-
+        # Control buttons.
         self.run_button = QPushButton("Run")
-        self.run_button.clicked.connect(self.run_button_clicked)
+        if self.debug == 0: # if debug mode is OFF
+            self.run_button.clicked.connect(self.run_button_clicked) # make it actually do something
         self.run_button.setStyleSheet("background-color: green; "
                                        "color: white; "
                                        "font-weight: bold; "
                                        'font-size: 24px;'
                                        "position: center; ")
-        button_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.run_button.setFixedWidth(300)
+        control_panel_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.run_button.setFixedWidth(320)
         self.run_button.setFixedHeight(50)
-
-        button_layout.addStretch(1)
         # ------------------------------------------------------------------------------------------------------------ #
 
-        main_layout.addLayout(control_panel_layout, 0) # add the control panel on the left side.
+        main_layout.addLayout(control_panel_layout) # add the control panel on the left side.
 
         # ************************************************************************************************************ #
 
-        # MONITORING (Right side of the main window: plots of measured and controlled variables: force, voltage, and currents.
-        # Position and speed will be added later).
+        # MONITORING (Right side of the main window: force, voltage, currents and actuator position).
         monitoring_groupBox_layout = QVBoxLayout()
 
         plots_groupBox = QGroupBox("Monitoring")
@@ -147,7 +136,6 @@ class MainWindow(QWidget):
 
         all_plots_layout = QVBoxLayout(plots_groupBox)
         all_plots_layout.setSpacing(0)
-
         # ------------------------------------------------------------------------------------------------------------ #
 
         # FORCE SENSOR PLOT
@@ -184,25 +172,28 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
         #                                          CALLBACK FOR DATA READING
         # ************************************************************************************************************ #
+        if self.debug == 0: # if debug mode is OFF
+            self.plot_interval = 50#ms
+            self.start_time = 0
+            self.sample_rate = 400#Hz
+            self.interpolation_stop_time = 0
 
-        self.plot_interval = 50#ms
-        self.start_time = 0
-        self.sample_rate = 400#Hz
-        self.interpolation_stop_time = 0
-
-        # Set a timer with the callback function which reads and displays data from the serial port.
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.plot_update_callback)
-        if self.power_supply.auto_connect():
-            self.timer.start(self.plot_interval)
+            # Set a timer with the callback function which reads and displays data from the serial port.
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.plot_update_callback)
+            if self.power_supply.auto_connect():
+                self.timer.start(self.plot_interval)
 
     def run_button_clicked(self):
         if self.run_button.text() == "Run":
             print("\n[INFO] The measurement is running")
             self.start_time = time.perf_counter()
-            self.power_supply.start_recording()
-            self.force_sensor.start_recording()
-            self.actuator.start_recording()
+            if self.power_supply_debug == 1: # if power supply is connected
+                self.power_supply.start_recording()
+            if self.force_sensor_debug == 1: # if force sensor is connected
+                self.force_sensor.start_recording()
+            if self.actuator_debug == 1: # if actuator is connected
+                self.actuator.start_recording()
             self.run_button.setText("Stop")
             self.run_button.setStyleSheet("background-color: red; "
                                            "color: white; "
@@ -211,27 +202,36 @@ class MainWindow(QWidget):
                                            "position: center; ")
         else:
             print("\n[INFO] The measurement is stopped")
-            self.power_supply.stop_recording()
-            self.force_sensor.stop_recording()
-            self.actuator.stop_recording()
+            if self.power_supply_debug == 1:
+                self.power_supply.stop_recording()
+            if self.force_sensor_debug == 1:
+                self.force_sensor.stop_recording()
+            if self.actuator_debug == 1:
+                self.actuator.stop_recording()
             self.run_button.setText("Run")
             self.run_button.setStyleSheet("background-color: green; "
                                        "color: white; "
                                        "font-weight: bold; "
                                        'font-size: 24px;'
                                        "position: center; ")
-
+    
     def plot_update_callback(self):
-        self.voltage_plot.plot_update(self.start_time)
-        self.current_plot.plot_update(self.start_time)
-        self.force_plot.plot_update(self.start_time)
-        self.position_plot.plot_update(self.start_time)
+        if self.power_supply_debug == 1:
+            self.voltage_plot.plot_update(self.start_time)
+            self.current_plot.plot_update(self.start_time)
+        if self.force_sensor_debug == 1:
+            self.force_plot.plot_update(self.start_time)
+        if self.actuator_debug == 1:
+            self.position_plot.plot_update(self.start_time)
 
-        new_power_supply_data = self.power_supply.get_new_data()
-        new_force_sensor_data = self.force_sensor.get_new_data()
-        new_actuator_data = self.actuator.get_new_data()
+        if self.power_supply_debug == 1:
+            new_power_supply_data = self.power_supply.get_new_data()
+        if self.force_sensor_debug == 1:
+            new_force_sensor_data = self.force_sensor.get_new_data()
+        if self.actuator_debug == 1:
+            new_actuator_data = self.actuator.get_new_data()
 
-        if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0:
+        if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
             if self.interpolation_stop_time < self.start_time:
                 interpolation_start_time = self.start_time
             else:
@@ -284,14 +284,17 @@ class MainWindow(QWidget):
     def closeEvent(self, event):
         reply = QMessageBox.question(self, "Window Close", "Are you sure you want to close the window?")
         if reply == QMessageBox.StandardButton.Yes:
-            self.timer.stop()
+            if self.debug == 0: # if debug mode is OFF
+                self.timer.stop()
             # explicit disconnection of the devices
-            self.power_supply.disconnect()
-            self.force_sensor.disconnect()
-            self.actuator.disconnect()
+            if self.power_supply_debug == 1: # if power supply is connected
+                self.power_supply.disconnect()
+            if self.force_sensor_debug == 1: # if force sensor is connected
+                self.force_sensor.disconnect()
+            if self.actuator_debug == 1: # if actuator is connected
+                self.actuator.disconnect()
             event.accept()
-            if self.debug_mode == 1:
-                print("[INFO] Program closed.")
+            print("[INFO] Program closed.")
         else:
             event.ignore()
 
