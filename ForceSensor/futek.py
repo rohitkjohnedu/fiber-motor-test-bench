@@ -5,7 +5,7 @@ import time
 from threading import Thread, RLock
 import numpy as np
 import pyqtgraph as pg
-from PyQt6 import QtWidgets, QtCore
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QMessageBox, QApplication
 
 sys.path.append(os.getcwd())
 
@@ -98,8 +98,8 @@ def _error_display(error):
     :type error: str
     """
     # If a Qt window is opened
-    if QtWidgets.QApplication.instance() and QtWidgets.QApplication.activeWindow():
-        QtWidgets.QMessageBox.warning(QtWidgets.QApplication.activeWindow(), "Force Sensor error",
+    if QApplication.instance() and QApplication.activeWindow():
+        QMessageBox.warning(QApplication.activeWindow(), "Force Sensor error",
                                       error)  # The box is displayed
     else:  # Otherwise
         logging.error(error)  # Printing in the console
@@ -402,11 +402,8 @@ class FutekSensor():
 
 ############################################################################################################
 
-class ForcePlot(QtWidgets.QWidget):
+class ForcePlot(QWidget):
     """Widget for plotting the Force sensor"""
-    plotHistoryLength = 10 #s
-    maxPlotHistoryLength = 100000 #samples
-
     def __init__(self, force_sensor_object: FutekSensor=None):
         """
         :param force_sensor_object: Force sensor object to display
@@ -414,35 +411,19 @@ class ForcePlot(QtWidgets.QWidget):
         super(ForcePlot, self).__init__()
         self.futek_sensor = force_sensor_object
 
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setSpacing(0)
-
-        self.heading = QtWidgets.QLabel("Force sensor")
-        self.heading.setFixedWidth(100)
-        self.heading.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-
-        self.tare_button = QtWidgets.QPushButton("Tare")
-        self.tare_button.setFixedWidth(100)
-
-        self.clear_button = QtWidgets.QPushButton("Clear")
-        self.clear_button.setFixedWidth(100)
+        self.plotHistoryLength = 10 #s
+        self.maxPlotHistoryLength = 100000 #samples
         
-        if self.futek_sensor is not None:
-            # self.tare_button.clicked.connect(self._tare_button_callback)
-            self.tare_button.clicked.connect(self.futek_sensor.tare)
-            self.clear_button.clicked.connect(self.futek_sensor.clear_buffer)
-        # ----------------------------------------------------------------------------------------------- #
-        
-        self.plot_force_widget = pg.PlotWidget(self, title="<b>Force</b>")
-        # self.plot_force_widget.setMinimumWidth(650)
-        self.plot_force_widget.setMinimumHeight(200)
-        self.plot_force_widget.setLabel('left', 'Force', units='N')
-        self.plot_force_widget.setLabel('bottom', 'Time', units='s')
-        self.plot_force = self.plot_force_widget.plot()
-        main_layout.addWidget(self.plot_force_widget)
+        plot_layout = QHBoxLayout(self)
+        plot_widget = pg.PlotWidget(self)
+        self.force_plot = plot_widget.plotItem
+        self.force_plot.setTitle("Force", bold=True)
+        self.force_plot.setLabel('left', 'Force', units='N')
+        self.force_plot.setLabel('bottom', 'Time', units='s')
+        self.force_plot.plot()
+        plot_layout.addWidget(plot_widget)
 
-    # def _tare_button_callback(self):
-    #     self.futek_sensor.tare()
+    # ************************************************************************************************** #
 
     def plot_update(self, start_time):
         if self.futek_sensor.is_connected:
@@ -455,7 +436,7 @@ class ForcePlot(QtWidgets.QWidget):
 
             if len(tplot)>0:
                 use = tplot>tplot[-1]-self.plotHistoryLength
-                self.plot_force.setData(tplot[use], force[use]/1000.0)
+                self.force_plot.setData(tplot[use], force[use]/1000.0)
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length

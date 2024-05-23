@@ -2,7 +2,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox
 
-
 class Static_PS(QWidget):
     def __init__(self, device=None, parent=None):
         QWidget.__init__(self, parent=parent)

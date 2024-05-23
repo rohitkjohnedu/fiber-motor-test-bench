@@ -46,9 +46,7 @@ class StaticMode(QWidget):
                                 "font-weight: bold; "
                                 "font-size: 24px; "
                                 "position: center; ")
-        tare_btn.setFixedHeight(50)
-        tare_btn.setFixedWidth(320)
-        self.mode_layout.addWidget(tare_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mode_layout.addWidget(tare_btn)
         # -------------------------------------------------------------------------------------------------------- #
         
         # Actuator control panel.
@@ -59,7 +57,7 @@ class StaticMode(QWidget):
         actuator_groupBox_layout = QFormLayout(actuator_groupBox)
         actuator_groupBox_layout.addRow(self.actuator_control)
         # -------------------------------------------------------------------------------------------------------- #
-
+        
         # Power supply control panel.
         power_supply_groupBox = QGroupBox("Power Supply")
         power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
@@ -76,8 +74,7 @@ class StaticMode(QWidget):
                                         "font-weight: bold; "
                                         "font-size: 24px; "
                                         "position: center; ")
-                                        # "border: 1px solid black;")
-        self.emg_stop_btn.setFixedHeight(50)        
+                                        # "border: 1px solid black;")       
         self.power_supply_groupBox_layout.addRow(self.emg_stop_btn)
 
         power_supply_groupBox.setLayout(self.power_supply_groupBox_layout)
@@ -173,6 +170,3 @@ class StaticMode(QWidget):
             # ------------------------------------------------------------- #
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
         self.mode_layout.addStretch(1)    
-
-
-

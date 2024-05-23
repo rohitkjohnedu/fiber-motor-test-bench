@@ -16,7 +16,7 @@
 # python packages
 import sys
 from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QMessageBox, QScrollArea, QSizePolicy
 import time
 import numpy as np
 import os.path
@@ -98,18 +98,18 @@ class MainWindow(QWidget):
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
         control_panel_layout = QVBoxLayout()
         # ------------------------------------------------------------------------------------------------------------ #
+        # Add the static and dynamic characterization tabs to the control panel
+        self.add_scroll_area_control() # add scroll area to the static and dynamic characterization tabs
 
-        # Type of characterization (static, dynamic, demo).
         characterization_type = QTabWidget()
-
-        characterization_type.addTab(self.static, 'Static Characterization')
-        characterization_type.addTab(self.dynamic, 'Dynamic Characterization')
+        characterization_type.addTab(self.scroll_area_static, 'Static Characterization')
+        characterization_type.addTab(self.scroll_area_dynamic, 'Dynamic Characterization')
 
         control_panel_layout.addWidget(characterization_type)
         # ------------------------------------------------------------------------------------------------------------ #
 
         # Control buttons.
-        self.run_button = QPushButton("Run")
+        self.run_button = QPushButton("RUN")
         if self.debug == 0: # if debug mode is OFF
             self.run_button.clicked.connect(self.run_button_clicked) # make it actually do something
         self.run_button.setStyleSheet("background-color: green; "
@@ -117,9 +117,7 @@ class MainWindow(QWidget):
                                        "font-weight: bold; "
                                        'font-size: 24px;'
                                        "position: center; ")
-        control_panel_layout.addWidget(self.run_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.run_button.setFixedWidth(320)
-        self.run_button.setFixedHeight(50)
+        control_panel_layout.addWidget(self.run_button)
         # ------------------------------------------------------------------------------------------------------------ #
 
         main_layout.addLayout(control_panel_layout) # add the control panel on the left side.
@@ -129,25 +127,31 @@ class MainWindow(QWidget):
         # MONITORING (Right side of the main window: force, voltage, currents and actuator position).
         monitoring_groupBox_layout = QVBoxLayout()
 
-        plots_groupBox = QGroupBox("Monitoring")
-        plots_groupBox.setStyleSheet('font-weight: bold;'
+        self.plots_groupBox = QGroupBox("Monitoring")
+        self.plots_groupBox.setStyleSheet('font-weight: bold;'
                                      'background-color: white;')
-        monitoring_groupBox_layout.addWidget(plots_groupBox)
 
-        all_plots_layout = QVBoxLayout(plots_groupBox)
-        all_plots_layout.setSpacing(0)
-        # ------------------------------------------------------------------------------------------------------------ #
+        all_plots_layout = QVBoxLayout()
 
         # FORCE SENSOR PLOT
         if self.display_force != 0:
-            all_plots_layout.addWidget(self.force_plot)
+            self.force_plot.setMinimumHeight(200)
             force_layout = QHBoxLayout()
             force_layout.addWidget(self.force_plot)
             all_plots_layout.addLayout(force_layout)
         # ------------------------------------------------------------------------------------------------------------ #
 
+        # ACTUATOR PLOT
+        if self.display_position != 0:
+            self.position_plot.setMinimumHeight(200)
+            position_layout = QHBoxLayout()
+            position_layout.addWidget(self.position_plot)
+            all_plots_layout.addLayout(position_layout)
+        # ------------------------------------------------------------------------------------------------------------ #
+
         # POWER SUPPLY VOLTAGE PLOT
         if self.display_voltages != 0:
+            self.voltage_plot.setMinimumHeight(200)
             voltage_layout = QHBoxLayout() 
             voltage_layout.addWidget(self.voltage_plot)
             all_plots_layout.addLayout(voltage_layout)
@@ -155,18 +159,16 @@ class MainWindow(QWidget):
 
         # POWER SUPPLY CURRENT PLOTS
         if self.display_currents != 0:
+            self.current_plot.setMinimumHeight(200)
             currents_layout = QHBoxLayout()
             currents_layout.addWidget(self.current_plot)
             all_plots_layout.addLayout(currents_layout)
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # ACTUATOR PLOT
-        if self.display_position != 0:
-            position_layout = QHBoxLayout()
-            position_layout.addWidget(self.position_plot)
-            all_plots_layout.addLayout(position_layout)
-
-        plots_groupBox.setLayout(all_plots_layout)
+        self.plots_groupBox.setLayout(all_plots_layout)
+        self.add_scroll_area_monitor() # add scroll area to the monitoring tab
+        monitoring_groupBox_layout.addWidget(self.scroll_area_plots)
+        
         main_layout.addLayout(monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
         # ************************************************************************************************************ #
@@ -183,9 +185,25 @@ class MainWindow(QWidget):
             self.timer.timeout.connect(self.plot_update_callback)
             if self.power_supply.auto_connect():
                 self.timer.start(self.plot_interval)
+    
+    def add_scroll_area_control(self):
+        self.scroll_area_static = QScrollArea()
+        self.scroll_area_static.setWidget(self.static)
+        self.scroll_area_static.setWidgetResizable(True)
+        self.scroll_area_static.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignTop)
 
+        self.scroll_area_dynamic = QScrollArea()
+        self.scroll_area_dynamic.setWidget(self.dynamic)
+        self.scroll_area_dynamic.setWidgetResizable(True)
+        self.scroll_area_dynamic.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignTop)
+
+    def add_scroll_area_monitor(self):
+        self.scroll_area_plots = QScrollArea()
+        self.scroll_area_plots.setWidget(self.plots_groupBox)
+        self.scroll_area_plots.setWidgetResizable(True)
+        
     def run_button_clicked(self):
-        if self.run_button.text() == "Run":
+        if self.run_button.text() == "RUN":
             print("\n[INFO] The measurement is running")
             self.start_time = time.perf_counter()
             if self.power_supply_debug == 1: # if power supply is connected
@@ -194,7 +212,7 @@ class MainWindow(QWidget):
                 self.force_sensor.start_recording()
             if self.actuator_debug == 1: # if actuator is connected
                 self.actuator.start_recording()
-            self.run_button.setText("Stop")
+            self.run_button.setText("STOP")
             self.run_button.setStyleSheet("background-color: red; "
                                            "color: white; "
                                            "font-weight: bold; "
@@ -208,7 +226,7 @@ class MainWindow(QWidget):
                 self.force_sensor.stop_recording()
             if self.actuator_debug == 1:
                 self.actuator.stop_recording()
-            self.run_button.setText("Run")
+            self.run_button.setText("RUN")
             self.run_button.setStyleSheet("background-color: green; "
                                        "color: white; "
                                        "font-weight: bold; "

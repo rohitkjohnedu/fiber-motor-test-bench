@@ -4,8 +4,7 @@ import logging
 import time
 from threading import Thread, Lock, RLock
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout
+from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QSizePolicy
 import pyqtgraph as pg
 
 import numpy as np
@@ -520,9 +519,9 @@ class StandaTableWidget(QWidget):
         buttonLayout.addRow(homeButton)
 
         upButton = QPushButton("Forward")
-        upButton.setFixedWidth(145)
+        upButton.setFixedWidth(140)
         downButton = QPushButton("Backward")
-        downButton.setFixedWidth(145)
+        # downButton.setFixedWidth(150)
         buttonLayout.addRow(upButton, downButton)
         
         self.speed_edit = QLineEdit(speed_val)
@@ -562,32 +561,25 @@ class StandaTableWidget(QWidget):
 ############################################################################################################
 
 class PositionPlot(QWidget):
+    """Widget for plotting the position of the motor."""
     def __init__(self, actuator=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         self.actuator = actuator
-        self.legend = pg.LegendItem()
 
-        self.display_position = 1
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
         
-        # Create a layout for the VoltagePlots widget:
         plot_layout = QHBoxLayout(self)
-        plot_layout.setSpacing(0)
-
-        # ------------------------------------------------------------------------------------------ #
-
-        # Create a plot widget:
-        plot_widget = pg.PlotWidget(self, title="<b>Position</b>")
-        # plot_widget.setMinimumWidth(600)
-        plot_widget.setMinimumHeight(200)
-        plot_widget.setLabel('bottom', 'Time', units='s')
-        plot_widget.setLabel('left', 'Position', units='mm')
-        self.plot_position = plot_widget.plot()
+        plot_widget = pg.PlotWidget(self)
+        self.position_plot = plot_widget.plotItem
+        self.position_plot.setTitle("Position", bold=True)
+        self.position_plot.setLabel('left', 'Position', units='mm')
+        self.position_plot.setLabel('bottom', 'Time', units='s')
+        self.position_plot.plot()
         plot_layout.addWidget(plot_widget)
-
-    ####################################################################################################################
+        
+    # **************************************************************************************************** #
 
     def plot_update(self, start_time):
         if self.actuator.is_connected:
@@ -600,7 +592,7 @@ class PositionPlot(QWidget):
 
             if len(tplot)>0:
                 use = tplot>tplot[-1]-self.plotHistoryLength
-                self.plot_position.setData(tplot[use], position[use])
+                self.position_plot.setData(tplot[use], position[use])
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length

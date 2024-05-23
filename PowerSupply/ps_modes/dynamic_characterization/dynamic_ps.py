@@ -113,12 +113,9 @@ class Dynamic_PS(QWidget):
         self.mode_layout = QFormLayout(self)
         # ------------------------------------------------------------------------------------------------------------ #
         target_voltage_lbl = QLabel("Voltage (V):")
-        target_voltage_lbl.setFixedWidth(150)
-        # target_voltage_lbl.setFixedHeight(50)
         
         self.target_voltage_edit = QLineEdit("0")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # self.target_voltage_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         # hb_number_lbl = QLabel("Channels:")
         # hb_number_lbl.setFixedWidth(200)
@@ -131,52 +128,40 @@ class Dynamic_PS(QWidget):
         self.hb_comboBox.setDisabled(True)
         # ------------------------------------------------------------------------------------------------------------ #
         modul_freq_lbl = QLabel("Stepping frequency (Hz):")
-        modul_freq_lbl.setFixedWidth(150)
         
         self.modul_freq_edit = QLineEdit("1")
         self.modul_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # self.modul_freq_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         duty_cycle_lbl = QLabel("Stepping duty cycle (%):")
-        duty_cycle_lbl.setFixedWidth(150)
 
         self.duty_cycle_edit = QLineEdit("50")
         self.duty_cycle_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # self.duty_cycle_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         # sequence_freq_lbl = QLabel("Sequence frequency (Hz):")
-        # sequence_freq_lbl.setFixedWidth(150)
         
         # self.sequence_freq_edit = QLineEdit("0")
         # self.sequence_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # self.sequence_freq_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.moving_time_label = QLabel("Time (s):")
         self.moving_time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.moving_time_label.setFixedWidth(150)
 
         self.moving_time_edit = QLineEdit("1")
         self.moving_time_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # self.moving_time_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.direction_label = QLabel("Direction:")
         self.direction_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.direction_label.setFixedWidth(150)
         
         self.direction_edit = QComboBox()
         self.direction_edit.addItem('Forward')
         self.direction_edit.addItem('Backward')
-        # self.direction_edit.setFixedWidth(100)
         # ------------------------------------------------------------------------------------------------------------ #
         self.repeated_mode_lbl = QLabel("Repeated mode:")
         self.repeated_mode_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # self.repeated_mode_lbl.setFixedWidth(150)
         
         self.repeated_mode_checkbox = QCheckBox()
         self.repeated_mode_checkbox.setChecked(False)
         # ------------------------------------------------------------------------------------------------------------ #
         self.set_button = QPushButton("Set")
-        # self.set_button.setFixedWidth(250)
         # ------------------------------------------------------------------------------------------------------------ #
         self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
         # self.mode_layout.addRow(hb_number_lbl, self.hb_comboBox)
@@ -212,27 +197,21 @@ class Dynamic_PS(QWidget):
             # ------------------------------------------------------------------------------------------------------------ #
             self.repetitions_label = QLabel("Repetitions:")
             self.repetitions_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            self.repetitions_label.setFixedWidth(150)
             
             self.repetitions_edit = QLineEdit("1")
             self.repetitions_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            # self.repetitions_edit.setFixedWidth(100)
             # ------------------------------------------------------------------------------------------------------------ #
             self.t_forward_lbl = QLabel("Time forward (s):")
             self.t_forward_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            self.t_forward_lbl.setFixedWidth(150)
             
             self.t_forward_edit = QLineEdit("1")
             self.t_forward_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            # self.t_forward_edit.setFixedWidth(100)
             # ------------------------------------------------------------------------------------------------------------ #
             self.t_backward_lbl = QLabel("Time backward (s):")
             self.t_backward_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            self.t_backward_lbl.setFixedWidth(150)
             
             self.t_backward_edit = QLineEdit("1")
             self.t_backward_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            # self.t_backward_edit.setFixedWidth(100)
             # ------------------------------------------------------------------------------------------------------------ #
             self.mode_layout.addRow(self.repetitions_label, self.repetitions_edit)
             self.mode_layout.addRow(self.t_forward_lbl, self.t_forward_edit)
@@ -241,11 +220,9 @@ class Dynamic_PS(QWidget):
             # ------------------------------------------------------------------------------------------------------------ #
             self.moving_time_label = QLabel("Time (s):")
             self.moving_time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            self.moving_time_label.setFixedWidth(150)
             
             self.moving_time_edit = QLineEdit("1")
             self.moving_time_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            # self.moving_time_edit.setFixedWidth(100)
             # ------------------------------------------------------------------------------------------------------------ #
             self.mode_layout.removeRow(self.repetitions_label)
             self.mode_layout.removeRow(self.t_forward_lbl)

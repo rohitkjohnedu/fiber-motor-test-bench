@@ -14,7 +14,7 @@
 ########################################################################################################################
 
 # python packages
-from PyQt6.QtWidgets import QWidget, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QSizePolicy
 import pyqtgraph as pg
 
 color = [(255, 0, 0),    #0) red
@@ -39,23 +39,23 @@ class VoltagePlots(QWidget):
 
         self.device = device
         self.display_index = display_index
-        self.legend = pg.LegendItem()
+        
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
-
-        # ------------------------------------------------------------------------------------------ #
+        
         # Create a layout for the VoltagePlots widget:
         plot_layout = QHBoxLayout(self)
-        plot_layout.setSpacing(0)
 
         # Create a plot widget:
-        plot_widget = pg.PlotWidget(show=False)
-        # plot_widget.setMinimumHeight(200)
+        plot_widget = pg.PlotWidget(self)
+        self.legend = pg.LegendItem()
+
+        # Create the plots:
         hv_plot = plot_widget.plotItem
         hv_plot.setTitle(plot_title, bold=True)
-        hv_plot.setYRange(y_min, y_hv_max)
-        hv_plot.setLabel('bottom', 'Time', units='s')
         hv_plot.setLabel('left', 'High Voltage', units='V')
+        hv_plot.setLabel('bottom', 'Time', units='s')
+        hv_plot.setYRange(y_min, y_hv_max)
         
         # Creat a new viewbox for the low voltage plot:
         if self.display_index is not None:
@@ -66,13 +66,11 @@ class VoltagePlots(QWidget):
             self.lv_plot.setXLink(hv_plot)
             hv_plot.setLabel('right', 'Low Voltage', units='V')
             self.lv_plot.setYRange(y_min, y_lv_max)
-        
         # ------------------------------------------------------------------------------------------ #
 
             # Handle view resizing:
             def updateViews():
-                # View has resized; update auxiliary views to match
-                # self.lv_plot
+                # View has resized; update auxiliary views to match self.lv_plot
                 self.lv_plot.setGeometry(hv_plot.vb.sceneBoundingRect())
 
                 # Need to re-update linked axes since this was called
@@ -81,7 +79,6 @@ class VoltagePlots(QWidget):
             
             updateViews()
             hv_plot.vb.sigResized.connect(updateViews)
-
         # ------------------------------------------------------------------------------------------ #
 
         # Create the plots:
@@ -92,7 +89,6 @@ class VoltagePlots(QWidget):
             self.lv_plot.addItem(self.lv_set_plot)
             self.lv_now_plot = pg.PlotCurveItem(pen=color[6], name="Output low voltage")
             self.lv_plot.addItem(self.lv_now_plot)
-        
         # ------------------------------------------------------------------------------------------ #
 
         self.legend.addItem(self.hv_set_plot, 'HV assigned')
@@ -145,11 +141,7 @@ class VoltagePlots(QWidget):
                     self.update_plot(t=tplot[use], y1=hv_set[use], y2=hv_vm[use],
                                                     y3=lv_set[use], y4=lv_vm[use])
                     self.update_legend(hv_set[-1], hv_vm[-1], lv_set[-1], lv_vm[-1])
-
     # ------------------------------------------------------------------------------------------------------------------ #
-
-    # def set_plot_history(self, history_length):
-    #     self.plotHistoryLength = history_length
 
     def update_plot(self, t, y1, y2, y3=0, y4=0):
         self.hv_set_plot.setData(t, y1) 
@@ -157,7 +149,6 @@ class VoltagePlots(QWidget):
         if self.display_index is not None:
             self.lv_set_plot.setData(t, y3)
             self.lv_now_plot.setData(t, y4)
-    
     # ------------------------------------------------------------------------------------------------------------------ #
     
     def update_legend(self, hv_set, hv_now, lv_set=0, lv_now=0):

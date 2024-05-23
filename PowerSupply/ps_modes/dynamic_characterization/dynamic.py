@@ -20,7 +20,7 @@ class DynamicMode(QWidget):
     #                                     DYNAMIC CHARACTERIZATION INTERFACE                                       #
     # ************************************************************************************************************ #
 
-        mode_layout = QVBoxLayout(self)
+        self.mode_layout = QVBoxLayout(self)
 
         # Type of experiment.
         experiment_type_layout = QFormLayout()
@@ -32,7 +32,7 @@ class DynamicMode(QWidget):
         experiment_type_layout.addRow(experiment_type_label, self.experiment_type)
         if self.power_supply is not None:
             self.experiment_type.currentIndexChanged.connect(self.experiment_type_changed)
-        mode_layout.addLayout(experiment_type_layout)
+        self.mode_layout.addLayout(experiment_type_layout)
         # -------------------------------------------------------------------------------------------------------- #
 
         # Force sensor "Tare" button.
@@ -44,15 +44,13 @@ class DynamicMode(QWidget):
                                 "font-weight: bold; "
                                 "font-size: 24px; "
                                 "position: center; ")
-        tare_btn.setFixedWidth(320)
-        tare_btn.setFixedHeight(50)
-        mode_layout.addWidget(tare_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mode_layout.addWidget(tare_btn)
         # -------------------------------------------------------------------------------------------------------- #
 
         # Actuator control panel.
         actuator_groupBox = QGroupBox("Actuator")
         actuator_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        mode_layout.addWidget(actuator_groupBox, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mode_layout.addWidget(actuator_groupBox)
 
         self.actuator_groupBox_layout = QFormLayout(actuator_groupBox)
         self.actuator_groupBox_layout.addRow(self.actuator_control)
@@ -61,7 +59,7 @@ class DynamicMode(QWidget):
         # Power supply control panel.
         power_supply_groupBox = QGroupBox("Power Supply")
         power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        mode_layout.addWidget(power_supply_groupBox, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mode_layout.addWidget(power_supply_groupBox)
 
         self.power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
         self.power_supply_groupBox_layout.addRow(self.power_supply_control)
@@ -74,50 +72,46 @@ class DynamicMode(QWidget):
                                         "font-weight: bold; "
                                         "font-size: 24px; "
                                         "position: center; ")
-                                        # "border: 1px solid black;")
-        self.emg_stop_btn.setFixedHeight(50)        
+                                        # "border: 1px solid black;")      
         self.power_supply_groupBox_layout.addRow(self.emg_stop_btn)
 
         power_supply_groupBox.setLayout(self.power_supply_groupBox_layout)
         # -------------------------------------------------------------------------------------------------------- #
 
         # Other parameters.
-        parameters_groupBox = QGroupBox("Parameters")
-        parameters_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
-        mode_layout.addWidget(parameters_groupBox)
+        self.parameters_groupBox = QGroupBox("Parameters")
+        self.parameters_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
+        self.mode_layout.addWidget(self.parameters_groupBox)
 
         motor_type_lbl = QLabel("Motor Type:")
-        motor_type = QComboBox()
+        self.motor_type = QComboBox()
         motor_types = ['Motor Fiber', 'Motor Ribbon']
         for motor in motor_types:
-            motor_type.addItem(motor)
+            self.motor_type.addItem(motor)
 
-        parameters_groupBox_layout = QFormLayout(parameters_groupBox)
-        parameters_groupBox_layout.addRow(motor_type_lbl, motor_type)
-        if motor_type.currentText == 'Motor Fiber':
-            # ------------------------------------------------------------- #
-            motor_length_lbl = QLabel("Fiber length:")
-            motor_length = QLineEdit()
-            parameters_groupBox_layout.addRow(motor_length_lbl, motor_length)
-            # ------------------------------------------------------------- #
-            motor_number_lbl = QLabel("Number of fibers:")
-            motor_number = QLineEdit()
-            parameters_groupBox_layout.addRow(motor_number_lbl, motor_number)
-            # ------------------------------------------------------------- #
-            insulator_lbl = QLabel("Insulator:")
-            insulator = QLineEdit()
-            parameters_groupBox_layout.addRow(insulator_lbl, insulator)
+        self.parameters_groupBox_layout = QFormLayout()
+        self.parameters_groupBox_layout.addRow(motor_type_lbl, self.motor_type)
+        self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
+        self.motor_type.currentIndexChanged.connect(self.motor_type_changed)
+        # ------------------------------------------------------------- #
+        self.motor_length_lbl = QLabel("Fiber length (mm):")
+        motor_length = QLineEdit()
+        self.parameters_groupBox_layout.addRow(self.motor_length_lbl, motor_length)
+        # ------------------------------------------------------------- #
+        self.motor_number_lbl = QLabel("Number of fibers:")
+        motor_number = QLineEdit()
+        self.parameters_groupBox_layout.addRow(self.motor_number_lbl, motor_number)
+        # ------------------------------------------------------------- #
+        self.insulator_lbl = QLabel("Insulator:")
+        insulator = QLineEdit()
+        self.parameters_groupBox_layout.addRow(self.insulator_lbl, insulator)
+        # ------------------------------------------------------------- #
+        self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
 
-        elif motor_type.currentText == 'Motor Ribbon':
-            # ------------------------------------------------------------- #
-            stator_name_lbl = QLabel("Stator name:")
-            stator_name = QLineEdit()
-            parameters_groupBox_layout.addRow(stator_name_lbl, stator_name)
-            # ------------------------------------------------------------- #
-            slider_name_lbl = QLabel("Slider name:")
-            slider_name = QLineEdit()
-            parameters_groupBox_layout.addRow(slider_name_lbl, slider_name)
-        mode_layout.addStretch(1)
+        self.stator_name_lbl = QLabel("Stator name:")
+        self.slider_name_lbl = QLabel("Slider name:")
+
+        self.mode_layout.addStretch(1) 
 
     # ************************************************************************************************************ #
     def experiment_type_changed(self):
@@ -138,3 +132,39 @@ class DynamicMode(QWidget):
     # ************************************************************************************************************ #
     def emg_stop_btn_clicked(self):
         self.power_supply.emergency_stop()
+    
+    # ************************************************************************************************************ #
+    def motor_type_changed(self):
+        if self.motor_type.currentText() == 'Motor Fiber':
+            self.parameters_groupBox_layout.removeRow(self.stator_name_lbl)
+            self.parameters_groupBox_layout.removeRow(self.slider_name_lbl)
+            # ------------------------------------------------------------- #
+            self.motor_length_lbl = QLabel("Fiber length (mm):")
+            motor_length = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.motor_length_lbl, motor_length)
+            # ------------------------------------------------------------- #
+            self.motor_number_lbl = QLabel("Number of fibers:")
+            motor_number = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.motor_number_lbl, motor_number)
+            # ------------------------------------------------------------- #
+            self.insulator_lbl = QLabel("Insulator:")
+            insulator = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.insulator_lbl, insulator)
+            # ------------------------------------------------------------- #
+            self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
+
+        elif self.motor_type.currentText() == 'Motor Ribbon':
+            self.parameters_groupBox_layout.removeRow(self.motor_length_lbl)
+            self.parameters_groupBox_layout.removeRow(self.motor_number_lbl)
+            self.parameters_groupBox_layout.removeRow(self.insulator_lbl)
+            # ------------------------------------------------------------- #
+            self.stator_name_lbl = QLabel("Stator name:")
+            stator_name = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.stator_name_lbl, stator_name)
+            # ------------------------------------------------------------- #
+            self.slider_name_lbl = QLabel("Slider name:")
+            slider_name = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.slider_name_lbl, slider_name)
+            # ------------------------------------------------------------- #
+            self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
+        self.mode_layout.addStretch(1)  

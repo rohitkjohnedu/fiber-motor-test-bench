@@ -41,14 +41,11 @@ class CurrentPlots(QWidget):
         self.plotHistoryLength = 10#seconds
         self.maxPlotHistoryLength = 100000#samples
 
-        # ------------------------------------------------------------------------------------------ #
         # Create a layout for the CurrentPlots widget:
         plot_layout = QHBoxLayout(self)
-        plot_layout.setSpacing(0)
 
         # Create a plot widget:
-        plot_widget = pg.PlotWidget()
-        # plot_widget.setMinimymHeight(200)
+        plot_widget = pg.PlotWidget(self)
         self.legend = pg.LegendItem()
 
         # Create the plots:
@@ -68,6 +65,7 @@ class CurrentPlots(QWidget):
         self.legend.anchor((1.5, 0), (1, 0))
 
         plot_layout.addWidget(plot_widget)
+        
     
     ####################################################################################################################
 
@@ -94,14 +92,12 @@ class CurrentPlots(QWidget):
             use = tplot > tplot[-1] - self.plotHistoryLength
             self.update_plot(t=tplot[use], y1=cm_val_w1[use], y2=cm_val_w2[use], y3=cm_val_w3[use])
             self.update_legend(cm_val_w1[-1], cm_val_w2[-1], cm_val_w3[-1])
-    
     # ------------------------------------------------------------------------------------------------------------------ #
 
     def update_plot(self, t, y1, y2, y3):
         self.y_plot[0].setData(t, y1)
         self.y_plot[1].setData(t, y2)
         self.y_plot[2].setData(t, y3)
-
     # ------------------------------------------------------------------------------------------------------------------ #
         
     def update_legend(self, current_1, current_2, current_3):
