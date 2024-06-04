@@ -16,7 +16,7 @@
 # python packages
 import sys
 from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QMessageBox, QScrollArea, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QMessageBox, QScrollArea
 import time
 import numpy as np
 import os.path
@@ -52,6 +52,24 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_position = 1       # 0: no actuator plot;      1: actuator plot.
 
+        # Variables for the data interpolation.
+        if self.debug == 0: # if debug mode is OFF
+            self.plot_interval = 50#ms
+            self.start_time = 0
+            self.sample_rate = 400#Hz
+            self.interpolation_stop_time = 0
+
+            # Set a timer with the callback function which reads and displays data from the serial port.
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.plot_update_callback)
+            if self.power_supply.auto_connect():
+                self.timer.start(self.plot_interval)
+
+        # self.first_flag = False
+        # self.second_flag = False
+
+        self.previous_tab = 0
+
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
         # ************************************************************************************************************ #
@@ -85,47 +103,48 @@ class MainWindow(QWidget):
         # Modes.
         self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator)
         self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator)
+
+        # Layouts.
+        self.control_panel_layout = None
+        self.monitoring_groupBox_layout = None
+        self.run_button = None
+    
+        self.static.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt)
+        self.dynamic.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt)
         
         # ************************************************************************************************************ #
         #                                     INITIALIZATION OF THE USER INTERFACE
         # ************************************************************************************************************ #                                                             
 
         self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
-        main_layout = QHBoxLayout(self)
+        self.main_layout = QHBoxLayout(self)
         # self.setStyleSheet("background-color: white;")
         # ************************************************************************************************************ #
 
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
-        control_panel_layout = QVBoxLayout()
+        self.control_panel_layout = QVBoxLayout()
         # ------------------------------------------------------------------------------------------------------------ #
         # Add the static and dynamic characterization tabs to the control panel
         self.add_scroll_area_control() # add scroll area to the static and dynamic characterization tabs
 
-        characterization_type = QTabWidget()
-        characterization_type.addTab(self.scroll_area_static, 'Static Characterization')
-        characterization_type.addTab(self.scroll_area_dynamic, 'Dynamic Characterization')
+        self.characterization_type = QTabWidget()
+        self.characterization_type.addTab(self.scroll_area_static, 'Static Characterization')
+        self.characterization_type.addTab(self.scroll_area_dynamic, 'Dynamic Characterization')
 
-        control_panel_layout.addWidget(characterization_type)
+        self.characterization_type.currentChanged.connect(self.run_btn_wdgt)
+
+        self.control_panel_layout.addWidget(self.characterization_type)
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # Control buttons.
-        self.run_button = QPushButton("RUN")
-        if self.debug == 0: # if debug mode is OFF
-            self.run_button.clicked.connect(self.run_button_clicked) # make it actually do something
-        self.run_button.setStyleSheet("background-color: green; "
-                                       "color: white; "
-                                       "font-weight: bold; "
-                                       'font-size: 24px;'
-                                       "position: center; ")
-        control_panel_layout.addWidget(self.run_button)
+        self.run_btn_wdgt() # add the RUN button to the control panel
         # ------------------------------------------------------------------------------------------------------------ #
 
-        main_layout.addLayout(control_panel_layout) # add the control panel on the left side.
+        self.main_layout.addLayout(self.control_panel_layout) # add the control panel on the left side.
 
         # ************************************************************************************************************ #
 
         # MONITORING (Right side of the main window: force, voltage, currents and actuator position).
-        monitoring_groupBox_layout = QVBoxLayout()
+        self.monitoring_groupBox_layout = QVBoxLayout()
 
         self.plots_groupBox = QGroupBox("Monitoring")
         self.plots_groupBox.setStyleSheet('font-weight: bold;'
@@ -167,24 +186,191 @@ class MainWindow(QWidget):
 
         self.plots_groupBox.setLayout(all_plots_layout)
         self.add_scroll_area_monitor() # add scroll area to the monitoring tab
-        monitoring_groupBox_layout.addWidget(self.scroll_area_plots)
+        self.monitoring_groupBox_layout.addWidget(self.scroll_area_plots)
         
-        main_layout.addLayout(monitoring_groupBox_layout, 1) # add the monitoring on the right side.
+        self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
+
+
+
+    def run_btn_wdgt(self):
+        current_tab = self.characterization_type.currentIndex()
+        static_mode = self.static.auto_mode_toggle.isChecked()
+        dynamic_mode = self.dynamic.auto_mode_toggle.isChecked()
+
+        # self.run_button = QPushButton("RUN")
+        # if self.debug == 0: # if debug mode is OFF
+        #     self.run_button.clicked.connect(self.run_button_clicked)
+        # self.run_button.setStyleSheet("background-color: green; "
+        #                                 "color: white; "
+        #                                 "font-weight: bold; "
+        #                                 "font-size: 24px;"
+        #                                 "position: center; ")
+
+        if current_tab == 0:
+            # static and auto
+            if static_mode == False and dynamic_mode == False:
+                self.run_button = QPushButton("RUN")
+                if self.debug == 0: # if debug mode is OFF
+                    self.run_button.clicked.connect(self.run_button_clicked)
+                self.run_button.setStyleSheet("background-color: green; "
+                                                "color: white; "
+                                                "font-weight: bold; "
+                                                "font-size: 24px;"
+                                                "position: center; ")
+                self.control_panel_layout.addWidget(self.run_button)
+                print("one")
+            
+            #
+            elif static_mode == False and dynamic_mode == True:
+                self.run_button = QPushButton("RUN")
+                if self.debug == 0: # if debug mode is OFF
+                    self.run_button.clicked.connect(self.run_button_clicked)
+                self.run_button.setStyleSheet("background-color: green; "
+                                                "color: white; "
+                                                "font-weight: bold; "
+                                                "font-size: 24px;"
+                                                "position: center; ")
+                self.control_panel_layout.addWidget(self.run_button)
+                print("two")
+            
+            # static and manual
+            else:
+                if self.run_button is not None:
+                    self.run_button.deleteLater()
+                    print("three")
+
+            
+        elif current_tab == 1:
+            # dynamic and auto
+            if dynamic_mode == False and static_mode == False:
+                self.run_button = QPushButton("RUN")
+                if self.debug == 0: # if debug mode is OFF
+                    self.run_button.clicked.connect(self.run_button_clicked)
+                self.run_button.setStyleSheet("background-color: green; "
+                                                "color: white; "
+                                                "font-weight: bold; "
+                                                "font-size: 24px;"
+                                                "position: center; ")
+                self.control_panel_layout.addWidget(self.run_button)
+                print("four")
+            
+            #
+            elif dynamic_mode == False and static_mode == True:
+                self.run_button = QPushButton("RUN")
+                if self.debug == 0: # if debug mode is OFF
+                    self.run_button.clicked.connect(self.run_button_clicked)
+                self.run_button.setStyleSheet("background-color: green; "
+                                                "color: white; "
+                                                "font-weight: bold; "
+                                                "font-size: 24px;"
+                                                "position: center; ")
+                self.control_panel_layout.addWidget(self.run_button)
+                print("five")
+
+            # dynamic and manual
+            else:
+                if self.run_button is not None:
+                    self.run_button.deleteLater()
+                    print("six")
+
+        # elif current_tab == 0 and dynamic_mode == True:
+        #     pass
+        
+        # elif current_tab == 1 and static_mode == True:
+        #     pass
+            
+
+
+
+
+
+
+
+        # if tab == 0 and self.second_flag == False: # static characterization
+        #     if self.static.auto_mode_toggle.isChecked() == False:
+        #         self.run_button = QPushButton("RUN")
+        #         if self.debug == 0: # if debug mode is OFF
+        #             self.run_button.clicked.connect(self.run_button_clicked)
+        #         self.run_button.setStyleSheet("background-color: green; "
+        #                                         "color: white; "
+        #                                         "font-weight: bold; "
+        #                                         'font-size: 24px;'
+        #                                         "position: center; ")
+        #         self.control_panel_layout.addWidget(self.run_button)
+        #         self.first_flag = True
+        #     else:
+        #         if self.run_button is not None:
+        #             self.run_button.deleteLater()
+        #             self.first_flag = False
+        # elif tab == 1 and self.first_flag == False: # dynamic characterization
+        #     if self.dynamic.auto_mode_toggle.isChecked() == False:
+        #         self.run_button = QPushButton("RUN")
+        #         if self.debug == 0: # if debug mode is OFF
+        #             self.run_button.clicked.connect(self.run_button_clicked)
+        #         self.run_button.setStyleSheet("background-color: green; "
+        #                                         "color: white; "
+        #                                         "font-weight: bold; "
+        #                                         'font-size: 24px;'
+        #                                         "position: center; ")
+        #         self.control_panel_layout.addWidget(self.run_button)
+        #         self.second_flag = True
+        #     else:
+        #         if self.run_button is not None:
+        #             self.run_button.deleteLater()
+        #             self.second_flag = False
+        # elif tab == 0 and self.second_flag == True:
+        #     if self.static.auto_mode_toggle.isChecked() == False:
+        #         pass
+        #     else:
+        #         if self.run_button is not None:
+        #             self.run_button.deleteLater()
+        #             self.second_flag = False
+        # elif tab == 1 and self.first_flag == True:
+        #     if self.dynamic.auto_mode_toggle.isChecked() == False:
+        #         pass
+        #     else:
+        #         if self.run_button is not None:
+        #             self.run_button.deleteLater()
+        #             self.first_flag = False
+
+
+
+
+        # show_condition1 = self.characterization_type.currentIndex() == 0 and self.static.auto_mode_toggle.isChecked() == False 
+        # show_condition2 = self.characterization_type.currentIndex() == 1 and self.dynamic.auto_mode_toggle.isChecked() == False
+        # if show_condition1 or show_condition2 and flag == False: # AUTO mode is selected
+        #     self.run_button = QPushButton("RUN")
+        #     if self.debug == 0: # if debug mode is OFF
+        #         self.run_button.clicked.connect(self.run_button_clicked) # make it actually do something
+        #     self.run_button.setStyleSheet("background-color: green; "
+        #                                     "color: white; "
+        #                                     "font-weight: bold; "
+        #                                     'font-size: 24px;'
+        #                                     "position: center; ")
+        #     self.control_panel_layout.addWidget(self.run_button)
+        #     flag = True
+        # elif show_condition1 or show_condition2 and flag == True:
+        #     pass
+        # elif : # MANUAL mode is selected
+        #     if self.run_button is not None:
+        #         self.run_button.deleteLater()
+        #         flag = False
+    
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    # Recursively clear nested layouts
+                    self.clear_layout(item.layout())
+            layout.deleteLater()
 
         # ************************************************************************************************************ #
         #                                          CALLBACK FOR DATA READING
         # ************************************************************************************************************ #
-        if self.debug == 0: # if debug mode is OFF
-            self.plot_interval = 50#ms
-            self.start_time = 0
-            self.sample_rate = 400#Hz
-            self.interpolation_stop_time = 0
-
-            # Set a timer with the callback function which reads and displays data from the serial port.
-            self.timer = QTimer(self)
-            self.timer.timeout.connect(self.plot_update_callback)
-            if self.power_supply.auto_connect():
-                self.timer.start(self.plot_interval)
     
     def add_scroll_area_control(self):
         self.scroll_area_static = QScrollArea()
@@ -219,6 +405,8 @@ class MainWindow(QWidget):
                                            'font-size: 24px;'
                                            "position: center; ")
         else:
+            self.power_supply.emergency_stop()
+            self.actuator.stop()
             print("\n[INFO] The measurement is stopped")
             if self.power_supply_debug == 1:
                 self.power_supply.stop_recording()

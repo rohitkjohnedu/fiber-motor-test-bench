@@ -32,13 +32,17 @@ class Thread(QThread):
     def loop(self):
         if self.direction == "Forward":
             phase_shift_1 = 120
+            duration_1 = self.t_forward
             direction_1 = "-----> Forward"
             phase_shift_2 = 240
+            duration_2 = self.t_backward
             direction_2 = "-----> Backward"
         elif self.direction == "Backward":
             phase_shift_1 = 240
+            duration_1 = self.t_backward
             direction_1 = "-----> Backward"
             phase_shift_2 = 120
+            duration_2 = self.t_forward
             direction_2 = "-----> Forward"
         print("\n[INFO] Loop started.")
         for repetition in range(self.repetitions):
@@ -48,14 +52,13 @@ class Thread(QThread):
                             print(direction_1)
                     else:
                          self.sequence_time = 1/self.sequence_freq
-
             else:
                     print("[INFO] Loop interrupted.\n------------------------")
                     self.finish.emit()
                     break
                 # ------------------------------------------------------------------------------------------- #
             if not self.stop_flag:       
-                    time.sleep(self.t_forward)
+                    time.sleep(duration_1)
             else:
                     print("[INFO] Loop interrupted.\n------------------------")
                     self.finish.emit()
@@ -70,7 +73,7 @@ class Thread(QThread):
                     break
                 # ------------------------------------------------------------------------------------------- #
             if not self.stop_flag:
-                    time.sleep(self.t_backward)
+                    time.sleep(duration_2)
             else:
                     print("[INFO] Loop interrupted.\n------------------------")
                     self.finish.emit()
@@ -99,11 +102,12 @@ class Thread(QThread):
 
 
 class Dynamic_PS(QWidget):
-    def __init__(self, device=None, parent=None):
+    def __init__(self, device=None, mode=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # PS device
         self.device = device
+        self.mode = mode
         # ------------------- #
         self.run_thread = None
         self.sleep_thread = None
@@ -152,8 +156,8 @@ class Dynamic_PS(QWidget):
         self.direction_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
         self.direction_edit = QComboBox()
-        self.direction_edit.addItem('Forward')
-        self.direction_edit.addItem('Backward')
+        self.direction_edit.addItem("Forward")
+        self.direction_edit.addItem("Backward")
         # ------------------------------------------------------------------------------------------------------------ #
         self.repeated_mode_lbl = QLabel("Repeated mode:")
         self.repeated_mode_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -169,9 +173,10 @@ class Dynamic_PS(QWidget):
         self.mode_layout.addRow(duty_cycle_lbl, self.duty_cycle_edit)
         # self.mode_layout.addRow(sequence_freq_lbl, self.sequence_freq_edit)
         self.mode_layout.addRow(self.moving_time_label, self.moving_time_edit)
-        self.mode_layout.addRow(self.direction_label, self.direction_edit)
         self.mode_layout.addRow(self.repeated_mode_lbl, self.repeated_mode_checkbox)
-        self.mode_layout.addRow(self.set_button)
+        self.mode_layout.addRow(self.direction_label, self.direction_edit)
+        if self.mode == "manual":
+            self.mode_layout.addRow(self.set_button)
 
         # ************************************************************************************************************ #
         # PARAMETERS
@@ -227,8 +232,8 @@ class Dynamic_PS(QWidget):
             self.mode_layout.removeRow(self.repetitions_label)
             self.mode_layout.removeRow(self.t_forward_lbl)
             self.mode_layout.removeRow(self.t_backward_lbl)
-            self.mode_layout.addRow(self.moving_time_label, self.moving_time_edit)
             self.mode_layout.addRow(self.repeated_mode_lbl, self.repeated_mode_checkbox)
+            self.mode_layout.addRow(self.moving_time_label, self.moving_time_edit)
         self.add_buttons() # add buttons to the end of the layout
 
     ####################################################################################################################

@@ -3,11 +3,12 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox
 
 class Static_PS(QWidget):
-    def __init__(self, device=None, parent=None):
+    def __init__(self, device=None, mode=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # PS device
         self.device = device
+        self.mode = mode
 
         # ************************************************************************************************************ #
         # INTERFACE ELEMENTS
@@ -44,7 +45,10 @@ class Static_PS(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
         self.mode_layout.addRow(state_lbl, self.st_comboBox)
-        self.mode_layout.addRow(self.set_button, self.update_button)
+        if self.mode == "manual":
+            self.mode_layout.addRow(self.set_button, self.update_button)
+        else:
+            self.mode_layout.addRow(self.update_button)
 
         # ************************************************************************************************************ #
         # PARAMETERS

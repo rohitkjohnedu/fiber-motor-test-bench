@@ -503,9 +503,10 @@ class StandaTableWidget(QWidget):
     graphHistory = 10000  # Number of point for graph history
     buttonMaxWidth = 150
 
-    def __init__(self, Motor: StandaTable=None):
+    def __init__(self, Motor: StandaTable=None, mode=None):
         super(StandaTableWidget, self).__init__()
         self.Motor = Motor  # Motor controller object
+        self.mode = mode  # Auto or Manual control mode
         if self.Motor is not None:
             speed_val = str(self.Motor.get_speed())
             position_val = '{:.2f}'.format(self.Motor.get_position())

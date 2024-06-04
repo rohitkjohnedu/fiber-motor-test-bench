@@ -24,13 +24,13 @@ from PyQt6.QtWidgets import *
 class PyToggle(QCheckBox):
     def __init__(
             self,
-            width=60,
-            bg_color="#F00",
+            width=120,
+            bg_color="#DDD",
             bg_text="FO0",
-            circle_color="#DDD",
-            active_color="#3aba00",
+            circle_color="#FFF",
+            active_color="#DDD",
             active_text="ON",
-            animation_curve=QEasingCurve.Type.OutBounce
+            # animation_curve=QEasingCurve.Type.OutBounce
     ):
         QCheckBox.__init__(self)
 
@@ -46,10 +46,10 @@ class PyToggle(QCheckBox):
         self._active_text = active_text
 
         # CREATE ANIMATION
-        self._circle_position = self.width() - 26
+        self._circle_position = 3 #self.width() - 26
         self.animation = QPropertyAnimation(self, b"circle_position", self)
-        self.animation.setEasingCurve(animation_curve)
-        self.animation.setDuration(250)  # Time in milliseconds
+        # self.animation.setEasingCurve(animation_curve)
+        self.animation.setDuration(200)  # Time in milliseconds
 
         # CONNECT STAT CHANGED
         self.stateChanged.connect(self.start_transition)
@@ -70,14 +70,14 @@ class PyToggle(QCheckBox):
     def start_transition(self, value):
         self.animation.stop()  # Stop animation if running
         if value:
-            self.animation.setEndValue(3)
-        else:
             self.animation.setEndValue(self.width() - 26)
+        else:
+            self.animation.setEndValue(3)
 
         # START ANIMATION
         self.animation.start()
 
-        # print(f"Status: {self.isChecked()}")
+        print(f"Status: {self.isChecked()}")
 
     # **************************************************************************************************************** #
     # SET NEW HIT AREA
