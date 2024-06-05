@@ -4,6 +4,7 @@ import logging
 import time
 from threading import Thread, Lock, RLock
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QSizePolicy
 import pyqtgraph as pg
 
@@ -526,10 +527,12 @@ class StandaTableWidget(QWidget):
         buttonLayout.addRow(upButton, downButton)
         
         self.speed_edit = QLineEdit(speed_val)
+        self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
        
-        self.positionEdit = QLineEdit(position_val)
-        buttonLayout.addRow("Position (mm):", self.positionEdit)
+        self.position_edit = QLineEdit(position_val)
+        self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        buttonLayout.addRow("Position (mm):", self.position_edit)
 
         stopButton = QPushButton("STOP")
         buttonLayout.addRow(stopButton)
@@ -549,7 +552,7 @@ class StandaTableWidget(QWidget):
             goToPosition.clicked.connect(self.goToPositionCallback)
 
     def goToPositionCallback(self):
-        target_position = float(self.positionEdit.text())
+        target_position = float(self.position_edit.text())
         self.Motor.move(target_position, 0)
 
     def setSpeedCallback(self):

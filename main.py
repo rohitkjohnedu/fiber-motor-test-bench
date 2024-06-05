@@ -65,11 +65,6 @@ class MainWindow(QWidget):
             if self.power_supply.auto_connect():
                 self.timer.start(self.plot_interval)
 
-        # self.first_flag = False
-        # self.second_flag = False
-
-        self.previous_tab = 0
-
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
         # ************************************************************************************************************ #
@@ -100,17 +95,20 @@ class MainWindow(QWidget):
         self.force_plot = ForcePlot(self.force_sensor)
         self.position_plot = PositionPlot(self.actuator)
 
-        # Modes.
+        # Characterization.
         self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator)
         self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator)
 
         # Layouts.
         self.control_panel_layout = None
         self.monitoring_groupBox_layout = None
-        self.run_button = None
-    
-        self.static.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt)
-        self.dynamic.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt)
+
+        # Control mode.
+        self.run_btn_wdgt_static_flag = False
+        self.run_btn_wdgt_dynamic_flag = False
+        self.emg_stop_btn = None
+        self.static.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt_static)
+        self.dynamic.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt_dynamic)
         
         # ************************************************************************************************************ #
         #                                     INITIALIZATION OF THE USER INTERFACE
@@ -131,12 +129,12 @@ class MainWindow(QWidget):
         self.characterization_type.addTab(self.scroll_area_static, 'Static Characterization')
         self.characterization_type.addTab(self.scroll_area_dynamic, 'Dynamic Characterization')
 
-        self.characterization_type.currentChanged.connect(self.run_btn_wdgt)
+        self.characterization_type.currentChanged.connect(self.tab_changed)
 
         self.control_panel_layout.addWidget(self.characterization_type)
         # ------------------------------------------------------------------------------------------------------------ #
 
-        self.run_btn_wdgt() # add the RUN button to the control panel
+        self.run_btn_wdgt_static() # add the RUN button to the control panel
         # ------------------------------------------------------------------------------------------------------------ #
 
         self.main_layout.addLayout(self.control_panel_layout) # add the control panel on the left side.
@@ -190,171 +188,101 @@ class MainWindow(QWidget):
         
         self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
+    # ************************************************************************************************************ #
+    
+    # Run button widget
+    def tab_changed(self):
+        if self.characterization_type.currentIndex() == 0:
+            self.run_btn_wdgt_static()
+        elif self.characterization_type.currentIndex() == 1:
+            self.run_btn_wdgt_dynamic()
+    # ************************************************************************************************************ #
 
+    def run_btn_wdgt_static(self):
+        toggle_state = self.static.auto_mode_toggle.isChecked()
+        if toggle_state == False and self.run_btn_wdgt_dynamic_flag == False and self.run_btn_wdgt_static_flag == False:
+            # -------------------------------------------------------------------------------------------------------- #
+            if self.emg_stop_btn is not None:
+                self.emg_stop_btn.deleteLater()
+            #--------------------------------------------------------------------------------------------------------- #
+            self.run_button = QPushButton("RUN")
+            if self.debug == 0: # if debug mode is OFF
+                self.run_button.clicked.connect(self.run_button_clicked)
+            self.run_button.setStyleSheet("background-color: green; "
+                                            "color: white; "
+                                            "font-weight: bold; "
+                                            "font-size: 24px;"
+                                            "position: center; ")
+            self.control_panel_layout.addWidget(self.run_button)
+            # -------------------------------------------------------------------------------------------------------- #
+            self.run_btn_wdgt_static_flag = True
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif toggle_state == False and self.run_btn_wdgt_dynamic_flag == True:
+            pass
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif toggle_state == True and self.run_btn_wdgt_dynamic_flag == False and self.run_btn_wdgt_static_flag == False:
+            pass
+        # ------------------------------------------------------------------------------------------------------------ #
+        else:
+            if self.run_button is not None:
+                self.run_button.deleteLater()
+            # -------------------------------------------------------------------------------------------------------- #
+            self.emg_stop_btn = QPushButton("EMERGENCY STOP")
+            if self.power_supply is not None:
+                self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
+            self.emg_stop_btn.setStyleSheet("background-color: red; "
+                                            "color: white; "
+                                            "font-weight: bold; "
+                                            "font-size: 24px; "
+                                            "position: center; ")    
+            self.control_panel_layout.addWidget(self.emg_stop_btn)
+            # -------------------------------------------------------------------------------------------------------- #
+            self.run_btn_wdgt_static_flag = False
+            self.run_btn_wdgt_dynamic_flag = False
+    # ************************************************************************************************************ #
 
-    def run_btn_wdgt(self):
-        current_tab = self.characterization_type.currentIndex()
-        static_mode = self.static.auto_mode_toggle.isChecked()
-        dynamic_mode = self.dynamic.auto_mode_toggle.isChecked()
-
-        # self.run_button = QPushButton("RUN")
-        # if self.debug == 0: # if debug mode is OFF
-        #     self.run_button.clicked.connect(self.run_button_clicked)
-        # self.run_button.setStyleSheet("background-color: green; "
-        #                                 "color: white; "
-        #                                 "font-weight: bold; "
-        #                                 "font-size: 24px;"
-        #                                 "position: center; ")
-
-        if current_tab == 0:
-            # static and auto
-            if static_mode == False and dynamic_mode == False:
-                self.run_button = QPushButton("RUN")
-                if self.debug == 0: # if debug mode is OFF
-                    self.run_button.clicked.connect(self.run_button_clicked)
-                self.run_button.setStyleSheet("background-color: green; "
-                                                "color: white; "
-                                                "font-weight: bold; "
-                                                "font-size: 24px;"
-                                                "position: center; ")
-                self.control_panel_layout.addWidget(self.run_button)
-                print("one")
-            
-            #
-            elif static_mode == False and dynamic_mode == True:
-                self.run_button = QPushButton("RUN")
-                if self.debug == 0: # if debug mode is OFF
-                    self.run_button.clicked.connect(self.run_button_clicked)
-                self.run_button.setStyleSheet("background-color: green; "
-                                                "color: white; "
-                                                "font-weight: bold; "
-                                                "font-size: 24px;"
-                                                "position: center; ")
-                self.control_panel_layout.addWidget(self.run_button)
-                print("two")
-            
-            # static and manual
-            else:
-                if self.run_button is not None:
-                    self.run_button.deleteLater()
-                    print("three")
-
-            
-        elif current_tab == 1:
-            # dynamic and auto
-            if dynamic_mode == False and static_mode == False:
-                self.run_button = QPushButton("RUN")
-                if self.debug == 0: # if debug mode is OFF
-                    self.run_button.clicked.connect(self.run_button_clicked)
-                self.run_button.setStyleSheet("background-color: green; "
-                                                "color: white; "
-                                                "font-weight: bold; "
-                                                "font-size: 24px;"
-                                                "position: center; ")
-                self.control_panel_layout.addWidget(self.run_button)
-                print("four")
-            
-            #
-            elif dynamic_mode == False and static_mode == True:
-                self.run_button = QPushButton("RUN")
-                if self.debug == 0: # if debug mode is OFF
-                    self.run_button.clicked.connect(self.run_button_clicked)
-                self.run_button.setStyleSheet("background-color: green; "
-                                                "color: white; "
-                                                "font-weight: bold; "
-                                                "font-size: 24px;"
-                                                "position: center; ")
-                self.control_panel_layout.addWidget(self.run_button)
-                print("five")
-
-            # dynamic and manual
-            else:
-                if self.run_button is not None:
-                    self.run_button.deleteLater()
-                    print("six")
-
-        # elif current_tab == 0 and dynamic_mode == True:
-        #     pass
-        
-        # elif current_tab == 1 and static_mode == True:
-        #     pass
-            
-
-
-
-
-
-
-
-        # if tab == 0 and self.second_flag == False: # static characterization
-        #     if self.static.auto_mode_toggle.isChecked() == False:
-        #         self.run_button = QPushButton("RUN")
-        #         if self.debug == 0: # if debug mode is OFF
-        #             self.run_button.clicked.connect(self.run_button_clicked)
-        #         self.run_button.setStyleSheet("background-color: green; "
-        #                                         "color: white; "
-        #                                         "font-weight: bold; "
-        #                                         'font-size: 24px;'
-        #                                         "position: center; ")
-        #         self.control_panel_layout.addWidget(self.run_button)
-        #         self.first_flag = True
-        #     else:
-        #         if self.run_button is not None:
-        #             self.run_button.deleteLater()
-        #             self.first_flag = False
-        # elif tab == 1 and self.first_flag == False: # dynamic characterization
-        #     if self.dynamic.auto_mode_toggle.isChecked() == False:
-        #         self.run_button = QPushButton("RUN")
-        #         if self.debug == 0: # if debug mode is OFF
-        #             self.run_button.clicked.connect(self.run_button_clicked)
-        #         self.run_button.setStyleSheet("background-color: green; "
-        #                                         "color: white; "
-        #                                         "font-weight: bold; "
-        #                                         'font-size: 24px;'
-        #                                         "position: center; ")
-        #         self.control_panel_layout.addWidget(self.run_button)
-        #         self.second_flag = True
-        #     else:
-        #         if self.run_button is not None:
-        #             self.run_button.deleteLater()
-        #             self.second_flag = False
-        # elif tab == 0 and self.second_flag == True:
-        #     if self.static.auto_mode_toggle.isChecked() == False:
-        #         pass
-        #     else:
-        #         if self.run_button is not None:
-        #             self.run_button.deleteLater()
-        #             self.second_flag = False
-        # elif tab == 1 and self.first_flag == True:
-        #     if self.dynamic.auto_mode_toggle.isChecked() == False:
-        #         pass
-        #     else:
-        #         if self.run_button is not None:
-        #             self.run_button.deleteLater()
-        #             self.first_flag = False
-
-
-
-
-        # show_condition1 = self.characterization_type.currentIndex() == 0 and self.static.auto_mode_toggle.isChecked() == False 
-        # show_condition2 = self.characterization_type.currentIndex() == 1 and self.dynamic.auto_mode_toggle.isChecked() == False
-        # if show_condition1 or show_condition2 and flag == False: # AUTO mode is selected
-        #     self.run_button = QPushButton("RUN")
-        #     if self.debug == 0: # if debug mode is OFF
-        #         self.run_button.clicked.connect(self.run_button_clicked) # make it actually do something
-        #     self.run_button.setStyleSheet("background-color: green; "
-        #                                     "color: white; "
-        #                                     "font-weight: bold; "
-        #                                     'font-size: 24px;'
-        #                                     "position: center; ")
-        #     self.control_panel_layout.addWidget(self.run_button)
-        #     flag = True
-        # elif show_condition1 or show_condition2 and flag == True:
-        #     pass
-        # elif : # MANUAL mode is selected
-        #     if self.run_button is not None:
-        #         self.run_button.deleteLater()
-        #         flag = False
+    def run_btn_wdgt_dynamic(self):
+        toggle_state = self.dynamic.auto_mode_toggle.isChecked()
+        if toggle_state == False and self.run_btn_wdgt_static_flag == False and self.run_btn_wdgt_dynamic_flag == False:
+            # -------------------------------------------------------------------------------------------------------- #
+            if self.emg_stop_btn is not None:
+                self.emg_stop_btn.deleteLater()
+            # -------------------------------------------------------------------------------------------------------- #
+            self.run_button = QPushButton("RUN")
+            if self.debug == 0: # if debug mode is OFF
+                self.run_button.clicked.connect(self.run_button_clicked)
+            self.run_button.setStyleSheet("background-color: green; "
+                                            "color: white; "
+                                            "font-weight: bold; "
+                                            "font-size: 24px;"
+                                            "position: center; ")
+            self.control_panel_layout.addWidget(self.run_button)
+            # -------------------------------------------------------------------------------------------------------- #
+            self.run_btn_wdgt_dynamic_flag = True
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif toggle_state == False and self.run_btn_wdgt_static_flag == True:
+            pass
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif toggle_state == True and self.run_btn_wdgt_static_flag == False and self.run_btn_wdgt_dynamic_flag == False:
+            pass
+        # ------------------------------------------------------------------------------------------------------------ #
+        else:
+            if self.run_button is not None:
+                self.run_button.deleteLater()
+            # -------------------------------------------------------------------------------------------------------- #
+            self.emg_stop_btn = QPushButton("EMERGENCY STOP")
+            if self.power_supply is not None:
+                self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
+            self.emg_stop_btn.setStyleSheet("background-color: red; "
+                                            "color: white; "
+                                            "font-weight: bold; "
+                                            "font-size: 24px; "
+                                            "position: center; ")    
+            self.control_panel_layout.addWidget(self.emg_stop_btn)
+            # -------------------------------------------------------------------------------------------------------- #
+            self.run_btn_wdgt_static_flag = False
+            self.run_btn_wdgt_dynamic_flag = False
+    # ************************************************************************************************************ #
     
     def clear_layout(self, layout):
         if layout is not None:
@@ -368,9 +296,9 @@ class MainWindow(QWidget):
                     self.clear_layout(item.layout())
             layout.deleteLater()
 
-        # ************************************************************************************************************ #
-        #                                          CALLBACK FOR DATA READING
-        # ************************************************************************************************************ #
+    # ************************************************************************************************************ #
+    #                                          CALLBACK FOR DATA READING
+    # ************************************************************************************************************ #
     
     def add_scroll_area_control(self):
         self.scroll_area_static = QScrollArea()
@@ -420,6 +348,10 @@ class MainWindow(QWidget):
                                        "font-weight: bold; "
                                        'font-size: 24px;'
                                        "position: center; ")
+        
+    def emg_stop_btn_clicked(self):
+        self.power_supply.emergency_stop()
+        self.actuator.stop()
     
     def plot_update_callback(self):
         if self.power_supply_debug == 1:

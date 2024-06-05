@@ -172,9 +172,9 @@ class Dynamic_PS(QWidget):
         self.mode_layout.addRow(modul_freq_lbl, self.modul_freq_edit)
         self.mode_layout.addRow(duty_cycle_lbl, self.duty_cycle_edit)
         # self.mode_layout.addRow(sequence_freq_lbl, self.sequence_freq_edit)
-        self.mode_layout.addRow(self.moving_time_label, self.moving_time_edit)
         self.mode_layout.addRow(self.repeated_mode_lbl, self.repeated_mode_checkbox)
         self.mode_layout.addRow(self.direction_label, self.direction_edit)
+        self.mode_layout.addRow(self.moving_time_label, self.moving_time_edit)
         if self.mode == "manual":
             self.mode_layout.addRow(self.set_button)
 
@@ -222,17 +222,22 @@ class Dynamic_PS(QWidget):
             self.mode_layout.addRow(self.t_forward_lbl, self.t_forward_edit)
             self.mode_layout.addRow(self.t_backward_lbl, self.t_backward_edit)
         else:
+            self.mode_layout.removeRow(self.direction_label)
             # ------------------------------------------------------------------------------------------------------------ #
             self.moving_time_label = QLabel("Time (s):")
-            self.moving_time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            
             self.moving_time_edit = QLineEdit("1")
-            self.moving_time_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.t_backward_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             # ------------------------------------------------------------------------------------------------------------ #
+            self.direction_label = QLabel("Direction:")
+            self.direction_edit = QComboBox()
+            self.direction_edit.addItem("Forward")
+            self.direction_edit.addItem("Backward")
+            # ------------------------------------------------------------------------------------------------------------ # 
             self.mode_layout.removeRow(self.repetitions_label)
             self.mode_layout.removeRow(self.t_forward_lbl)
             self.mode_layout.removeRow(self.t_backward_lbl)
             self.mode_layout.addRow(self.repeated_mode_lbl, self.repeated_mode_checkbox)
+            self.mode_layout.addRow(self.direction_label, self.direction_edit)
             self.mode_layout.addRow(self.moving_time_label, self.moving_time_edit)
         self.add_buttons() # add buttons to the end of the layout
 

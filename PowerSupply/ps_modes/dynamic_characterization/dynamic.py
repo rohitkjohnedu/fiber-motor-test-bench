@@ -51,17 +51,17 @@ class DynamicMode(QWidget):
 
         self.control_panel_layout = QVBoxLayout()
 
-        if mode == 'manual':
-        # Emergency stop button.
-            self.emg_stop_btn = QPushButton("EMERGENCY STOP")
-            if self.power_supply is not None:
-                self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
-            self.emg_stop_btn.setStyleSheet("background-color: red; "
-                                            "color: white; "
-                                            "font-weight: bold; "
-                                            "font-size: 24px; "
-                                            "position: center; ")    
-            self.control_panel_layout.addWidget(self.emg_stop_btn)
+        # if mode == 'manual':
+        # # Emergency stop button.
+        #     self.emg_stop_btn = QPushButton("EMERGENCY STOP")
+        #     if self.power_supply is not None:
+        #         self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
+        #     self.emg_stop_btn.setStyleSheet("background-color: red; "
+        #                                     "color: white; "
+        #                                     "font-weight: bold; "
+        #                                     "font-size: 24px; "
+        #                                     "position: center; ")    
+        #     self.control_panel_layout.addWidget(self.emg_stop_btn)
         # -------------------------------------------------------------------------------------------------------- #
 
         if mode == 'auto':
@@ -83,7 +83,7 @@ class DynamicMode(QWidget):
             tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
                 tare_btn.clicked.connect(self.force_sensor.tare)
-            tare_btn.setStyleSheet("background-color: #ADD8E6; "
+            tare_btn.setStyleSheet("background-color: white; "
                                     "color: black; "
                                     "font-weight: bold; "
                                     "font-size: 24px; "
@@ -209,9 +209,9 @@ class DynamicMode(QWidget):
         #     self.power_supply_groupBox_layout.addRow(self.power_supply)
 
     # ************************************************************************************************************ #
-    def emg_stop_btn_clicked(self):
-        self.power_supply.emergency_stop()
-        self.actuator.stop()
+    # def emg_stop_btn_clicked(self):
+    #     self.power_supply.emergency_stop()
+    #     self.actuator.stop()
     
     # ************************************************************************************************************ #
     def motor_type_changed(self):
