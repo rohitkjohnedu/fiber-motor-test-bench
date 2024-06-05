@@ -1,14 +1,15 @@
 # python packages
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox
+from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox, QCheckBox
 
 class Static_PS(QWidget):
-    def __init__(self, device=None, mode=None, parent=None):
+    def __init__(self, device=None, mode=None, exp_type=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # PS device
         self.device = device
         self.mode = mode
+        self.exp_type = exp_type
 
         # ************************************************************************************************************ #
         # INTERFACE ELEMENTS
@@ -19,16 +20,21 @@ class Static_PS(QWidget):
 
         self.target_voltage_edit = QLineEdit("0")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # target_voltage_edit.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
-        state_lbl = QLabel("State:")
-        state_lbl.setFixedWidth(150)
+        if self.mode == "manual":
+            state_lbl = QLabel("State:")
+            state_lbl.setFixedWidth(150)
 
-        self.st_comboBox = QComboBox()
-        states = ['A', 'B', 'C', 'D', 'E', 'F', 'A-D', 'B-E', 'C-F', 'Other']
-        for state in states:
-            self.st_comboBox.addItem(state)
-        # self.st_comboBox.setFixedWidth(80)
+            self.st_comboBox = QComboBox()
+            states = ['A', 'B', 'C', 'D', 'E', 'F', 'A-D', 'B-E', 'C-F', 'Other']
+            for state in states:
+                self.st_comboBox.addItem(state)
+        else:
+            state_lbl = QLabel("Not modulated 'A - B - C' states")
+            state_lbl.setFixedWidth(150)
+
+            self.state_opt = QCheckBox()
+            self.state_opt.setChecked(False)
         # ------------------------------------------------------------------------------------------------------------ #
         # The following widgets are used in "ACTIONS" section as a place holders, but then initialized in "EXTENDED SET"
         self.freq_edit = QLineEdit("1")
@@ -41,13 +47,13 @@ class Static_PS(QWidget):
         self.set_button.setFixedWidth(150)
 
         self.update_button = QPushButton("Update")
-        # self.update_button.setFixedWidth(80)
         # ------------------------------------------------------------------------------------------------------------ #
         self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
-        self.mode_layout.addRow(state_lbl, self.st_comboBox)
         if self.mode == "manual":
+            self.mode_layout.addRow(state_lbl, self.st_comboBox)
             self.mode_layout.addRow(self.set_button, self.update_button)
         else:
+            self.mode_layout.addRow(state_lbl, self.state_opt)
             self.mode_layout.addRow(self.update_button)
 
         # ************************************************************************************************************ #
@@ -71,7 +77,10 @@ class Static_PS(QWidget):
     ########################################################################################################################
     # ADD BUTTONS ALWAYS TO THE END OF THE LAYOUT
     def add_buttons(self):
-        self.mode_layout.addRow(self.set_button, self.update_button)
+        if self.mode == "manual":
+            self.mode_layout.addRow(self.set_button, self.update_button)
+        else:
+            self.mode_layout.addRow(self.update_button)
 
     ########################################################################################################################
     # EXTENDED SET for states A-D, B-E, C-F, Other
@@ -138,7 +147,7 @@ class Static_PS(QWidget):
 
     ####################################################################################################################
     # SET BUTTON CLICKED
-    def set_pressed(self):
+    def set_pressed(self, state=None):
         new_hv_val = float(self.target_voltage_edit.text())
         if new_hv_val == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
@@ -146,7 +155,7 @@ class Static_PS(QWidget):
             return
         else: 
             if self.set_button.text() =="Set":
-                self.set_command()
+                self.set_command(state)
             else:
                 self.reset_command()
 
@@ -203,9 +212,12 @@ class Static_PS(QWidget):
 
     ####################################################################################################################
     # SET COMMAND
-    def set_command(self):
+    def set_command(self, state=None):
         new_hv_val = float(self.target_voltage_edit.text())
-        state_index = self.st_comboBox.currentIndex()
+        if self.st_comboBox is not None:
+            state_index = self.st_comboBox.currentIndex()
+        else:
+            state_index = state
 
         if new_hv_val == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
@@ -213,6 +225,7 @@ class Static_PS(QWidget):
                   "\n------------------------------------")
         else: 
             if self.voltage_set() is True:
+                if self.mode == "manual":
                     if self.state_index >= 5:
                         freq_val = float(self.freq_edit.text())
                         duty_val = 50 #%
@@ -237,6 +250,14 @@ class Static_PS(QWidget):
                         ph_shifts = [ch1_phase_shift, ch2_phase_shift, ch3_phase_shift]
                         self.AC_set(self.channels_keys, freq_val,  duty_val, ph_shifts) # phase shift set for other
                     self.lock_command(is_on=1)
+                else:
+                    if self.state_opt.isChecked():
+                        self.DC_set(self.channels_keys, state_index)
+                    else:
+                        zero_volt = QMessageBox.warning(self, "Not modulated states", "Please, select 'Not modulated states'")
+                        print("\n[INFO] Please, select 'Not modulated states'"
+                              "\n------------------------------------")
+
 
     ####################################################################################################################
     # LOCK COMMAND

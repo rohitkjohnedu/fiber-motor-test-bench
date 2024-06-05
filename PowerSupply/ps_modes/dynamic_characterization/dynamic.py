@@ -51,23 +51,10 @@ class DynamicMode(QWidget):
 
         self.control_panel_layout = QVBoxLayout()
 
-        # if mode == 'manual':
-        # # Emergency stop button.
-        #     self.emg_stop_btn = QPushButton("EMERGENCY STOP")
-        #     if self.power_supply is not None:
-        #         self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
-        #     self.emg_stop_btn.setStyleSheet("background-color: red; "
-        #                                     "color: white; "
-        #                                     "font-weight: bold; "
-        #                                     "font-size: 24px; "
-        #                                     "position: center; ")    
-        #     self.control_panel_layout.addWidget(self.emg_stop_btn)
-        # -------------------------------------------------------------------------------------------------------- #
-
         if mode == 'auto':
         # Type of experiment.
             self.experiment_type_layout = QFormLayout()
-            experiment_type_label = QLabel("Type of Experiment:")
+            experiment_type_label = QLabel("Experiment:")
             self.experiment_type = QComboBox()
             experiments = ['Force vs. Speed', 'Force vs. Voltage and Speed', 'Force vs. Frequency and Speed']
             for experiment in experiments:
@@ -197,10 +184,8 @@ class DynamicMode(QWidget):
         experiment_text = self.experiment_type.currentText()
         if experiment_text == 'Force vs. Speed':
             self.power_supply_groupBox_layout.addRow(self.power_supply_control)
-            self.power_supply_groupBox_layout.addRow(self.emg_stop_btn)
         elif experiment_text == 'Force vs. Voltage and Speed':
             self.power_supply_groupBox_layout.addRow(self.power_supply_control)
-            self.power_supply_groupBox_layout.addRow(self.emg_stop_btn)
         # elif experiment_text == 'Force vs. Frequency and Position':
         #     self.power_supply_groupBox_layout.addRow(self.power_supply)
         # elif experiment_text == 'Max. Force vs. Voltage':

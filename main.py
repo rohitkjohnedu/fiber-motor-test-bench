@@ -318,36 +318,49 @@ class MainWindow(QWidget):
         
     def run_button_clicked(self):
         if self.run_button.text() == "RUN":
+            # -------------------------------------------------------------------------------------------------------- #
             print("\n[INFO] The measurement is running")
+            self.run_button.setText("STOP")
+            self.run_button.setStyleSheet("background-color: red; "
+                                           "color: white; "
+                                           "font-weight: bold; "
+                                           "font-size: 24px;"
+                                           "position: center; ")
+            # -------------------------------------------------------------------------------------------------------- #
             self.start_time = time.perf_counter()
+
             if self.power_supply_debug == 1: # if power supply is connected
                 self.power_supply.start_recording()
             if self.force_sensor_debug == 1: # if force sensor is connected
                 self.force_sensor.start_recording()
             if self.actuator_debug == 1: # if actuator is connected
                 self.actuator.start_recording()
-            self.run_button.setText("STOP")
-            self.run_button.setStyleSheet("background-color: red; "
-                                           "color: white; "
-                                           "font-weight: bold; "
-                                           'font-size: 24px;'
-                                           "position: center; ")
+            # -------------------------------------------------------------------------------------------------------- #
+            if self.static.characterization_type_layout.currentIndex() == 0:
+                self.static.run_static(self.start_time)
+            # elif self.static.characterization_type_layout.currentIndex() == 1:
+            #     self.dynamic.run_dynamic()
+            # -------------------------------------------------------------------------------------------------------- #
+
         else:
-            self.power_supply.emergency_stop()
-            self.actuator.stop()
+            # -------------------------------------------------------------------------------------------------------- #
             print("\n[INFO] The measurement is stopped")
+            self.run_button.setText("RUN")
+            self.run_button.setStyleSheet("background-color: green; "
+                                       "color: white; "
+                                       "font-weight: bold; "
+                                       "font-size: 24px;"
+                                       "position: center; ")
+            # -------------------------------------------------------------------------------------------------------- #
+            self.emg_stop_btn_clicked()
+            
             if self.power_supply_debug == 1:
                 self.power_supply.stop_recording()
             if self.force_sensor_debug == 1:
                 self.force_sensor.stop_recording()
             if self.actuator_debug == 1:
                 self.actuator.stop_recording()
-            self.run_button.setText("RUN")
-            self.run_button.setStyleSheet("background-color: green; "
-                                       "color: white; "
-                                       "font-weight: bold; "
-                                       'font-size: 24px;'
-                                       "position: center; ")
+            # -------------------------------------------------------------------------------------------------------- #
         
     def emg_stop_btn_clicked(self):
         self.power_supply.emergency_stop()

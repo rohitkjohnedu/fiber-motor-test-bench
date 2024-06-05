@@ -5,7 +5,7 @@ import time
 from threading import Thread, Lock, RLock
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QLabel
 import pyqtgraph as pg
 
 import numpy as np
@@ -504,10 +504,11 @@ class StandaTableWidget(QWidget):
     graphHistory = 10000  # Number of point for graph history
     buttonMaxWidth = 150
 
-    def __init__(self, Motor: StandaTable=None, mode=None):
+    def __init__(self, Motor: StandaTable=None, mode=None, exp_type=None):
         super(StandaTableWidget, self).__init__()
         self.Motor = Motor  # Motor controller object
         self.mode = mode  # Auto or Manual control mode
+        self.exp_type = exp_type  # Experiment type
         if self.Motor is not None:
             speed_val = str(self.Motor.get_speed())
             position_val = '{:.2f}'.format(self.Motor.get_position())
@@ -516,30 +517,51 @@ class StandaTableWidget(QWidget):
             position_val = '0'
 
         buttonLayout = QFormLayout(self)
-        
-        homeButton = QPushButton("HOME")
-        buttonLayout.addRow(homeButton)
 
-        upButton = QPushButton("Forward")
-        upButton.setFixedWidth(140)
-        downButton = QPushButton("Backward")
-        # downButton.setFixedWidth(150)
-        buttonLayout.addRow(upButton, downButton)
-        
-        self.speed_edit = QLineEdit(speed_val)
-        self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
-       
-        self.position_edit = QLineEdit(position_val)
-        self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        buttonLayout.addRow("Position (mm):", self.position_edit)
+        if self.mode == 'manual':            
+            homeButton = QPushButton("HOME")
+            buttonLayout.addRow(homeButton)
 
-        stopButton = QPushButton("STOP")
-        buttonLayout.addRow(stopButton)
-
-        goToPosition = QPushButton("Move")
-        buttonLayout.addRow(goToPosition)
+            upButton = QPushButton("Forward")
+            upButton.setFixedWidth(140)
+            downButton = QPushButton("Backward")
+            # downButton.setFixedWidth(150)
+            buttonLayout.addRow(upButton, downButton)
+            
+            self.speed_edit = QLineEdit(speed_val)
+            self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
         
+            self.position_edit = QLineEdit(position_val)
+            self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow("Position (mm):", self.position_edit)
+
+            stopButton = QPushButton("STOP")
+            buttonLayout.addRow(stopButton)
+
+            goToPosition = QPushButton("Move")
+            buttonLayout.addRow(goToPosition)
+        else:
+            start_pos_lbl = QLabel("Start position (mm):")
+            self.start_pos_edit = QLineEdit("0")
+            self.start_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(start_pos_lbl, self.start_pos_edit)
+
+            end_pos_lbl = QLabel("End position (mm):")
+            self.end_pos_edit = QLineEdit("0")
+            self.end_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(end_pos_lbl, self.end_pos_edit)
+
+            step_size_lbl = QLabel("Step size (um):")
+            self.step_size_edit = QLineEdit("0")
+            self.step_size_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(step_size_lbl, self.step_size_edit)
+
+            speed_label = QLabel("Speed (mm/s):")
+            self.speed_edit = QLineEdit(speed_val)
+            self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(speed_label, self.speed_edit)
+
         # Actions
         if self.Motor is not None:
             homeButton.released.connect(self.Motor.home_zero)
