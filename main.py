@@ -21,6 +21,7 @@ import time
 import numpy as np
 import os.path
 from datetime import datetime
+from threading import Thread, RLock
 
 # custom packages
 from PowerSupply import HvpsDevice, VoltagePlots, CurrentPlots, StaticMode, DynamicMode
@@ -40,10 +41,10 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         # Debug options.
-        self.debug = 1                  # 0: full debug OFF;        1: full debug ON.
-        self.power_supply_debug = 0     # 0: no power supply;       1: power supply.
-        self.force_sensor_debug = 0     # 0: no force sensor;       1: force sensor.
-        self.actuator_debug = 0         # 0: no actuator;           1: actuator.
+        self.debug = 0                  # 0: full debug OFF;        1: full debug ON.
+        self.power_supply_debug = 1     # 0: no power supply;       1: power supply.
+        self.force_sensor_debug = 1     # 0: no force sensor;       1: force sensor.
+        self.actuator_debug = 1         # 0: no actuator;           1: actuator.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         self.display_currents = 1       # 0: no current plot;       1: current plot.
@@ -83,7 +84,7 @@ class MainWindow(QWidget):
         self.position_plot = PositionPlot(self.actuator)
 
         # Characterization.
-        self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator)
+        self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator, self.debug)
         self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator)
 
         # Layouts.
@@ -226,6 +227,16 @@ class MainWindow(QWidget):
             if self.run_button is not None:
                 self.run_button.deleteLater()
             # -------------------------------------------------------------------------------------------------------- #
+            self.run_button = QPushButton("RUN")
+            if self.debug == 0: # if debug mode is OFF
+                self.run_button.clicked.connect(self.run_button_clicked)
+            self.run_button.setStyleSheet("background-color: green; "
+                                            "color: white; "
+                                            "font-weight: bold; "
+                                            "font-size: 24px;"
+                                            "position: center; ")
+            self.control_panel_layout.addWidget(self.run_button)
+            # -------------------------------------------------------------------------------------------------------- #
             self.emg_stop_btn = QPushButton("EMERGENCY STOP")
             if self.power_supply is not None:
                 self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
@@ -346,8 +357,9 @@ class MainWindow(QWidget):
             # -------------------------------------------------------------------------------------------------------- #
             self.start_recording()
             # -------------------------------------------------------------------------------------------------------- #
-            # if self.characterization_type.currentIndex() == 0: # if static characterization is selected
-            #     self.static.run_static()
+            if self.characterization_type.currentIndex() == 0: # if static characterization is selected
+                self.running_thread = Thread(target=self.static.run_static)
+                self.running_thread.start() 
             # elif self.static.characterization_type_layout.currentIndex() == 1: # if dynamic characterization is selected
             #     self.dynamic.run_dynamic()
             # -------------------------------------------------------------------------------------------------------- #
@@ -363,6 +375,9 @@ class MainWindow(QWidget):
                                        "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
             self.stop_recording()
+            # -------------------------------------------------------------------------------------------------------- #
+            if self.running_thread.is_alive():
+                self.running_thread.join()
     
     # ************************************************************************************************************ #
         

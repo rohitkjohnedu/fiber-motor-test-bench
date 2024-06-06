@@ -218,8 +218,9 @@ class Static_PS(QWidget):
     # SET COMMAND
     def set_command(self, state=None):
         new_hv_val = float(self.target_voltage_edit.text())
-        if self.st_comboBox is not None:
-            state_index = self.st_comboBox.currentIndex()
+        if self.mode == "manual":
+            if self.st_comboBox is not None:
+                state_index = self.st_comboBox.currentIndex()
         else:
             state_index = state
 

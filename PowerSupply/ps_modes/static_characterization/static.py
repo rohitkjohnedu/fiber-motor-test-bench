@@ -10,7 +10,7 @@ from StandaTable.standa_table import StandaTableWidget
 from tools.gui_tools.py_toggle import PyToggle
 
 class StaticMode(QWidget):
-    def __init__(self, power_supply=None, force_sensor=None, actuator=None, parent=None):
+    def __init__(self, power_supply=None, force_sensor=None, actuator=None, debug=1, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # Components.
@@ -19,10 +19,15 @@ class StaticMode(QWidget):
         self.actuator = actuator
 
         # Debugging flags.
-        self.debug = 0
-        self.power_supply_debug = 1
-        self.force_sensor_debug = 1
-        self.actuator_debug = 1
+        self.debug = debug
+        if self.debug == 0:
+            self.power_supply_debug = 1
+            self.force_sensor_debug = 1
+            self.actuator_debug = 1
+        else:
+            self.power_supply_debug = 0
+            self.force_sensor_debug = 0
+            self.actuator_debug = 0 
 
         # Timer for the data interpolation.
         self.timer = QTimer(self)
@@ -88,20 +93,20 @@ class StaticMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
 
         if mode == 'manual':
-            # Start button.
-            self.start_btn = QPushButton("START RECORDING")
-            self.start_btn.clicked.connect(self.start_btn_clicked)
-            self.start_btn.setStyleSheet("background-color: white; "
-                                    "color: black; "
-                                    "font-weight: bold; "
-                                    "font-size: 24px; "
-                                    "position: center; ")
-            self.control_panel_layout.addWidget(self.start_btn)   
+            # # Start button.
+            # self.start_btn = QPushButton("START RECORDING")
+            # self.start_btn.clicked.connect(self.start_btn_clicked)
+            # self.start_btn.setStyleSheet("background-color: white; "
+            #                         "color: black; "
+            #                         "font-weight: bold; "
+            #                         "font-size: 24px; "
+            #                         "position: center; ")
+            # self.control_panel_layout.addWidget(self.start_btn)   
 
-            self.bottom_frame1 = QFrame()
-            self.bottom_frame1.setFrameShape(QFrame.Shape.HLine)
-            self.bottom_frame1.setFrameShadow(QFrame.Shadow.Raised)
-            self.control_panel_layout.addWidget(self.bottom_frame1)   
+            # self.bottom_frame1 = QFrame()
+            # self.bottom_frame1.setFrameShape(QFrame.Shape.HLine)
+            # self.bottom_frame1.setFrameShadow(QFrame.Shadow.Raised)
+            # self.control_panel_layout.addWidget(self.bottom_frame1)
 
             # Force sensor "Tare" button.
             tare_btn = QPushButton("TARE FORCE")
@@ -206,15 +211,15 @@ class StaticMode(QWidget):
         self.motor_length_lbl = QLabel("Fiber length (mm):")
         motor_length = QLineEdit()
         self.parameters_groupBox_layout.addRow(self.motor_length_lbl, motor_length)
-        # ------------------------------------------------------------- #
+        # -------------------------------------------------------------------------------------------------------- #
         self.motor_number_lbl = QLabel("Number of fibers:")
         motor_number = QLineEdit()
         self.parameters_groupBox_layout.addRow(self.motor_number_lbl, motor_number)
-        # ------------------------------------------------------------- #
+        # -------------------------------------------------------------------------------------------------------- #
         self.insulator_lbl = QLabel("Insulator:")
         insulator = QLineEdit()
         self.parameters_groupBox_layout.addRow(self.insulator_lbl, insulator)
-        # ------------------------------------------------------------- #
+        # -------------------------------------------------------------------------------------------------------- #
         self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
 
         self.stator_name_lbl = QLabel("Stator name:")
@@ -243,82 +248,82 @@ class StaticMode(QWidget):
         if self.motor_type.currentText() == 'Motor Fiber':
             self.parameters_groupBox_layout.removeRow(self.stator_name_lbl)
             self.parameters_groupBox_layout.removeRow(self.slider_name_lbl)
-            # ------------------------------------------------------------- #
+            # -------------------------------------------------------------------------------------------------------- #
             self.motor_length_lbl = QLabel("Fiber length (mm):")
             motor_length = QLineEdit()
             self.parameters_groupBox_layout.addRow(self.motor_length_lbl, motor_length)
-            # ------------------------------------------------------------- #
+            # -------------------------------------------------------------------------------------------------------- #
             self.motor_number_lbl = QLabel("Number of fibers:")
             motor_number = QLineEdit()
             self.parameters_groupBox_layout.addRow(self.motor_number_lbl, motor_number)
-            # ------------------------------------------------------------- #
+            # -------------------------------------------------------------------------------------------------------- #
             self.insulator_lbl = QLabel("Insulator:")
             insulator = QLineEdit()
             self.parameters_groupBox_layout.addRow(self.insulator_lbl, insulator)
-            # ------------------------------------------------------------- #
+            # -------------------------------------------------------------------------------------------------------- #
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
 
         elif self.motor_type.currentText() == 'Motor Ribbon':
             self.parameters_groupBox_layout.removeRow(self.motor_length_lbl)
             self.parameters_groupBox_layout.removeRow(self.motor_number_lbl)
             self.parameters_groupBox_layout.removeRow(self.insulator_lbl)
-            # ------------------------------------------------------------- #
+            # -------------------------------------------------------------------------------------------------------- #
             self.stator_name_lbl = QLabel("Stator name:")
             stator_name = QLineEdit()
             self.parameters_groupBox_layout.addRow(self.stator_name_lbl, stator_name)
-            # ------------------------------------------------------------- #
+            # -------------------------------------------------------------------------------------------------------- #
             self.slider_name_lbl = QLabel("Slider name:")
             slider_name = QLineEdit()
             self.parameters_groupBox_layout.addRow(self.slider_name_lbl, slider_name)
-            # ------------------------------------------------------------- #
+            # -------------------------------------------------------------------------------------------------------- #
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout) 
     # ************************************************************************************************************ #
 
-    def start_btn_clicked(self):
-        if self.start_btn.text() == "START RECORDING":
-            # -------------------------------------------------------------------------------------------------------- #
-            print("\n[INFO] The measurement is running")
-            self.start_btn.setText("STOP RECORDING")
-            self.start_btn.setStyleSheet("background-color: red; "
-                                           "color: white; "
-                                           "font-weight: bold; "
-                                           "font-size: 24px;"
-                                           "position: center; ")
-            # -------------------------------------------------------------------------------------------------------- #
-            self.start_recording()
-        else:
-            # -------------------------------------------------------------------------------------------------------- #
-            print("\n[INFO] The measurement is stopped")
-            self.start_btn.setText("START RECORDING")
-            self.start_btn.setStyleSheet("background-color: green; "
-                                       "color: white; "
-                                       "font-weight: bold; "
-                                       "font-size: 24px;"
-                                       "position: center; ")
-            # -------------------------------------------------------------------------------------------------------- #
-            self.stop_recording()
+    # def start_btn_clicked(self):
+    #     if self.start_btn.text() == "START RECORDING":
+    #         # -------------------------------------------------------------------------------------------------------- #
+    #         print("\n[INFO] The measurement is running")
+    #         self.start_btn.setText("STOP RECORDING")
+    #         self.start_btn.setStyleSheet("background-color: red; "
+    #                                        "color: white; "
+    #                                        "font-weight: bold; "
+    #                                        "font-size: 24px;"
+    #                                        "position: center; ")
+    #         # -------------------------------------------------------------------------------------------------------- #
+    #         self.start_recording()
+    #     else:
+    #         # -------------------------------------------------------------------------------------------------------- #
+    #         print("\n[INFO] The measurement is stopped")
+    #         self.start_btn.setText("START RECORDING")
+    #         self.start_btn.setStyleSheet("background-color: green; "
+    #                                    "color: white; "
+    #                                    "font-weight: bold; "
+    #                                    "font-size: 24px;"
+    #                                    "position: center; ")
+    #         # -------------------------------------------------------------------------------------------------------- #
+    #         self.stop_recording()
 
-    def start_recodring(self):
-        self.start_time = time.perf_counter()
-        if self.power_supply_debug == 1:
-            self.power_supply.start_recording()
-        if self.force_sensor_debug == 1:
-            self.force_sensor.start_recording()
-        if self.actuator_debug == 1:
-            self.actuator.start_recording()
+    # def start_recording(self):
+    #     self.start_time = time.perf_counter()
+    #     if self.power_supply_debug == 1:
+    #         self.power_supply.start_recording()
+    #     if self.force_sensor_debug == 1:
+    #         self.force_sensor.start_recording()
+    #     if self.actuator_debug == 1:
+    #         self.actuator.start_recording()
     
-    def stop_recording(self):
-        self.emg_stop_btn_clicked()
-        if self.power_supply_debug == 1:
-            self.power_supply.stop_recording()
-        if self.force_sensor_debug == 1:
-            self.force_sensor.stop_recording()
-        if self.actuator_debug == 1:
-            self.actuator.stop_recording()
+    # def stop_recording(self):
+    #     self.emg_stop_btn_clicked()
+    #     if self.power_supply_debug == 1:
+    #         self.power_supply.stop_recording()
+    #     if self.force_sensor_debug == 1:
+    #         self.force_sensor.stop_recording()
+    #     if self.actuator_debug == 1:
+    #         self.actuator.stop_recording()
 
     def run_static(self):
-        
-        self.actuator.home_zero()
+        self.force_sensor.tare() # tare the force sensor
+        self.actuator.home_zero()   # move the actuator to the home position
         experiment_text = self.experiment_type.currentText()
         if experiment_text == 'Force vs. Position':
             # ---------------------------------------------------------------------------------------------------- #
@@ -331,7 +336,7 @@ class StaticMode(QWidget):
             # Set speed to the actuator.
             if speed > self.actuator.max_speed:
                 speed = self.actuator.max_speed
-            self.actuator_control.speed_edit.setText(str(speed))
+            # self.actuator_control.speed_edit.setText(str(speed))
             self.actuator.set_speed(speed)
             
             # Calculate the number of steps.
@@ -339,7 +344,8 @@ class StaticMode(QWidget):
             # ---------------------------------------------------------------------------------------------------- #
             # # Get the power supply parameters.
             # voltage = float(self.power_supply_control.target_voltage_edit.text())
-            modulation = self.power_supply_control.state_opt.isChecked()
+            # modulation = self.power_supply_control.state_opt.isChecked()
+            modulation = False
 
             # ---------------------------------------------------------------------------------------------------- #
             # Algorithm for the "Force vs Position" experiment.
@@ -350,15 +356,17 @@ class StaticMode(QWidget):
                     states = ['A', 'B', 'C']
                     for state in states:
                         self.state = state
-                        self.power_supply.set_pressed(states) # set the power supply to the state
+                        self.power_supply_control.set_pressed(states) # set the power supply to the state
                         time.sleep(1) # wait for 1 second
-                        self.start_rcd() # record the data
+                        self.start_indiv_rcd() # record the data
                         time.sleep(2) # measure for 2 seconds
                         self.timer.stop() # stop recording the data
-                        self.power_supply.voltage_reset() # reset the voltage
+                        self.power_supply_control.voltage_reset() # reset the voltage
                         time.sleep(1) # wait for 1 second
                 else:
                     pass
+            # ---------------------------------------------------------------------------------------------------- #
+
 
     def start_indiv_rcd(self):
         self.start_time = time.perf_counter()

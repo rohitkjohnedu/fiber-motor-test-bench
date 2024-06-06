@@ -518,84 +518,76 @@ class StandaTableWidget(QWidget):
 
         buttonLayout = QFormLayout(self)
 
+        # Widgets initialization "MANUAL"
         homeButton = QPushButton("HOME")
-        buttonLayout.addRow(homeButton)
-
         upButton = QPushButton("Forward")
-        upButton.setFixedWidth(140)
         downButton = QPushButton("Backward")
-        # downButton.setFixedWidth(150)
-        buttonLayout.addRow(upButton, downButton)
-            
         self.speed_edit = QLineEdit(speed_val)
-        self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
-        
         self.position_edit = QLineEdit(position_val)
-        self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        buttonLayout.addRow("Position (mm):", self.position_edit)
-
         stopButton = QPushButton("STOP")
-        buttonLayout.addRow(stopButton)
-
         goToPosition = QPushButton("Move")
-        buttonLayout.addRow(goToPosition)
 
-        # if self.mode == 'manual':            
-        #     homeButton = QPushButton("HOME")
-        #     buttonLayout.addRow(homeButton)
+        # Widgets initialization "AUTO"
+        self.start_pos_edit = QLineEdit("0")
+        self.end_pos_edit = QLineEdit("0")
+        self.step_size_edit = QLineEdit("0")
+        self.speed_edit = QLineEdit(speed_val)
 
-        #     upButton = QPushButton("Forward")
-        #     upButton.setFixedWidth(140)
-        #     downButton = QPushButton("Backward")
-        #     # downButton.setFixedWidth(150)
-        #     buttonLayout.addRow(upButton, downButton)
+        if self.mode == 'manual':            
+            homeButton = QPushButton("HOME")
+            buttonLayout.addRow(homeButton)
+
+            upButton = QPushButton("Forward")
+            upButton.setFixedWidth(140)
+            downButton = QPushButton("Backward")
+            # downButton.setFixedWidth(150)
+            buttonLayout.addRow(upButton, downButton)
             
-        #     self.speed_edit = QLineEdit(speed_val)
-        #     self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        #     buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
+            self.speed_edit = QLineEdit(speed_val)
+            self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
         
-        #     self.position_edit = QLineEdit(position_val)
-        #     self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        #     buttonLayout.addRow("Position (mm):", self.position_edit)
+            self.position_edit = QLineEdit(position_val)
+            self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow("Position (mm):", self.position_edit)
 
-        #     stopButton = QPushButton("STOP")
-        #     buttonLayout.addRow(stopButton)
+            stopButton = QPushButton("STOP")
+            buttonLayout.addRow(stopButton)
 
-        #     goToPosition = QPushButton("Move")
-        #     buttonLayout.addRow(goToPosition)
-        # else:
-        #     start_pos_lbl = QLabel("Start position (mm):")
-        #     self.start_pos_edit = QLineEdit("0")
-        #     self.start_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        #     buttonLayout.addRow(start_pos_lbl, self.start_pos_edit)
+            goToPosition = QPushButton("Move")
+            buttonLayout.addRow(goToPosition)
+        else:
+            start_pos_lbl = QLabel("Start position (mm):")
+            self.start_pos_edit = QLineEdit("0")
+            self.start_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(start_pos_lbl, self.start_pos_edit)
 
-        #     end_pos_lbl = QLabel("End position (mm):")
-        #     self.end_pos_edit = QLineEdit("0")
-        #     self.end_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        #     buttonLayout.addRow(end_pos_lbl, self.end_pos_edit)
+            end_pos_lbl = QLabel("End position (mm):")
+            self.end_pos_edit = QLineEdit("0")
+            self.end_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(end_pos_lbl, self.end_pos_edit)
 
-        #     step_size_lbl = QLabel("Step size (um):")
-        #     self.step_size_edit = QLineEdit("0")
-        #     self.step_size_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        #     buttonLayout.addRow(step_size_lbl, self.step_size_edit)
+            step_size_lbl = QLabel("Step size (um):")
+            self.step_size_edit = QLineEdit("0")
+            self.step_size_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(step_size_lbl, self.step_size_edit)
 
-        #     speed_label = QLabel("Speed (mm/s):")
-        #     self.speed_edit = QLineEdit(speed_val)
-        #     self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        #     buttonLayout.addRow(speed_label, self.speed_edit)
+            speed_label = QLabel("Speed (mm/s):")
+            self.speed_edit = QLineEdit(speed_val)
+            self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(speed_label, self.speed_edit)
 
         # Actions
-        # if self.mode == 'manual':
-        if self.Motor is not None:
-            homeButton.released.connect(self.Motor.home_zero)
-            upButton.pressed.connect(self.Motor.left)
-            upButton.released.connect(self.Motor.stop)
-            downButton.pressed.connect(self.Motor.right)
-            downButton.released.connect(self.Motor.stop)
-            stopButton.released.connect(self.Motor.stop)
-            self.speed_edit.textChanged.connect(self.setSpeedCallback)
-            goToPosition.clicked.connect(self.goToPositionCallback)
+        if self.mode == 'manual':
+            if self.Motor is not None:
+                homeButton.released.connect(self.Motor.home_zero)
+                upButton.pressed.connect(self.Motor.left)
+                upButton.released.connect(self.Motor.stop)
+                downButton.pressed.connect(self.Motor.right)
+                downButton.released.connect(self.Motor.stop)
+                stopButton.released.connect(self.Motor.stop)
+                self.speed_edit.textChanged.connect(self.setSpeedCallback)
+                goToPosition.clicked.connect(self.goToPositionCallback)
 
     def goToPositionCallback(self):
         target_position = float(self.position_edit.text())
