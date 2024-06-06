@@ -30,7 +30,8 @@ class Static_PS(QWidget):
             for state in states:
                 self.st_comboBox.addItem(state)
         else:
-            state_lbl = QLabel("Not modulated 'A - B - C' states")
+            state_lbl = QLabel("Not modulated\n"
+                               "'A-B-C' states")
             state_lbl.setFixedWidth(150)
 
             self.state_opt = QCheckBox()
@@ -58,11 +59,13 @@ class Static_PS(QWidget):
 
         # ************************************************************************************************************ #
         # PARAMETERS
-        self.channels_keys = [] 
-        num_states = self.st_comboBox.count() # 7
-        for index in range(1, num_states+1): # 1-7
-            self.channels_keys.append(index-1) # [0, 1, 2, 3, 4, 5, 6]
-        self.state_index = self.st_comboBox.currentIndex()
+        self.channels_keys = []
+        if self.mode == "manual": 
+            num_states = self.st_comboBox.count() # 7
+            for index in range(1, num_states+1): # 1-7
+                self.channels_keys.append(index-1) # [0, 1, 2, 3, 4, 5, 6]
+            self.state_index = self.st_comboBox.currentIndex()
+
         self.extended_flag_1 = 0
         self.extended_flag_2 = 0
 
@@ -72,7 +75,8 @@ class Static_PS(QWidget):
             self.target_voltage_edit.returnPressed.connect(self.set_command)
             self.update_button.clicked.connect(self.set_command)
             self.set_button.clicked.connect(self.set_pressed)
-        self.st_comboBox.currentIndexChanged.connect(self.extended_set)
+        if self.mode == "manual":
+            self.st_comboBox.currentIndexChanged.connect(self.extended_set)
 
     ########################################################################################################################
     # ADD BUTTONS ALWAYS TO THE END OF THE LAYOUT

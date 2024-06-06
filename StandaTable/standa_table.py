@@ -518,51 +518,75 @@ class StandaTableWidget(QWidget):
 
         buttonLayout = QFormLayout(self)
 
-        if self.mode == 'manual':            
-            homeButton = QPushButton("HOME")
-            buttonLayout.addRow(homeButton)
+        homeButton = QPushButton("HOME")
+        buttonLayout.addRow(homeButton)
 
-            upButton = QPushButton("Forward")
-            upButton.setFixedWidth(140)
-            downButton = QPushButton("Backward")
-            # downButton.setFixedWidth(150)
-            buttonLayout.addRow(upButton, downButton)
+        upButton = QPushButton("Forward")
+        upButton.setFixedWidth(140)
+        downButton = QPushButton("Backward")
+        # downButton.setFixedWidth(150)
+        buttonLayout.addRow(upButton, downButton)
             
-            self.speed_edit = QLineEdit(speed_val)
-            self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
+        self.speed_edit = QLineEdit(speed_val)
+        self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
         
-            self.position_edit = QLineEdit(position_val)
-            self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            buttonLayout.addRow("Position (mm):", self.position_edit)
+        self.position_edit = QLineEdit(position_val)
+        self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        buttonLayout.addRow("Position (mm):", self.position_edit)
 
-            stopButton = QPushButton("STOP")
-            buttonLayout.addRow(stopButton)
+        stopButton = QPushButton("STOP")
+        buttonLayout.addRow(stopButton)
 
-            goToPosition = QPushButton("Move")
-            buttonLayout.addRow(goToPosition)
-        else:
-            start_pos_lbl = QLabel("Start position (mm):")
-            self.start_pos_edit = QLineEdit("0")
-            self.start_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            buttonLayout.addRow(start_pos_lbl, self.start_pos_edit)
+        goToPosition = QPushButton("Move")
+        buttonLayout.addRow(goToPosition)
 
-            end_pos_lbl = QLabel("End position (mm):")
-            self.end_pos_edit = QLineEdit("0")
-            self.end_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            buttonLayout.addRow(end_pos_lbl, self.end_pos_edit)
+        # if self.mode == 'manual':            
+        #     homeButton = QPushButton("HOME")
+        #     buttonLayout.addRow(homeButton)
 
-            step_size_lbl = QLabel("Step size (um):")
-            self.step_size_edit = QLineEdit("0")
-            self.step_size_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            buttonLayout.addRow(step_size_lbl, self.step_size_edit)
+        #     upButton = QPushButton("Forward")
+        #     upButton.setFixedWidth(140)
+        #     downButton = QPushButton("Backward")
+        #     # downButton.setFixedWidth(150)
+        #     buttonLayout.addRow(upButton, downButton)
+            
+        #     self.speed_edit = QLineEdit(speed_val)
+        #     self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        #     buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
+        
+        #     self.position_edit = QLineEdit(position_val)
+        #     self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        #     buttonLayout.addRow("Position (mm):", self.position_edit)
 
-            speed_label = QLabel("Speed (mm/s):")
-            self.speed_edit = QLineEdit(speed_val)
-            self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            buttonLayout.addRow(speed_label, self.speed_edit)
+        #     stopButton = QPushButton("STOP")
+        #     buttonLayout.addRow(stopButton)
+
+        #     goToPosition = QPushButton("Move")
+        #     buttonLayout.addRow(goToPosition)
+        # else:
+        #     start_pos_lbl = QLabel("Start position (mm):")
+        #     self.start_pos_edit = QLineEdit("0")
+        #     self.start_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        #     buttonLayout.addRow(start_pos_lbl, self.start_pos_edit)
+
+        #     end_pos_lbl = QLabel("End position (mm):")
+        #     self.end_pos_edit = QLineEdit("0")
+        #     self.end_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        #     buttonLayout.addRow(end_pos_lbl, self.end_pos_edit)
+
+        #     step_size_lbl = QLabel("Step size (um):")
+        #     self.step_size_edit = QLineEdit("0")
+        #     self.step_size_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        #     buttonLayout.addRow(step_size_lbl, self.step_size_edit)
+
+        #     speed_label = QLabel("Speed (mm/s):")
+        #     self.speed_edit = QLineEdit(speed_val)
+        #     self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        #     buttonLayout.addRow(speed_label, self.speed_edit)
 
         # Actions
+        # if self.mode == 'manual':
         if self.Motor is not None:
             homeButton.released.connect(self.Motor.home_zero)
             upButton.pressed.connect(self.Motor.left)
@@ -598,11 +622,11 @@ class PositionPlot(QWidget):
         
         plot_layout = QHBoxLayout(self)
         plot_widget = pg.PlotWidget(self)
-        self.position_plot = plot_widget.plotItem
-        self.position_plot.setTitle("Position", bold=True)
-        self.position_plot.setLabel('left', 'Position', units='mm')
-        self.position_plot.setLabel('bottom', 'Time', units='s')
-        self.position_plot.plot()
+        position_plot = plot_widget.plotItem
+        position_plot.setTitle("Position", bold=True)
+        position_plot.setLabel('left', 'Position', units='mm')
+        position_plot.setLabel('bottom', 'Time', units='s')
+        self.position_plot = position_plot.plot()
         plot_layout.addWidget(plot_widget)
         
     # **************************************************************************************************** #

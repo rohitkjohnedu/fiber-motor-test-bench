@@ -14,7 +14,7 @@
 ########################################################################################################################
 
 # python packages
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QWidget, QHBoxLayout
 import pyqtgraph as pg
 
 color = [(255, 0, 0),    #0) red

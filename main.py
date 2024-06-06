@@ -52,19 +52,6 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_position = 1       # 0: no actuator plot;      1: actuator plot.
 
-        # Variables for the data interpolation.
-        if self.debug == 0: # if debug mode is OFF
-            self.plot_interval = 50#ms
-            self.start_time = 0
-            self.sample_rate = 400#Hz
-            self.interpolation_stop_time = 0
-
-            # Set a timer with the callback function which reads and displays data from the serial port.
-            self.timer = QTimer(self)
-            self.timer.timeout.connect(self.plot_update_callback)
-            if self.power_supply.auto_connect():
-                self.timer.start(self.plot_interval)
-
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
         # ************************************************************************************************************ #
@@ -188,6 +175,18 @@ class MainWindow(QWidget):
         
         self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
+        # Variables for the data interpolation.
+        if self.debug == 0: # if debug mode is OFF
+            self.plot_interval = 50#ms
+            self.start_time = 0
+            self.sample_rate = 400#Hz
+            self.interpolation_stop_time = 0
+
+            # Set a timer with the callback function which reads and displays data from the serial port.
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.plot_update_callback)
+            if self.power_supply.auto_connect():
+                self.timer.start(self.plot_interval)
     # ************************************************************************************************************ #
     
     # Run button widget
@@ -315,6 +314,24 @@ class MainWindow(QWidget):
         self.scroll_area_plots = QScrollArea()
         self.scroll_area_plots.setWidget(self.plots_groupBox)
         self.scroll_area_plots.setWidgetResizable(True)
+
+    def start_recording(self):
+        self.start_time = time.perf_counter()
+        if self.power_supply_debug == 1:
+            self.power_supply.start_recording()
+        if self.force_sensor_debug == 1:
+            self.force_sensor.start_recording()
+        if self.actuator_debug == 1:
+            self.actuator.start_recording()
+
+    def stop_recording(self):
+        self.emg_stop_btn_clicked()
+        if self.power_supply_debug == 1:
+            self.power_supply.stop_recording()
+        if self.force_sensor_debug == 1:
+            self.force_sensor.stop_recording()
+        if self.actuator_debug == 1:
+            self.actuator.stop_recording()
         
     def run_button_clicked(self):
         if self.run_button.text() == "RUN":
@@ -327,18 +344,11 @@ class MainWindow(QWidget):
                                            "font-size: 24px;"
                                            "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            self.start_time = time.perf_counter()
-
-            if self.power_supply_debug == 1: # if power supply is connected
-                self.power_supply.start_recording()
-            if self.force_sensor_debug == 1: # if force sensor is connected
-                self.force_sensor.start_recording()
-            if self.actuator_debug == 1: # if actuator is connected
-                self.actuator.start_recording()
+            self.start_recording()
             # -------------------------------------------------------------------------------------------------------- #
-            if self.static.characterization_type_layout.currentIndex() == 0:
-                self.static.run_static(self.start_time)
-            # elif self.static.characterization_type_layout.currentIndex() == 1:
+            # if self.characterization_type.currentIndex() == 0: # if static characterization is selected
+            #     self.static.run_static()
+            # elif self.static.characterization_type_layout.currentIndex() == 1: # if dynamic characterization is selected
             #     self.dynamic.run_dynamic()
             # -------------------------------------------------------------------------------------------------------- #
 
@@ -352,15 +362,9 @@ class MainWindow(QWidget):
                                        "font-size: 24px;"
                                        "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            self.emg_stop_btn_clicked()
-            
-            if self.power_supply_debug == 1:
-                self.power_supply.stop_recording()
-            if self.force_sensor_debug == 1:
-                self.force_sensor.stop_recording()
-            if self.actuator_debug == 1:
-                self.actuator.stop_recording()
-            # -------------------------------------------------------------------------------------------------------- #
+            self.stop_recording()
+    
+    # ************************************************************************************************************ #
         
     def emg_stop_btn_clicked(self):
         self.power_supply.emergency_stop()

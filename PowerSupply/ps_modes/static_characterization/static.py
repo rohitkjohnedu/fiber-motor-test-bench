@@ -1,5 +1,5 @@
 # python packages
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QComboBox, QLineEdit, QVBoxLayout, QHBoxLayout, QFrame
 import numpy as np
 import time
@@ -13,15 +13,24 @@ class StaticMode(QWidget):
     def __init__(self, power_supply=None, force_sensor=None, actuator=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
+        # Components.
         self.power_supply = power_supply
         self.force_sensor = force_sensor
         self.actuator = actuator
 
         # Debugging flags.
-        self.power_supply_debug = 0
-        self.force_sensor_debug = 0
-        self.actuator_debug = 0
+        self.debug = 0
+        self.power_supply_debug = 1
+        self.force_sensor_debug = 1
+        self.actuator_debug = 1
 
+        # Timer for the data interpolation.
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.indiv_data_rcd)
+
+        self.start_time = 0
+        self.plot_interval = 50#ms
+        self.sample_rate = 400#Hz
         self.interpolation_stop_time = 0
  
     # ************************************************************************************************************ #
@@ -79,6 +88,21 @@ class StaticMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
 
         if mode == 'manual':
+            # Start button.
+            self.start_btn = QPushButton("START RECORDING")
+            self.start_btn.clicked.connect(self.start_btn_clicked)
+            self.start_btn.setStyleSheet("background-color: white; "
+                                    "color: black; "
+                                    "font-weight: bold; "
+                                    "font-size: 24px; "
+                                    "position: center; ")
+            self.control_panel_layout.addWidget(self.start_btn)   
+
+            self.bottom_frame1 = QFrame()
+            self.bottom_frame1.setFrameShape(QFrame.Shape.HLine)
+            self.bottom_frame1.setFrameShadow(QFrame.Shadow.Raised)
+            self.control_panel_layout.addWidget(self.bottom_frame1)   
+
             # Force sensor "Tare" button.
             tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
@@ -250,7 +274,50 @@ class StaticMode(QWidget):
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout) 
     # ************************************************************************************************************ #
 
-    def run_static(self, start_time):
+    def start_btn_clicked(self):
+        if self.start_btn.text() == "START RECORDING":
+            # -------------------------------------------------------------------------------------------------------- #
+            print("\n[INFO] The measurement is running")
+            self.start_btn.setText("STOP RECORDING")
+            self.start_btn.setStyleSheet("background-color: red; "
+                                           "color: white; "
+                                           "font-weight: bold; "
+                                           "font-size: 24px;"
+                                           "position: center; ")
+            # -------------------------------------------------------------------------------------------------------- #
+            self.start_recording()
+        else:
+            # -------------------------------------------------------------------------------------------------------- #
+            print("\n[INFO] The measurement is stopped")
+            self.start_btn.setText("START RECORDING")
+            self.start_btn.setStyleSheet("background-color: green; "
+                                       "color: white; "
+                                       "font-weight: bold; "
+                                       "font-size: 24px;"
+                                       "position: center; ")
+            # -------------------------------------------------------------------------------------------------------- #
+            self.stop_recording()
+
+    def start_recodring(self):
+        self.start_time = time.perf_counter()
+        if self.power_supply_debug == 1:
+            self.power_supply.start_recording()
+        if self.force_sensor_debug == 1:
+            self.force_sensor.start_recording()
+        if self.actuator_debug == 1:
+            self.actuator.start_recording()
+    
+    def stop_recording(self):
+        self.emg_stop_btn_clicked()
+        if self.power_supply_debug == 1:
+            self.power_supply.stop_recording()
+        if self.force_sensor_debug == 1:
+            self.force_sensor.stop_recording()
+        if self.actuator_debug == 1:
+            self.actuator.stop_recording()
+
+    def run_static(self):
+        
         self.actuator.home_zero()
         experiment_text = self.experiment_type.currentText()
         if experiment_text == 'Force vs. Position':
@@ -277,30 +344,36 @@ class StaticMode(QWidget):
             # ---------------------------------------------------------------------------------------------------- #
             # Algorithm for the "Force vs Position" experiment.
             for step in range(int(steps_nb)+1):
-                self.actuator.move(start_pos+step*step_size, 0)
-                self.force_sensor.tare()
+                self.actuator.move(start_pos+step*step_size, 0) # move the actuator to the position
+                self.force_sensor.tare() # tare the force sensor
                 if modulation == False:
-                    self.power_supply.set_pressed("A")
-                    time.sleep(1)
+                    states = ['A', 'B', 'C']
+                    for state in states:
+                        self.state = state
+                        self.power_supply.set_pressed(states) # set the power supply to the state
+                        time.sleep(1) # wait for 1 second
+                        self.start_rcd() # record the data
+                        time.sleep(2) # measure for 2 seconds
+                        self.timer.stop() # stop recording the data
+                        self.power_supply.voltage_reset() # reset the voltage
+                        time.sleep(1) # wait for 1 second
                 else:
                     pass
 
-                self.start_recording(start_time, state="A") # record the data
-                # self.stop_recording()
+    def start_indiv_rcd(self):
+        self.start_time = time.perf_counter()
+        self.timer.start(self.plot_interval)
 
-
-
-    def data_recording(self, start_time, state):
-        self.start_time = start_time
-        self.sample_rate = 400#Hz
-
+    def indiv_data_rcd(self):
+        # Get the new data from the components.
         if self.power_supply_debug == 1:
             new_power_supply_data = self.power_supply.get_new_data()
         if self.force_sensor_debug == 1:
             new_force_sensor_data = self.force_sensor.get_new_data()
         if self.actuator_debug == 1:
             new_actuator_data = self.actuator.get_new_data()
-
+            
+        # Interpolate the data.
         if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
             if self.interpolation_stop_time < self.start_time:
                 interpolation_start_time = self.start_time
@@ -333,13 +406,13 @@ class StaticMode(QWidget):
             cm_w3_uA = interpolated_power_supply_data[:,10]
 
             # Create a folder to store the data files if it doesn't exist.
-            folder_name = 'DataFiles'
+            folder_name = 'AdditionalDataFiles'
             os.makedirs(folder_name, exist_ok=True)
 
             # Create a new .csv file within the folder with a file name, date and time of the experiment.
             # file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
 
-            file_name = os.path.join(folder_name, "pos={}_state={}_force={}.csv", position_mm[-1], state, force_mN[-1])
+            file_name = os.path.join(folder_name, "pos={}_state={}_force={}.csv", position_mm[-1], self.state, force_mN[-1])
             if not os.path.isfile(file_name):
                 with open(file_name, 'w') as f:
                     f.write(f'Time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '

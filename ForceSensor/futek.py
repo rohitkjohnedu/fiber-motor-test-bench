@@ -416,11 +416,11 @@ class ForcePlot(QWidget):
         
         plot_layout = QHBoxLayout(self)
         plot_widget = pg.PlotWidget(self)
-        self.force_plot = plot_widget.plotItem
-        self.force_plot.setTitle("Force", bold=True)
-        self.force_plot.setLabel('left', 'Force', units='N')
-        self.force_plot.setLabel('bottom', 'Time', units='s')
-        self.force_plot.plot()
+        force_plot = plot_widget.plotItem
+        force_plot.setTitle("Force", bold=True)
+        force_plot.setLabel('left', 'Force', units='N')
+        force_plot.setLabel('bottom', 'Time', units='s')
+        self.force_plot = force_plot.plot()
         plot_layout.addWidget(plot_widget)
 
     # ************************************************************************************************** #
