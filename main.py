@@ -15,13 +15,14 @@
 
 # python packages
 import sys
-from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton, QTabWidget, QMessageBox, QScrollArea
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton,
+                                QTabWidget, QScrollArea, QMessageBox, QProgressBar, QDialog)
 import time
 import numpy as np
 import os.path
 from datetime import datetime
-from threading import Thread, RLock
+from threading import Thread
 
 # custom packages
 from PowerSupply import HvpsDevice, VoltagePlots, CurrentPlots, StaticMode, DynamicMode
@@ -31,6 +32,32 @@ from StandaTable import StandaTable, PositionPlot
 formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 PROGRAM_NAME = "Actuator Test Bench"
 PROGRAM_VERSION = "v1.0"
+
+class LoadingWorker(QThread):
+    initialization_finished = pyqtSignal(bool)
+    def __init__(self, actuator, parent=None):
+        super().__init__(parent)
+        self.actuator = actuator
+    
+    def run(self):
+        result = self.actuator.home_zero()
+        self.initialization_finished.emit(result)
+
+class InfProgressBar(QDialog):
+    def __init__(self):
+        super().__init__()
+    
+        self.setWindowTitle("Initialization")
+        self.setFixedSize(300, 100)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFormat("Please wait while the system is initializing.")
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.progress_bar.setStyleSheet("font-weight: bold; font-size: 16px;")
+        layout = QVBoxLayout()
+        layout.addWidget(self.progress_bar)
+        self.setLayout(layout)
 
 class MainWindow(QWidget):
     def __init__(self, parent=None):
@@ -355,6 +382,9 @@ class MainWindow(QWidget):
                                            "font-size: 24px;"
                                            "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
+            self.initialization() # homing the actuator
+            # self.actuator.home_zero()
+            time.sleep(1)
             self.start_recording()
             # -------------------------------------------------------------------------------------------------------- #
             if self.characterization_type.currentIndex() == 0: # if static characterization is selected
@@ -380,7 +410,26 @@ class MainWindow(QWidget):
                 self.running_thread.join()
     
     # ************************************************************************************************************ #
-        
+
+    def initialization(self):
+        self.initializator = LoadingWorker(self.actuator)
+        self.initializator.initialization_finished.connect(self.initialization_finished)
+
+        self.loading = InfProgressBar()
+        self.loading.show()
+
+        self.loading.progress_bar.setRange(0, 0)
+        self.initializator.start()
+    
+    def initialization_finished(self, result):
+        self.initializator.terminate()
+        self.loading.progress_bar.setRange(0, 1)
+        self.loading.progress_bar.setValue(1 if result else 0)
+        self.loading.close()
+        if result:
+            QMessageBox.information(self, 'Success', 'Task completed successfully!')
+        return result
+
     def emg_stop_btn_clicked(self):
         self.power_supply.emergency_stop()
         self.actuator.stop()

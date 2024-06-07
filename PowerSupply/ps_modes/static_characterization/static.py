@@ -29,14 +29,14 @@ class StaticMode(QWidget):
             self.force_sensor_debug = 0
             self.actuator_debug = 0 
 
-        # Timer for the data interpolation.
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.indiv_data_rcd)
+        # # Timer for the data interpolation.
+        # self.new_timer = QTimer(self)
+        # self.new_timer.timeout.connect(self.indiv_data_rcd)
 
-        self.start_time = 0
-        self.plot_interval = 50#ms
-        self.sample_rate = 400#Hz
-        self.interpolation_stop_time = 0
+        # self.start_time = 0
+        # self.plot_interval = 50#ms
+        # self.sample_rate = 400#Hz
+        # self.interpolation_stop_time = 0
  
     # ************************************************************************************************************ #
     #                                     STATIC CHARACTERIZATION INTERFACE                                        #
@@ -322,8 +322,6 @@ class StaticMode(QWidget):
     #         self.actuator.stop_recording()
 
     def run_static(self):
-        self.force_sensor.tare() # tare the force sensor
-        self.actuator.home_zero()   # move the actuator to the home position
         experiment_text = self.experiment_type.currentText()
         if experiment_text == 'Force vs. Position':
             # ---------------------------------------------------------------------------------------------------- #
@@ -339,98 +337,108 @@ class StaticMode(QWidget):
             # self.actuator_control.speed_edit.setText(str(speed))
             self.actuator.set_speed(speed)
             
+            # Calculate the time to wait for the actuator to reach the position.
+            init_moving_time = start_pos / speed
+            moving_time = np.abs(end_pos - start_pos) / speed
+
             # Calculate the number of steps.
-            steps_nb = np.floor((end_pos - start_pos) / (step_size*1000)) # number of steps
+            steps_nb = np.floor((end_pos - start_pos) / (step_size / 1000)) # number of steps
             # ---------------------------------------------------------------------------------------------------- #
             # # Get the power supply parameters.
             # voltage = float(self.power_supply_control.target_voltage_edit.text())
-            # modulation = self.power_supply_control.state_opt.isChecked()
-            modulation = False
-
+            modulation = self.power_supply_control.state_opt.isChecked()
+        
             # ---------------------------------------------------------------------------------------------------- #
             # Algorithm for the "Force vs Position" experiment.
             for step in range(int(steps_nb)+1):
-                self.actuator.move(start_pos+step*step_size, 0) # move the actuator to the position
+                self.actuator.move(start_pos+step*(step_size/1000)) # move the actuator to the position
+                if step == 0:
+                    time.sleep(init_moving_time+2) # wait for the actuator to reach the starting position
+                else:
+                    time.sleep(moving_time+2) # wait for the actuator to reach the next position
                 self.force_sensor.tare() # tare the force sensor
+                time.sleep(0.1) # wait for the force sensor to tare
                 if modulation == False:
+                    print("\n[INFO] The power supply is set to the state: ", 'A')
                     states = ['A', 'B', 'C']
                     for state in states:
                         self.state = state
-                        self.power_supply_control.set_pressed(states) # set the power supply to the state
-                        time.sleep(1) # wait for 1 second
-                        self.start_indiv_rcd() # record the data
+                        print("\n[INFO] state is: ", state)
+                        self.power_supply_control.set_pressed(state) # set the power supply to the state
+                        print("\n[INFO] The power supply is set to the state: ", state)
+                        time.sleep(0.5) # wait for 1 second
+                        # self.start_indiv_rcd() # record the data
+                        print("\n[INFO] The data is being recorded")
                         time.sleep(2) # measure for 2 seconds
-                        self.timer.stop() # stop recording the data
+                        # self.new_timer.stop() # stop recording the data
+                        print("\n[INFO] The data is stopped recording")
                         self.power_supply_control.voltage_reset() # reset the voltage
-                        time.sleep(1) # wait for 1 second
-                else:
-                    pass
-            # ---------------------------------------------------------------------------------------------------- #
+                        print("\n[INFO] The power supply voltage is reset")
+                        time.sleep(0.5) # wait for 1 second
+    
+    # def start_indiv_rcd(self):
+    #     self.start_time = time.perf_counter()
+    #     self.new_timer.start(self.plot_interval)
 
-
-    def start_indiv_rcd(self):
-        self.start_time = time.perf_counter()
-        self.timer.start(self.plot_interval)
-
-    def indiv_data_rcd(self):
-        # Get the new data from the components.
-        if self.power_supply_debug == 1:
-            new_power_supply_data = self.power_supply.get_new_data()
-        if self.force_sensor_debug == 1:
-            new_force_sensor_data = self.force_sensor.get_new_data()
-        if self.actuator_debug == 1:
-            new_actuator_data = self.actuator.get_new_data()
+    # def indiv_data_rcd(self):
+    #     # Get the new data from the components.
+    #     if self.power_supply_debug == 1:
+    #         new_power_supply_data = self.power_supply.get_new_data()
+    #     if self.force_sensor_debug == 1:
+    #         new_force_sensor_data = self.force_sensor.get_new_data()
+    #     if self.actuator_debug == 1:
+    #         new_actuator_data = self.actuator.get_new_data()
             
-        # Interpolate the data.
-        if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
-            if self.interpolation_stop_time < self.start_time:
-                interpolation_start_time = self.start_time
-            else:
-                interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
+    #     # Interpolate the data.
+    #     if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
+    #         if self.interpolation_stop_time < self.start_time:
+    #             interpolation_start_time = self.start_time
+    #         else:
+    #             interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
 
-            smallest_last_sample = min(new_power_supply_data[-1,0], new_force_sensor_data[-1,0])
-            differential_time_latest_sample = smallest_last_sample - self.start_time
-            interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
-            self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
+    #         smallest_last_sample = min(new_power_supply_data[-1,0], new_force_sensor_data[-1,0])
+    #         differential_time_latest_sample = smallest_last_sample - self.start_time
+    #         interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
+    #         self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
 
-            interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
-            interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
-            interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
-            interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
-            for i1 in range(2, 11):
-                interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+    #         interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
+    #         interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+    #         interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
+    #         interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
+    #         for i1 in range(2, 11):
+    #             interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
-            time_s = interpolation_time
-            force_mN = interpolated_force_sensor_data
-            position_mm = interpolated_actuator_data
-            hv_set_kV = interpolated_power_supply_data[:,2]
-            hv_vm_kV = interpolated_power_supply_data[:,3]
-            hv_err_V = interpolated_power_supply_data[:,4]
-            lv_set_V = interpolated_power_supply_data[:,5]
-            lv_vm_V = interpolated_power_supply_data[:,6]
-            lv_err_V = interpolated_power_supply_data[:,7]
-            cm_w1_uA = interpolated_power_supply_data[:,8]
-            cm_w2_uA = interpolated_power_supply_data[:,9]
-            cm_w3_uA = interpolated_power_supply_data[:,10]
+    #         time_s = interpolation_time
+    #         force_mN = interpolated_force_sensor_data
+    #         position_mm = interpolated_actuator_data
+    #         hv_set_kV = interpolated_power_supply_data[:,2]
+    #         hv_vm_kV = interpolated_power_supply_data[:,3]
+    #         hv_err_V = interpolated_power_supply_data[:,4]
+    #         lv_set_V = interpolated_power_supply_data[:,5]
+    #         lv_vm_V = interpolated_power_supply_data[:,6]
+    #         lv_err_V = interpolated_power_supply_data[:,7]
+    #         cm_w1_uA = interpolated_power_supply_data[:,8]
+    #         cm_w2_uA = interpolated_power_supply_data[:,9]
+    #         cm_w3_uA = interpolated_power_supply_data[:,10]
 
-            # Create a folder to store the data files if it doesn't exist.
-            folder_name = 'AdditionalDataFiles'
-            os.makedirs(folder_name, exist_ok=True)
+    #         # Create a folder to store the data files if it doesn't exist.
+    #         folder_name = 'AdditionalDataFiles'
+    #         os.makedirs(folder_name, exist_ok=True)
 
-            # Create a new .csv file within the folder with a file name, date and time of the experiment.
-            # file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
+    #         # Create a new .csv file within the folder with a file name, date and time of the experiment.
+    #         # file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
 
-            file_name = os.path.join(folder_name, "pos={}_state={}_force={}.csv", position_mm[-1], self.state, force_mN[-1])
-            if not os.path.isfile(file_name):
-                with open(file_name, 'w') as f:
-                    f.write(f'Time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
-                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
+    #         file_name = os.path.join(folder_name, "pos={}_state={}_force={}.csv", position_mm[-1], self.state, force_mN[-1])
+    #         if not os.path.isfile(file_name):
+    #             with open(file_name, 'w') as f:
+    #                 f.write(f'Time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
+    #                         f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
                     
-            # Save the data to the .csv file.   
-            save_data = np.column_stack((time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
-                                        cm_w1_uA, cm_w2_uA, cm_w3_uA))
-            with open(file_name, 'ab') as f:
-                np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
+    #         # Save the data to the .csv file.   
+    #         save_data = np.column_stack((time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
+    #                                     cm_w1_uA, cm_w2_uA, cm_w3_uA))
+    #         with open(file_name, 'ab') as f:
+    #             np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
     
 
 

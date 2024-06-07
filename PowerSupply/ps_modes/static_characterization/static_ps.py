@@ -65,6 +65,8 @@ class Static_PS(QWidget):
             for index in range(1, num_states+1): # 1-7
                 self.channels_keys.append(index-1) # [0, 1, 2, 3, 4, 5, 6]
             self.state_index = self.st_comboBox.currentIndex()
+        else:
+            self.channels_keys = [0, 1, 2]
 
         self.extended_flag_1 = 0
         self.extended_flag_2 = 0
@@ -157,8 +159,11 @@ class Static_PS(QWidget):
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
             print("\n[INFO] Please, set the voltage value\n------------------------------------")
             return
-        else: 
-            if self.set_button.text() =="Set":
+        else:
+            if self.mode == "manual":
+                if self.set_button.text() =="Set":
+                    self.set_command(state)
+            elif self.mode == "auto":
                 self.set_command(state)
             else:
                 self.reset_command()
@@ -217,12 +222,19 @@ class Static_PS(QWidget):
     ####################################################################################################################
     # SET COMMAND
     def set_command(self, state=None):
+        print(state)
         new_hv_val = float(self.target_voltage_edit.text())
         if self.mode == "manual":
+            print("manual")
             if self.st_comboBox is not None:
                 state_index = self.st_comboBox.currentIndex()
         else:
-            state_index = state
+            if state == "A":
+                state_index = 0
+            elif state == "B":
+                state_index = 1
+            elif state == "C":
+                state_index = 2
 
         if new_hv_val == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
@@ -256,12 +268,8 @@ class Static_PS(QWidget):
                         self.AC_set(self.channels_keys, freq_val,  duty_val, ph_shifts) # phase shift set for other
                     self.lock_command(is_on=1)
                 else:
-                    if self.state_opt.isChecked():
+                    if self.state_opt.isChecked() == False:
                         self.DC_set(self.channels_keys, state_index)
-                    else:
-                        zero_volt = QMessageBox.warning(self, "Not modulated states", "Please, select 'Not modulated states'")
-                        print("\n[INFO] Please, select 'Not modulated states'"
-                              "\n------------------------------------")
 
 
     ####################################################################################################################

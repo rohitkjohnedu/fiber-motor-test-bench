@@ -322,7 +322,7 @@ class StandaTable:
         """
         self.stop_recording()
         self.continuous_reading_flag = True  # Flag set to true
-        self.reading_thread = Thread(target=self._read_device)  # Thread for continuous reading
+        self.reading_thread = Thread(target=self._read_device)  # Thread for continuous 
         self.reading_thread.start()  # Starting Thread
         self.clear_buffer()
 

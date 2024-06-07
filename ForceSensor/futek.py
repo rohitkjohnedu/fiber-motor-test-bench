@@ -142,7 +142,7 @@ class FutekSensor():
         self.continuous_reading_flag = False
 
         self.reading_thread = Thread(target=self._read_device)
-        self.reading_ thread_lock = RLock()  # Lock for multithreading
+        self.reading_thread_lock = RLock()  # Lock for multithreading
 
         self.connect()
 
