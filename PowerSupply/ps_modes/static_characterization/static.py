@@ -1,15 +1,23 @@
 # python packages
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QComboBox, QLineEdit, QVBoxLayout, QHBoxLayout, QFrame
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtWidgets import (QWidget, QLabel, QGroupBox, QFormLayout, QPushButton,
+                             QComboBox, QLineEdit, QVBoxLayout, QHBoxLayout, QFrame)
 import numpy as np
 import time
+from datetime import datetime
 import os.path
 # custom packages
 from PowerSupply.ps_modes.static_characterization.static_ps import Static_PS
 from StandaTable.standa_table import StandaTableWidget
 from tools.gui_tools.py_toggle import PyToggle
 
+formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
+
 class StaticMode(QWidget):
+    start_recording = pyqtSignal()
+    stop_recording = pyqtSignal()
+    finished = pyqtSignal()
+
     def __init__(self, power_supply=None, force_sensor=None, actuator=None, debug=1, parent=None):
         QWidget.__init__(self, parent=parent)
 
@@ -29,14 +37,18 @@ class StaticMode(QWidget):
             self.force_sensor_debug = 0
             self.actuator_debug = 0 
 
-        # # Timer for the data interpolation.
-        # self.new_timer = QTimer(self)
-        # self.new_timer.timeout.connect(self.indiv_data_rcd)
+        if self.debug == 0:
+            self.start_time = 0
+            self.plot_interval = 50#ms
+            self.sample_rate = 400#Hz
+            self.interpolation_stop_time = 0
 
-        # self.start_time = 0
-        # self.plot_interval = 50#ms
-        # self.sample_rate = 400#Hz
-        # self.interpolation_stop_time = 0
+            # Timer for the data interpolation.
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.indiv_data_rcd)
+
+            self.start_recording.connect(self.start_indiv_rcd)
+            self.stop_recording.connect(self.stop_indiv_rcd)
  
     # ************************************************************************************************************ #
     #                                     STATIC CHARACTERIZATION INTERFACE                                        #
@@ -180,7 +192,7 @@ class StaticMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
             
         # Power supply control panel.
-        self.power_supply_control = Static_PS(self.power_supply, mode=mode, exp_type=exp_type)
+        self.power_supply_control = Static_PS(self.power_supply, mode=mode, exp_type=exp_type, debug=self.debug)
 
         power_supply_groupBox = QGroupBox("Power Supply")
         power_supply_groupBox.setStyleSheet('QGroupBox {font-weight: bold;}')
@@ -198,6 +210,7 @@ class StaticMode(QWidget):
         self.widgets_layout.addWidget(self.parameters_groupBox)
 
         motor_type_lbl = QLabel("Motor Type:")
+        motor_type_lbl.setFixedWidth(115)
         self.motor_type = QComboBox()
         motor_types = ['Motor Fiber', 'Motor Ribbon']
         for motor in motor_types:
@@ -209,16 +222,16 @@ class StaticMode(QWidget):
         self.motor_type.currentIndexChanged.connect(self.motor_type_changed)
 
         self.motor_length_lbl = QLabel("Fiber length (mm):")
-        motor_length = QLineEdit()
-        self.parameters_groupBox_layout.addRow(self.motor_length_lbl, motor_length)
+        self.motor_length = QLineEdit()
+        self.parameters_groupBox_layout.addRow(self.motor_length_lbl, self.motor_length)
         # -------------------------------------------------------------------------------------------------------- #
         self.motor_number_lbl = QLabel("Number of fibers:")
-        motor_number = QLineEdit()
-        self.parameters_groupBox_layout.addRow(self.motor_number_lbl, motor_number)
+        self.motor_number = QLineEdit()
+        self.parameters_groupBox_layout.addRow(self.motor_number_lbl, self.motor_number)
         # -------------------------------------------------------------------------------------------------------- #
         self.insulator_lbl = QLabel("Insulator:")
-        insulator = QLineEdit()
-        self.parameters_groupBox_layout.addRow(self.insulator_lbl, insulator)
+        self.insulator = QLineEdit()
+        self.parameters_groupBox_layout.addRow(self.insulator_lbl, self.insulator)
         # -------------------------------------------------------------------------------------------------------- #
         self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
 
@@ -250,16 +263,16 @@ class StaticMode(QWidget):
             self.parameters_groupBox_layout.removeRow(self.slider_name_lbl)
             # -------------------------------------------------------------------------------------------------------- #
             self.motor_length_lbl = QLabel("Fiber length (mm):")
-            motor_length = QLineEdit()
-            self.parameters_groupBox_layout.addRow(self.motor_length_lbl, motor_length)
+            self.motor_length = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.motor_length_lbl, self.motor_length)
             # -------------------------------------------------------------------------------------------------------- #
             self.motor_number_lbl = QLabel("Number of fibers:")
-            motor_number = QLineEdit()
-            self.parameters_groupBox_layout.addRow(self.motor_number_lbl, motor_number)
+            self.motor_number = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.motor_number_lbl, self.motor_number)
             # -------------------------------------------------------------------------------------------------------- #
             self.insulator_lbl = QLabel("Insulator:")
-            insulator = QLineEdit()
-            self.parameters_groupBox_layout.addRow(self.insulator_lbl, insulator)
+            self.insulator = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.insulator_lbl, self.insulator)
             # -------------------------------------------------------------------------------------------------------- #
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
 
@@ -269,58 +282,16 @@ class StaticMode(QWidget):
             self.parameters_groupBox_layout.removeRow(self.insulator_lbl)
             # -------------------------------------------------------------------------------------------------------- #
             self.stator_name_lbl = QLabel("Stator name:")
-            stator_name = QLineEdit()
-            self.parameters_groupBox_layout.addRow(self.stator_name_lbl, stator_name)
+            self.stator_name = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.stator_name_lbl, self.stator_name)
             # -------------------------------------------------------------------------------------------------------- #
             self.slider_name_lbl = QLabel("Slider name:")
-            slider_name = QLineEdit()
-            self.parameters_groupBox_layout.addRow(self.slider_name_lbl, slider_name)
+            self.slider_name = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.slider_name_lbl, self.slider_name)
             # -------------------------------------------------------------------------------------------------------- #
-            self.parameters_groupBox.setLayout(self.parameters_groupBox_layout) 
+            self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
+
     # ************************************************************************************************************ #
-
-    # def start_btn_clicked(self):
-    #     if self.start_btn.text() == "START RECORDING":
-    #         # -------------------------------------------------------------------------------------------------------- #
-    #         print("\n[INFO] The measurement is running")
-    #         self.start_btn.setText("STOP RECORDING")
-    #         self.start_btn.setStyleSheet("background-color: red; "
-    #                                        "color: white; "
-    #                                        "font-weight: bold; "
-    #                                        "font-size: 24px;"
-    #                                        "position: center; ")
-    #         # -------------------------------------------------------------------------------------------------------- #
-    #         self.start_recording()
-    #     else:
-    #         # -------------------------------------------------------------------------------------------------------- #
-    #         print("\n[INFO] The measurement is stopped")
-    #         self.start_btn.setText("START RECORDING")
-    #         self.start_btn.setStyleSheet("background-color: green; "
-    #                                    "color: white; "
-    #                                    "font-weight: bold; "
-    #                                    "font-size: 24px;"
-    #                                    "position: center; ")
-    #         # -------------------------------------------------------------------------------------------------------- #
-    #         self.stop_recording()
-
-    # def start_recording(self):
-    #     self.start_time = time.perf_counter()
-    #     if self.power_supply_debug == 1:
-    #         self.power_supply.start_recording()
-    #     if self.force_sensor_debug == 1:
-    #         self.force_sensor.start_recording()
-    #     if self.actuator_debug == 1:
-    #         self.actuator.start_recording()
-    
-    # def stop_recording(self):
-    #     self.emg_stop_btn_clicked()
-    #     if self.power_supply_debug == 1:
-    #         self.power_supply.stop_recording()
-    #     if self.force_sensor_debug == 1:
-    #         self.force_sensor.stop_recording()
-    #     if self.actuator_debug == 1:
-    #         self.actuator.stop_recording()
-
     def run_static(self):
         experiment_text = self.experiment_type.currentText()
         if experiment_text == 'Force vs. Position':
@@ -359,86 +330,102 @@ class StaticMode(QWidget):
                 self.force_sensor.tare() # tare the force sensor
                 time.sleep(0.1) # wait for the force sensor to tare
                 if modulation == False:
-                    print("\n[INFO] The power supply is set to the state: ", 'A')
                     states = ['A', 'B', 'C']
                     for state in states:
                         self.state = state
-                        print("\n[INFO] state is: ", state)
                         self.power_supply_control.set_pressed(state) # set the power supply to the state
                         print("\n[INFO] The power supply is set to the state: ", state)
                         time.sleep(0.5) # wait for 1 second
-                        # self.start_indiv_rcd() # record the data
+                        self.start_recording.emit() # record the data
                         print("\n[INFO] The data is being recorded")
                         time.sleep(2) # measure for 2 seconds
-                        # self.new_timer.stop() # stop recording the data
-                        print("\n[INFO] The data is stopped recording")
+                        self.stop_recording.emit() # stop recording the data
+                        print("\n[INFO] The data has been stopped recording")
                         self.power_supply_control.voltage_reset() # reset the voltage
                         print("\n[INFO] The power supply voltage is reset")
                         time.sleep(0.5) # wait for 1 second
+        self.finished.emit()
     
-    # def start_indiv_rcd(self):
-    #     self.start_time = time.perf_counter()
-    #     self.new_timer.start(self.plot_interval)
+    def start_indiv_rcd(self):
+        self.start_time = time.perf_counter()
+        self.timer.start(self.plot_interval)
+    
+    def stop_indiv_rcd(self):
+        self.timer.stop()
 
-    # def indiv_data_rcd(self):
-    #     # Get the new data from the components.
-    #     if self.power_supply_debug == 1:
-    #         new_power_supply_data = self.power_supply.get_new_data()
-    #     if self.force_sensor_debug == 1:
-    #         new_force_sensor_data = self.force_sensor.get_new_data()
-    #     if self.actuator_debug == 1:
-    #         new_actuator_data = self.actuator.get_new_data()
+    def indiv_data_rcd(self):
+        # Get the new data from the components.
+        if self.power_supply_debug == 1:
+            new_power_supply_data = self.power_supply.get_new_data()
+        if self.force_sensor_debug == 1:
+            new_force_sensor_data = self.force_sensor.get_new_data()
+        if self.actuator_debug == 1:
+            new_actuator_data = self.actuator.get_new_data()
             
-    #     # Interpolate the data.
-    #     if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
-    #         if self.interpolation_stop_time < self.start_time:
-    #             interpolation_start_time = self.start_time
-    #         else:
-    #             interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
+        # Interpolate the data.
+        if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
+            if self.interpolation_stop_time < self.start_time:
+                interpolation_start_time = self.start_time
+            else:
+                interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
 
-    #         smallest_last_sample = min(new_power_supply_data[-1,0], new_force_sensor_data[-1,0])
-    #         differential_time_latest_sample = smallest_last_sample - self.start_time
-    #         interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
-    #         self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
+            smallest_last_sample = min(new_power_supply_data[-1,0], new_force_sensor_data[-1,0])
+            differential_time_latest_sample = smallest_last_sample - self.start_time
+            interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
+            self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
 
-    #         interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
-    #         interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
-    #         interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
-    #         interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
-    #         for i1 in range(2, 11):
-    #             interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+            interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
+            interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+            interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
+            interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
+            for i1 in range(2, 11):
+                interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
-    #         time_s = interpolation_time
-    #         force_mN = interpolated_force_sensor_data
-    #         position_mm = interpolated_actuator_data
-    #         hv_set_kV = interpolated_power_supply_data[:,2]
-    #         hv_vm_kV = interpolated_power_supply_data[:,3]
-    #         hv_err_V = interpolated_power_supply_data[:,4]
-    #         lv_set_V = interpolated_power_supply_data[:,5]
-    #         lv_vm_V = interpolated_power_supply_data[:,6]
-    #         lv_err_V = interpolated_power_supply_data[:,7]
-    #         cm_w1_uA = interpolated_power_supply_data[:,8]
-    #         cm_w2_uA = interpolated_power_supply_data[:,9]
-    #         cm_w3_uA = interpolated_power_supply_data[:,10]
+            abs_time_s = interpolation_time
+            rel_time_s = abs_time_s - self.start_time
+            force_mN = interpolated_force_sensor_data
+            position_mm = interpolated_actuator_data
 
-    #         # Create a folder to store the data files if it doesn't exist.
-    #         folder_name = 'AdditionalDataFiles'
-    #         os.makedirs(folder_name, exist_ok=True)
 
-    #         # Create a new .csv file within the folder with a file name, date and time of the experiment.
-    #         # file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
+            hv_set_kV = interpolated_power_supply_data[:,2]
+            hv_vm_kV = interpolated_power_supply_data[:,3]
+            hv_err_V = interpolated_power_supply_data[:,4]
+            lv_set_V = interpolated_power_supply_data[:,5]
+            lv_vm_V = interpolated_power_supply_data[:,6]
+            lv_err_V = interpolated_power_supply_data[:,7]
+            cm_w1_uA = interpolated_power_supply_data[:,8]
+            cm_w2_uA = interpolated_power_supply_data[:,9]
+            cm_w3_uA = interpolated_power_supply_data[:,10]
 
-    #         file_name = os.path.join(folder_name, "pos={}_state={}_force={}.csv", position_mm[-1], self.state, force_mN[-1])
-    #         if not os.path.isfile(file_name):
-    #             with open(file_name, 'w') as f:
-    #                 f.write(f'Time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
-    #                         f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
+            # Create a folder to store the data files if it doesn't exist.
+            folder_name = 'AdditionalDataFiles'
+            os.makedirs(folder_name, exist_ok=True)
+
+            file_name = os.path.join(folder_name, f"pos_{str(position_mm[-1])}_state_{self.state}_date_{formatted_time}.csv")
+            if not os.path.isfile(file_name):
+                with open(file_name, 'w') as f:
+                    f.write(f'Experiment: {self.experiment_type.currentText()}\n')
+                    if self.motor_type.currentText() == 'Motor Fiber':
+                        f.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                f'Fiber length (mm): {self.motor_length.text()}\n'
+                                f'Number of fibers: {self.motor_number.text()}\n'
+                                f'Insulator: {self.insulator.text()}\n')
+                    elif self.motor_type.currentText() == 'Motor Ribbon':
+                        f.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                f'Stator name: {self.stator_name.text()}\n'
+                                f'Slider name: {self.slider_name.text()}\n')
+                    f.write(f'State: {self.state}\n')
+                    f.write(f'Sample rate (Hz): {self.sample_rate}\n')
+
+
+                    f.write(f'Absolute time (s), Relative time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V),'
+                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
                     
-    #         # Save the data to the .csv file.   
-    #         save_data = np.column_stack((time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
-    #                                     cm_w1_uA, cm_w2_uA, cm_w3_uA))
-    #         with open(file_name, 'ab') as f:
-    #             np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
+            # Save the data to the .csv file.   
+            save_data = np.column_stack((abs_time_s, rel_time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
+                                         cm_w1_uA, cm_w2_uA, cm_w3_uA))
+            with open(file_name, 'ab') as f:
+                np.savetxt(f, save_data, fmt='%.8f, %.8f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
     
 
 

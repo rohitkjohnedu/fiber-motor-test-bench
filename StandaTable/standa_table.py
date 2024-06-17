@@ -5,7 +5,7 @@ import time
 from threading import Thread, Lock, RLock
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QLabel, QCheckBox, QFrame
 import pyqtgraph as pg
 
 import numpy as np
@@ -557,6 +557,20 @@ class StandaTableWidget(QWidget):
             goToPosition = QPushButton("Move")
             buttonLayout.addRow(goToPosition)
         else:
+            home_opt = QHBoxLayout()
+            self.home_lbl = QLabel("Go home and set zero position:      ")
+            self.home_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.home_chckbox = QCheckBox()
+            self.home_chckbox.setText("Yes")
+            home_opt.addWidget(self.home_lbl)
+            home_opt.addWidget(self.home_chckbox)
+            buttonLayout.addRow(home_opt)
+
+            self.bottom_frame = QFrame()
+            self.bottom_frame.setFrameShape(QFrame.Shape.HLine)
+            self.bottom_frame.setFrameShadow(QFrame.Shadow.Raised)
+            buttonLayout.addRow(self.bottom_frame)
+
             start_pos_lbl = QLabel("Start position (mm):")
             self.start_pos_edit = QLineEdit("0")
             self.start_pos_edit.setAlignment(Qt.AlignmentFlag.AlignRight)

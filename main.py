@@ -17,7 +17,7 @@
 import sys
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton,
-                                QTabWidget, QScrollArea, QMessageBox, QProgressBar, QDialog)
+                                QTabWidget, QScrollArea, QMessageBox, QProgressBar, QDialog, QLabel)
 import time
 import numpy as np
 import os.path
@@ -49,13 +49,18 @@ class InfProgressBar(QDialog):
     
         self.setWindowTitle("Initialization")
         self.setFixedSize(300, 100)
+
+        inf_label = QLabel("Please wait while the system is initializing.")
+        inf_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setValue(0)
-        self.progress_bar.setFormat("Please wait while the system is initializing.")
         self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.progress_bar.setStyleSheet("font-weight: bold; font-size: 16px;")
+
         layout = QVBoxLayout()
+        layout.addWidget(inf_label)
         layout.addWidget(self.progress_bar)
         self.setLayout(layout)
 
@@ -69,9 +74,14 @@ class MainWindow(QWidget):
 
         # Debug options.
         self.debug = 0                  # 0: full debug OFF;        1: full debug ON.
-        self.power_supply_debug = 1     # 0: no power supply;       1: power supply.
-        self.force_sensor_debug = 1     # 0: no force sensor;       1: force sensor.
-        self.actuator_debug = 1         # 0: no actuator;           1: actuator.
+        if self.debug == 0:
+            self.power_supply_debug = 1 # 1: power supply.
+            self.force_sensor_debug = 1 # 1: force sensor.
+            self.actuator_debug = 1     # 1: actuator.
+        else:
+            self.power_supply_debug = 0 # 0: no power supply.
+            self.force_sensor_debug = 0 # 0: no force sensor.
+            self.actuator_debug = 0     # 0: no actuator.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         self.display_currents = 1       # 0: no current plot;       1: current plot.
@@ -215,14 +225,15 @@ class MainWindow(QWidget):
             self.timer.timeout.connect(self.plot_update_callback)
             if self.power_supply.auto_connect():
                 self.timer.start(self.plot_interval)
-    # ************************************************************************************************************ #
-    
+
+    # ************************************************************************************************************ #  
     # Run button widget
     def tab_changed(self):
         if self.characterization_type.currentIndex() == 0:
             self.run_btn_wdgt_static()
         elif self.characterization_type.currentIndex() == 1:
             self.run_btn_wdgt_dynamic()
+
     # ************************************************************************************************************ #
 
     def run_btn_wdgt_static(self):
@@ -352,6 +363,8 @@ class MainWindow(QWidget):
         self.scroll_area_plots = QScrollArea()
         self.scroll_area_plots.setWidget(self.plots_groupBox)
         self.scroll_area_plots.setWidgetResizable(True)
+    
+    # ************************************************************************************************************ #
 
     def start_recording(self):
         self.start_time = time.perf_counter()
@@ -361,6 +374,25 @@ class MainWindow(QWidget):
             self.force_sensor.start_recording()
         if self.actuator_debug == 1:
             self.actuator.start_recording()
+        # -------------------------------------------------------------------------------------------------------- #
+        if self.characterization_type.currentIndex() == 0: # if static characterization is selected
+            self.running_thread = Thread(target=self.static.run_static)
+            self.running_thread.start()
+            self.static.finished.connect(self.run_button_clicked)
+        # elif self.static.characterization_type_layout.currentIndex() == 1: # if dynamic characterization is selected
+        #     self.dynamic.run_dynamic()
+        # -------------------------------------------------------------------------------------------------------- #
+    
+    # def measurement_finished(self):
+    #     self.stop_recording()
+    #     QMessageBox.information(self, "Information", "The measurement is finished.")
+    #     print("\n[INFO] The measurement is stopped")
+    #     self.run_button.setText("RUN")
+    #     self.run_button.setStyleSheet("background-color: green; "
+    #                                    "color: white; "
+    #                                    "font-weight: bold; "
+    #                                    "font-size: 24px;"
+    #                                    "position: center; ")
 
     def stop_recording(self):
         self.emg_stop_btn_clicked()
@@ -374,7 +406,7 @@ class MainWindow(QWidget):
     def run_button_clicked(self):
         if self.run_button.text() == "RUN":
             # -------------------------------------------------------------------------------------------------------- #
-            print("\n[INFO] The measurement is running")
+            print("\n[INFO] The measurement is started")
             self.run_button.setText("STOP")
             self.run_button.setStyleSheet("background-color: red; "
                                            "color: white; "
@@ -382,18 +414,11 @@ class MainWindow(QWidget):
                                            "font-size: 24px;"
                                            "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            self.initialization() # homing the actuator
-            # self.actuator.home_zero()
-            time.sleep(1)
-            self.start_recording()
+            if self.static.actuator_control.home_chckbox.isChecked() == True:
+                self.initialization() # homing the actuator
+            else:
+                self.start_recording() # without homing
             # -------------------------------------------------------------------------------------------------------- #
-            if self.characterization_type.currentIndex() == 0: # if static characterization is selected
-                self.running_thread = Thread(target=self.static.run_static)
-                self.running_thread.start() 
-            # elif self.static.characterization_type_layout.currentIndex() == 1: # if dynamic characterization is selected
-            #     self.dynamic.run_dynamic()
-            # -------------------------------------------------------------------------------------------------------- #
-
         else:
             # -------------------------------------------------------------------------------------------------------- #
             print("\n[INFO] The measurement is stopped")
@@ -408,6 +433,8 @@ class MainWindow(QWidget):
             # -------------------------------------------------------------------------------------------------------- #
             if self.running_thread.is_alive():
                 self.running_thread.join()
+            # -------------------------------------------------------------------------------------------------------- #
+            QMessageBox.information(self, "Information", "The measurement is finished.")
     
     # ************************************************************************************************************ #
 
@@ -425,9 +452,19 @@ class MainWindow(QWidget):
         self.initializator.terminate()
         self.loading.progress_bar.setRange(0, 1)
         self.loading.progress_bar.setValue(1 if result else 0)
+        time.sleep(1)
         self.loading.close()
+        # -------------------------------------------------------------------------------------------------------- #
         if result:
-            QMessageBox.information(self, 'Success', 'Task completed successfully!')
+            message = QMessageBox(self)
+            message.setIcon(QMessageBox.Icon.Information)
+            message.setWindowTitle('Initialization')
+            message.setText('Initialization completed!')
+            message.setStandardButtons(QMessageBox.StandardButton.Ok)
+            QTimer.singleShot(1000, message.accept) # close message box:
+            message.exec()
+        # -------------------------------------------------------------------------------------------------------- #
+        self.start_recording()
         return result
 
     def emg_stop_btn_clicked(self):
@@ -461,7 +498,7 @@ class MainWindow(QWidget):
             interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
             self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
 
-            interpolation_time = np.arange(interpolation_start_time,self.interpolation_stop_time,1/self.sample_rate)
+            interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
             interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
             interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
             interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))

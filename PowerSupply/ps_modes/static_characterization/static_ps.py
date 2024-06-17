@@ -1,41 +1,43 @@
 # python packages
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox, QCheckBox
+from PyQt6.QtWidgets import QWidget, QFormLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox, QCheckBox, QHBoxLayout
 
 class Static_PS(QWidget):
-    def __init__(self, device=None, mode=None, exp_type=None, parent=None):
+    def __init__(self, device=None, mode=None, exp_type=None, debug=0, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # PS device
         self.device = device
         self.mode = mode
         self.exp_type = exp_type
+        self.debug = debug
 
         # ************************************************************************************************************ #
         # INTERFACE ELEMENTS
         self.mode_layout = QFormLayout(self)
         # ------------------------------------------------------------------------------------------------------------ #
         target_voltage_lbl = QLabel("Voltage (V):")
-        target_voltage_lbl.setFixedWidth(150)
+        target_voltage_lbl.setFixedWidth(107)
 
         self.target_voltage_edit = QLineEdit("0")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # ------------------------------------------------------------------------------------------------------------ #
         if self.mode == "manual":
             state_lbl = QLabel("State:")
-            state_lbl.setFixedWidth(150)
+            # state_lbl.setFixedWidth(150)
 
             self.st_comboBox = QComboBox()
             states = ['A', 'B', 'C', 'D', 'E', 'F', 'A-D', 'B-E', 'C-F', 'Other']
             for state in states:
                 self.st_comboBox.addItem(state)
         else:
-            state_lbl = QLabel("Not modulated\n"
-                               "'A-B-C' states")
-            state_lbl.setFixedWidth(150)
+            state_lbl = QLabel("Modulation:")
+            state_lbl.setFixedWidth(175)
 
             self.state_opt = QCheckBox()
+            self.state_opt.setText("ON")
             self.state_opt.setChecked(False)
+            self.state_opt.setDisabled(True)
         # ------------------------------------------------------------------------------------------------------------ #
         # The following widgets are used in "ACTIONS" section as a place holders, but then initialized in "EXTENDED SET"
         self.freq_edit = QLineEdit("1")
@@ -54,7 +56,10 @@ class Static_PS(QWidget):
             self.mode_layout.addRow(state_lbl, self.st_comboBox)
             self.mode_layout.addRow(self.set_button, self.update_button)
         else:
-            self.mode_layout.addRow(state_lbl, self.state_opt)
+            state_layout = QHBoxLayout()
+            state_layout.addWidget(state_lbl)
+            state_layout.addWidget(self.state_opt)
+            self.mode_layout.addRow(state_layout)
             self.mode_layout.addRow(self.update_button)
 
         # ************************************************************************************************************ #
@@ -157,7 +162,8 @@ class Static_PS(QWidget):
         new_hv_val = float(self.target_voltage_edit.text())
         if new_hv_val == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
-            print("\n[INFO] Please, set the voltage value\n------------------------------------")
+            if self.debug == 1:
+                print("\n[INFO] Please, set the voltage value\n------------------------------------")
             return
         else:
             if self.mode == "manual":
@@ -176,7 +182,8 @@ class Static_PS(QWidget):
             self.reset_command()
         else:
             if self.device.set_voltage(new_hv_val) is True:
-                print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv_val))
+                if self.debug == 1:
+                    print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv_val))
                 if self.set_button.text() == "Set":
                     self.set_button.setText("Reset")
                 return True
@@ -185,7 +192,8 @@ class Static_PS(QWidget):
     # RESET button clicked or 0 voltage SET (Votlage => OFF)
     def voltage_reset(self):
         if self.device.voltage_stop():
-            print("\n[INFO] HV OFF\n------------------")
+            if self.debug == 1:
+                print("\n[INFO] HV OFF\n------------------")
 
     ####################################################################################################################
     # SET button clicked (state 'A' or 'B' or 'C' => ON)
@@ -198,17 +206,21 @@ class Static_PS(QWidget):
         third_ch = 2
         if state_index < 3:
             if self.device.hb_set(channels_keys[state_index], freq_val, duty_val):
-                print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)".format(state_index+1))
+                if self.debug == 1:
+                    print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)".format(state_index+1))
         else:
             if state_index == 3:
                 if self.device.hb_set(second_ch, freq_val, duty_val) and self.device.hb_set(third_ch, freq_val, duty_val):
-                    print("[INFO] Mode 1: Half-Bridges 2-3 ON (NO SWITCH)")
+                    if self.debug == 1:
+                        print("[INFO] Mode 1: Half-Bridges 2-3 ON (NO SWITCH)")
             elif state_index == 4:
                 if self.device.hb_set(first_ch, freq_val, duty_val) and self.device.hb_set(third_ch, freq_val, duty_val):
-                    print("[INFO] Mode 1: Half-Bridges 1-3 ON (NO SWITCH)")
+                    if self.debug == 1:
+                        print("[INFO] Mode 1: Half-Bridges 1-3 ON (NO SWITCH)")
             elif state_index == 5:
                 if self.device.hb_set(first_ch, freq_val, duty_val) and self.device.hb_set(second_ch, freq_val, duty_val):
-                    print("[INFO] Mode 1: Half-Bridges 1-2 ON (NO SWITCH)")
+                    if self.debug == 1:
+                        print("[INFO] Mode 1: Half-Bridges 1-2 ON (NO SWITCH)")
 
     ####################################################################################################################
     # SET button clicked or ENTER pressed (state 'A-D' or 'B-E' or 'C-F' or 'other' => ON)
@@ -216,16 +228,17 @@ class Static_PS(QWidget):
         channel_key = list(range(channels_keys[3])) # all three channels [0, 1, 2]
         three_ch = 3
         if self.device.hb_set(channel_key, freq_val, duty_val, ph_shifts=ph_shifts):
-            print("[INFO] Set: {} Channels | {}Hz | {}% | {}° | {}° | {}°".format(three_ch, freq_val, duty_val,
-                                                                                  ph_shifts[0], ph_shifts[1], ph_shifts[2]))
+            if self.debug == 1:
+                print("[INFO] Set: {} Channels | {}Hz | {}% | {}° | {}° | {}°".format(three_ch, freq_val, duty_val,
+                                                                            ph_shifts[0], ph_shifts[1], ph_shifts[2]))
 
     ####################################################################################################################
     # SET COMMAND
     def set_command(self, state=None):
-        print(state)
         new_hv_val = float(self.target_voltage_edit.text())
         if self.mode == "manual":
-            print("manual")
+            if self.debug == 1:
+                print("manual")
             if self.st_comboBox is not None:
                 state_index = self.st_comboBox.currentIndex()
         else:
@@ -238,8 +251,9 @@ class Static_PS(QWidget):
 
         if new_hv_val == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
-            print("\n[INFO] Please, set the voltage value"
-                  "\n------------------------------------")
+            if self.debug == 1:
+                print("\n[INFO] Please, set the voltage value"
+                      "\n------------------------------------")
         else: 
             if self.voltage_set() is True:
                 if self.mode == "manual":
@@ -277,12 +291,14 @@ class Static_PS(QWidget):
     def lock_command(self, is_on):
         if is_on == 1:
             self.st_comboBox.setDisabled(True)
-            print("[INFO] Mode locked\n"
-                  "------------------")
+            if self.debug == 1:
+                print("[INFO] Mode locked\n"
+                    "------------------")
         else:
             self.st_comboBox.setDisabled(False)
-            print("[INFO] Mode unlocked\n"
-                  "--------------------")
+            if self.debug == 1:
+                print("[INFO] Mode unlocked\n"
+                    "--------------------")
 
     ####################################################################################################################
     # RESET COMMAND
@@ -292,10 +308,12 @@ class Static_PS(QWidget):
         self.voltage_reset()
         if self.state_index < 6:
             if self.device.hb_stop(self.channels_keys[self.state_index]):
-                print("[INFO] Mode 1: Half-Bridge {} OFF".format(self.state_index+1))
+                if self.debug == 1:
+                    print("[INFO] Mode 1: Half-Bridge {} OFF".format(self.state_index+1))
         else:
             if self.device.hb_stop_shift():
-                print("[INFO] Mode 5: Half-Bridges 1-3 OFF")
+                if self.debug == 1:  
+                    print("[INFO] Mode 5: Half-Bridges 1-3 OFF")
         # unlock the mode
         self.lock_command(is_on=0)
 
@@ -307,7 +325,8 @@ class Static_PS(QWidget):
             self.reset_command()
             self.set_button.setText("Set")
             self.target_voltage_edit.setText("0")
-        print("[INFO] Emergency stop\n"
-              "---------------------")
+        if self.debug == 1:
+            print("[INFO] Emergency stop\n"
+                "---------------------")
 
 
