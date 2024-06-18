@@ -73,7 +73,7 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         # Debug options.
-        self.debug = 0                  # 0: full debug OFF;        1: full debug ON.
+        self.debug = 1                  # 0: full debug OFF;        1: full debug ON.
         if self.debug == 0:
             self.power_supply_debug = 1 # 1: power supply.
             self.force_sensor_debug = 1 # 1: force sensor.
@@ -132,8 +132,9 @@ class MainWindow(QWidget):
         self.run_btn_wdgt_static_flag = False
         self.run_btn_wdgt_dynamic_flag = False
         self.emg_stop_btn = None
-        self.static.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt_static)
-        self.dynamic.auto_mode_toggle.stateChanged.connect(self.run_btn_wdgt_dynamic)
+
+        # Signalization about finishing the experiment.
+        self.static.finished.connect(self.run_button_clicked)
         
         # ************************************************************************************************************ #
         #                                     INITIALIZATION OF THE USER INTERFACE
@@ -141,7 +142,6 @@ class MainWindow(QWidget):
 
         self.setWindowTitle("{} - {}" .format(PROGRAM_NAME, PROGRAM_VERSION))
         self.main_layout = QHBoxLayout(self)
-        # self.setStyleSheet("background-color: white;")
         # ************************************************************************************************************ #
 
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
@@ -154,12 +154,19 @@ class MainWindow(QWidget):
         self.characterization_type.addTab(self.scroll_area_static, 'Static Characterization')
         self.characterization_type.addTab(self.scroll_area_dynamic, 'Dynamic Characterization')
 
-        self.characterization_type.currentChanged.connect(self.tab_changed)
-
         self.control_panel_layout.addWidget(self.characterization_type)
         # ------------------------------------------------------------------------------------------------------------ #
 
-        self.run_btn_wdgt_static() # add the RUN button to the control panel
+        # RUN button
+        self.run_button = QPushButton("RUN")
+        if self.debug == 0: # if debug mode is OFF
+            self.run_button.clicked.connect(self.run_button_clicked)
+        self.run_button.setStyleSheet("background-color: green; "
+                                        "color: white; "
+                                        "font-weight: bold; "
+                                        "font-size: 24px;"
+                                        "position: center; ")
+        self.control_panel_layout.addWidget(self.run_button)
         # ------------------------------------------------------------------------------------------------------------ #
 
         self.main_layout.addLayout(self.control_panel_layout) # add the control panel on the left side.
@@ -226,124 +233,6 @@ class MainWindow(QWidget):
             if self.power_supply.auto_connect():
                 self.timer.start(self.plot_interval)
 
-    # ************************************************************************************************************ #  
-    # Run button widget
-    def tab_changed(self):
-        if self.characterization_type.currentIndex() == 0:
-            self.run_btn_wdgt_static()
-        elif self.characterization_type.currentIndex() == 1:
-            self.run_btn_wdgt_dynamic()
-
-    # ************************************************************************************************************ #
-
-    def run_btn_wdgt_static(self):
-        toggle_state = self.static.auto_mode_toggle.isChecked()
-        if toggle_state == False and self.run_btn_wdgt_dynamic_flag == False and self.run_btn_wdgt_static_flag == False:
-            # -------------------------------------------------------------------------------------------------------- #
-            if self.emg_stop_btn is not None:
-                self.emg_stop_btn.deleteLater()
-            #--------------------------------------------------------------------------------------------------------- #
-            self.run_button = QPushButton("RUN")
-            if self.debug == 0: # if debug mode is OFF
-                self.run_button.clicked.connect(self.run_button_clicked)
-            self.run_button.setStyleSheet("background-color: green; "
-                                            "color: white; "
-                                            "font-weight: bold; "
-                                            "font-size: 24px;"
-                                            "position: center; ")
-            self.control_panel_layout.addWidget(self.run_button)
-            # -------------------------------------------------------------------------------------------------------- #
-            self.run_btn_wdgt_static_flag = True
-        # ------------------------------------------------------------------------------------------------------------ #
-        elif toggle_state == False and self.run_btn_wdgt_dynamic_flag == True:
-            pass
-        # ------------------------------------------------------------------------------------------------------------ #
-        elif toggle_state == True and self.run_btn_wdgt_dynamic_flag == False and self.run_btn_wdgt_static_flag == False:
-            pass
-        # ------------------------------------------------------------------------------------------------------------ #
-        else:
-            if self.run_button is not None:
-                self.run_button.deleteLater()
-            # -------------------------------------------------------------------------------------------------------- #
-            self.run_button = QPushButton("RUN")
-            if self.debug == 0: # if debug mode is OFF
-                self.run_button.clicked.connect(self.run_button_clicked)
-            self.run_button.setStyleSheet("background-color: green; "
-                                            "color: white; "
-                                            "font-weight: bold; "
-                                            "font-size: 24px;"
-                                            "position: center; ")
-            self.control_panel_layout.addWidget(self.run_button)
-            # -------------------------------------------------------------------------------------------------------- #
-            self.emg_stop_btn = QPushButton("EMERGENCY STOP")
-            if self.power_supply is not None:
-                self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
-            self.emg_stop_btn.setStyleSheet("background-color: red; "
-                                            "color: white; "
-                                            "font-weight: bold; "
-                                            "font-size: 24px; "
-                                            "position: center; ")    
-            self.control_panel_layout.addWidget(self.emg_stop_btn)
-            # -------------------------------------------------------------------------------------------------------- #
-            self.run_btn_wdgt_static_flag = False
-            self.run_btn_wdgt_dynamic_flag = False
-    # ************************************************************************************************************ #
-
-    def run_btn_wdgt_dynamic(self):
-        toggle_state = self.dynamic.auto_mode_toggle.isChecked()
-        if toggle_state == False and self.run_btn_wdgt_static_flag == False and self.run_btn_wdgt_dynamic_flag == False:
-            # -------------------------------------------------------------------------------------------------------- #
-            if self.emg_stop_btn is not None:
-                self.emg_stop_btn.deleteLater()
-            # -------------------------------------------------------------------------------------------------------- #
-            self.run_button = QPushButton("RUN")
-            if self.debug == 0: # if debug mode is OFF
-                self.run_button.clicked.connect(self.run_button_clicked)
-            self.run_button.setStyleSheet("background-color: green; "
-                                            "color: white; "
-                                            "font-weight: bold; "
-                                            "font-size: 24px;"
-                                            "position: center; ")
-            self.control_panel_layout.addWidget(self.run_button)
-            # -------------------------------------------------------------------------------------------------------- #
-            self.run_btn_wdgt_dynamic_flag = True
-        # ------------------------------------------------------------------------------------------------------------ #
-        elif toggle_state == False and self.run_btn_wdgt_static_flag == True:
-            pass
-        # ------------------------------------------------------------------------------------------------------------ #
-        elif toggle_state == True and self.run_btn_wdgt_static_flag == False and self.run_btn_wdgt_dynamic_flag == False:
-            pass
-        # ------------------------------------------------------------------------------------------------------------ #
-        else:
-            if self.run_button is not None:
-                self.run_button.deleteLater()
-            # -------------------------------------------------------------------------------------------------------- #
-            self.emg_stop_btn = QPushButton("EMERGENCY STOP")
-            if self.power_supply is not None:
-                self.emg_stop_btn.clicked.connect(self.emg_stop_btn_clicked)
-            self.emg_stop_btn.setStyleSheet("background-color: red; "
-                                            "color: white; "
-                                            "font-weight: bold; "
-                                            "font-size: 24px; "
-                                            "position: center; ")    
-            self.control_panel_layout.addWidget(self.emg_stop_btn)
-            # -------------------------------------------------------------------------------------------------------- #
-            self.run_btn_wdgt_static_flag = False
-            self.run_btn_wdgt_dynamic_flag = False
-    # ************************************************************************************************************ #
-    
-    def clear_layout(self, layout):
-        if layout is not None:
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-                else:
-                    # Recursively clear nested layouts
-                    self.clear_layout(item.layout())
-            layout.deleteLater()
-
     # ************************************************************************************************************ #
     #                                          CALLBACK FOR DATA READING
     # ************************************************************************************************************ #
@@ -376,23 +265,13 @@ class MainWindow(QWidget):
             self.actuator.start_recording()
         # -------------------------------------------------------------------------------------------------------- #
         if self.characterization_type.currentIndex() == 0: # if static characterization is selected
-            self.running_thread = Thread(target=self.static.run_static)
-            self.running_thread.start()
-            self.static.finished.connect(self.run_button_clicked)
+            if self.static.auto_mode_toggle.isChecked() == False:
+                self.running_thread = Thread(target=self.static.run_static)
+                self.running_thread.start()
+        
         # elif self.static.characterization_type_layout.currentIndex() == 1: # if dynamic characterization is selected
         #     self.dynamic.run_dynamic()
         # -------------------------------------------------------------------------------------------------------- #
-    
-    # def measurement_finished(self):
-    #     self.stop_recording()
-    #     QMessageBox.information(self, "Information", "The measurement is finished.")
-    #     print("\n[INFO] The measurement is stopped")
-    #     self.run_button.setText("RUN")
-    #     self.run_button.setStyleSheet("background-color: green; "
-    #                                    "color: white; "
-    #                                    "font-weight: bold; "
-    #                                    "font-size: 24px;"
-    #                                    "position: center; ")
 
     def stop_recording(self):
         self.emg_stop_btn_clicked()
@@ -414,10 +293,16 @@ class MainWindow(QWidget):
                                            "font-size: 24px;"
                                            "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            if self.static.actuator_control.home_chckbox.isChecked() == True:
-                self.initialization() # homing the actuator
-            else:
-                self.start_recording() # without homing
+            if self.static.auto_mode_toggle.isChecked() == False:
+                self.static.stop_event.clear()
+                if self.static.actuator_control.home_chckbox.isChecked():
+                    self.initialization() # homing the actuator
+                else:
+                    self.start_recording()
+            elif self.static.auto_mode_toggle.isChecked() == True:
+                self.static.init_ui('manual', disable=0)
+                # self.static.disable_all_widgets(self.static.control_panel_layout, flag=False)
+                self.start_recording()
             # -------------------------------------------------------------------------------------------------------- #
         else:
             # -------------------------------------------------------------------------------------------------------- #
@@ -429,13 +314,22 @@ class MainWindow(QWidget):
                                        "font-size: 24px;"
                                        "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            self.stop_recording()
-            # -------------------------------------------------------------------------------------------------------- #
+            # the user can stop the measurement at any time:
             if self.running_thread.is_alive():
+                self.static.stop_event.set()
                 self.running_thread.join()
-            # -------------------------------------------------------------------------------------------------------- #
-            QMessageBox.information(self, "Information", "The measurement is finished.")
-    
+                self.stop_recording()
+                QMessageBox.information(self, "Information", "The measurement is finished.")
+                QMessageBox.addButton(QPushButton("Open Data Folder"), QMessageBox.ButtonRole.ActionRole)
+                if QMessageBox.clickedButton() == "Open Data Folder":
+                    os.system("start explorer DataFiles")
+            else:
+                self.stop_recording()
+                if self.static.zero_step_flag == 1:
+                    QMessageBox.warning(self, "Warning", "The step size is cannot be zero. Please change the step size.")
+                else:
+                    QMessageBox.information(self, "Information", "The measurement is finished.")
+
     # ************************************************************************************************************ #
 
     def initialization(self):
@@ -480,60 +374,60 @@ class MainWindow(QWidget):
         if self.actuator_debug == 1:
             self.position_plot.plot_update(self.start_time)
 
-        if self.power_supply_debug == 1:
-            new_power_supply_data = self.power_supply.get_new_data()
-        if self.force_sensor_debug == 1:
-            new_force_sensor_data = self.force_sensor.get_new_data()
-        if self.actuator_debug == 1:
-            new_actuator_data = self.actuator.get_new_data()
+        # if self.power_supply_debug == 1:
+        #     new_power_supply_data = self.power_supply.get_new_data()
+        # if self.force_sensor_debug == 1:
+        #     new_force_sensor_data = self.force_sensor.get_new_data()
+        # if self.actuator_debug == 1:
+        #     new_actuator_data = self.actuator.get_new_data()
 
-        if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
-            if self.interpolation_stop_time < self.start_time:
-                interpolation_start_time = self.start_time
-            else:
-                interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
+        # if len(new_power_supply_data)>0 and len(new_force_sensor_data)>0 and len(new_actuator_data)>0:
+        #     if self.interpolation_stop_time < self.start_time:
+        #         interpolation_start_time = self.start_time
+        #     else:
+        #         interpolation_start_time = self.interpolation_stop_time + 1/self.sample_rate
 
-            smallest_last_sample = min(new_power_supply_data[-1,0], new_force_sensor_data[-1,0])
-            differential_time_latest_sample = smallest_last_sample - self.start_time
-            interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
-            self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
+        #     smallest_last_sample = min(new_power_supply_data[-1,0], new_force_sensor_data[-1,0])
+        #     differential_time_latest_sample = smallest_last_sample - self.start_time
+        #     interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
+        #     self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
 
-            interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
-            interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
-            interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
-            interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
-            for i1 in range(2, 11):
-                interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+        #     interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
+        #     interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+        #     interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
+        #     interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
+        #     for i1 in range(2, 11):
+        #         interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
-            time_s = interpolation_time
-            force_mN = interpolated_force_sensor_data
-            position_mm = interpolated_actuator_data
-            hv_set_kV = interpolated_power_supply_data[:,2]
-            hv_vm_kV = interpolated_power_supply_data[:,3]
-            hv_err_V = interpolated_power_supply_data[:,4]
-            lv_set_V = interpolated_power_supply_data[:,5]
-            lv_vm_V = interpolated_power_supply_data[:,6]
-            lv_err_V = interpolated_power_supply_data[:,7]
-            cm_w1_uA = interpolated_power_supply_data[:,8]
-            cm_w2_uA = interpolated_power_supply_data[:,9]
-            cm_w3_uA = interpolated_power_supply_data[:,10]
+        #     time_s = interpolation_time
+        #     force_mN = interpolated_force_sensor_data
+        #     position_mm = interpolated_actuator_data
+        #     hv_set_kV = interpolated_power_supply_data[:,2]
+        #     hv_vm_kV = interpolated_power_supply_data[:,3]
+        #     hv_err_V = interpolated_power_supply_data[:,4]
+        #     lv_set_V = interpolated_power_supply_data[:,5]
+        #     lv_vm_V = interpolated_power_supply_data[:,6]
+        #     lv_err_V = interpolated_power_supply_data[:,7]
+        #     cm_w1_uA = interpolated_power_supply_data[:,8]
+        #     cm_w2_uA = interpolated_power_supply_data[:,9]
+        #     cm_w3_uA = interpolated_power_supply_data[:,10]
 
-            # Create a folder to store the data files if it doesn't exist.
-            folder_name = 'DataFiles'
-            os.makedirs(folder_name, exist_ok=True)
+        #     # Create a folder to store the data files if it doesn't exist.
+        #     folder_name = 'DataFiles'
+        #     os.makedirs(folder_name, exist_ok=True)
 
-            # Create a new .csv file within the folder with a file name, date and time of the experiment.
-            file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
-            if not os.path.isfile(file_name):
-                with open(file_name, 'w') as f:
-                    f.write(f'Time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
-                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
+        #     # Create a new .csv file within the folder with a file name, date and time of the experiment.
+        #     file_name = os.path.join(folder_name, f"data_{formatted_time}.csv")
+        #     if not os.path.isfile(file_name):
+        #         with open(file_name, 'w') as f:
+        #             f.write(f'Time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V), '
+        #                     f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
                     
-            # Save the data to the .csv file.   
-            save_data = np.column_stack((time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
-                                        cm_w1_uA, cm_w2_uA, cm_w3_uA))
-            with open(file_name, 'ab') as f:
-                np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
+        #     # Save the data to the .csv file.   
+        #     save_data = np.column_stack((time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
+        #                                 cm_w1_uA, cm_w2_uA, cm_w3_uA))
+        #     with open(file_name, 'ab') as f:
+        #         np.savetxt(f, save_data, fmt='%.8f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
 
     # **************************************************************************************************************** #
 

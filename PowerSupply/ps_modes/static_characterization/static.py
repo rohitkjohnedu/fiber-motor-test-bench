@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QLabel, QGroupBox, QFormLayout, QPushButto
                              QComboBox, QLineEdit, QVBoxLayout, QHBoxLayout, QFrame)
 import numpy as np
 import time
+import threading
 from datetime import datetime
 import os.path
 # custom packages
@@ -11,15 +12,16 @@ from PowerSupply.ps_modes.static_characterization.static_ps import Static_PS
 from StandaTable.standa_table import StandaTableWidget
 from tools.gui_tools.py_toggle import PyToggle
 
-formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
-
 class StaticMode(QWidget):
     start_recording = pyqtSignal()
     stop_recording = pyqtSignal()
     finished = pyqtSignal()
+    zero_step_size = pyqtSignal()
 
     def __init__(self, power_supply=None, force_sensor=None, actuator=None, debug=1, parent=None):
         QWidget.__init__(self, parent=parent)
+
+        self.stop_event = threading.Event()
 
         # Components.
         self.power_supply = power_supply
@@ -49,6 +51,7 @@ class StaticMode(QWidget):
 
             self.start_recording.connect(self.start_indiv_rcd)
             self.stop_recording.connect(self.stop_indiv_rcd)
+            self.zero_step_size.connect(self.zero_step_size_msg)
  
     # ************************************************************************************************************ #
     #                                     STATIC CHARACTERIZATION INTERFACE                                        #
@@ -83,7 +86,7 @@ class StaticMode(QWidget):
         self.init_ui('auto')
         # -------------------------------------------------------------------------------------------------------- #
 
-    def init_ui(self, mode):
+    def init_ui(self, mode, disable=1):
 
         self.control_panel_layout = QVBoxLayout()
 
@@ -105,33 +108,19 @@ class StaticMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
 
         if mode == 'manual':
-            # # Start button.
-            # self.start_btn = QPushButton("START RECORDING")
-            # self.start_btn.clicked.connect(self.start_btn_clicked)
-            # self.start_btn.setStyleSheet("background-color: white; "
-            #                         "color: black; "
-            #                         "font-weight: bold; "
-            #                         "font-size: 24px; "
-            #                         "position: center; ")
-            # self.control_panel_layout.addWidget(self.start_btn)   
-
-            # self.bottom_frame1 = QFrame()
-            # self.bottom_frame1.setFrameShape(QFrame.Shape.HLine)
-            # self.bottom_frame1.setFrameShadow(QFrame.Shadow.Raised)
-            # self.control_panel_layout.addWidget(self.bottom_frame1)
-
             # Force sensor "Tare" button.
-            tare_btn = QPushButton("TARE FORCE")
+            self.tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
-                tare_btn.clicked.connect(self.force_sensor.tare)
-            tare_btn.setStyleSheet("background-color: white; "
+                self.tare_btn.clicked.connect(self.force_sensor.tare)
+            self.tare_btn.setStyleSheet("background-color: white; "
                                     "color: black; "
                                     "font-weight: bold; "
                                     "font-size: 24px; "
                                     "position: center; ")
-            self.control_panel_layout.addWidget(tare_btn)
+            self.control_panel_layout.addWidget(self.tare_btn)
         
             self.components_control_widgets(mode)
+            self.disable_all_widgets(self.control_panel_layout, disable)
         # -------------------------------------------------------------------------------------------------------- #
         self.characterization_type_layout.addLayout(self.control_panel_layout)
     # ************************************************************************************************************ #
@@ -290,13 +279,25 @@ class StaticMode(QWidget):
             self.parameters_groupBox_layout.addRow(self.slider_name_lbl, self.slider_name)
             # -------------------------------------------------------------------------------------------------------- #
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
+    
+    # ************************************************************************************************************ #
+    def disable_all_widgets(self, layout, flag=1):
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            if item.widget() is not None:
+                item.widget().setDisabled(flag)
+            elif item.layout() is not None:
+                self.disable_all_widgets(item.layout())
 
     # ************************************************************************************************************ #
     def run_static(self):
+        self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a string
+        self.zero_step_flag = 0
         experiment_text = self.experiment_type.currentText()
         if experiment_text == 'Force vs. Position':
             # ---------------------------------------------------------------------------------------------------- #
             # Get the actuator parameters.
+            current_pos = self.actuator.get_position()
             start_pos = float(self.actuator_control.start_pos_edit.text())
             end_pos = float(self.actuator_control.end_pos_edit.text())
             step_size = float(self.actuator_control.step_size_edit.text())
@@ -309,42 +310,82 @@ class StaticMode(QWidget):
             self.actuator.set_speed(speed)
             
             # Calculate the time to wait for the actuator to reach the position.
-            init_moving_time = start_pos / speed
+            if self.actuator_control.home_chckbox.isChecked():
+                init_moving_time = start_pos / speed
+            else:
+                init_moving_time = np.abs(current_pos - start_pos) / speed
+
             moving_time = np.abs(end_pos - start_pos) / speed
 
             # Calculate the number of steps.
-            steps_nb = np.floor((end_pos - start_pos) / (step_size / 1000)) # number of steps
-            # ---------------------------------------------------------------------------------------------------- #
-            # # Get the power supply parameters.
-            # voltage = float(self.power_supply_control.target_voltage_edit.text())
-            modulation = self.power_supply_control.state_opt.isChecked()
-        
-            # ---------------------------------------------------------------------------------------------------- #
-            # Algorithm for the "Force vs Position" experiment.
-            for step in range(int(steps_nb)+1):
-                self.actuator.move(start_pos+step*(step_size/1000)) # move the actuator to the position
-                if step == 0:
-                    time.sleep(init_moving_time+2) # wait for the actuator to reach the starting position
-                else:
-                    time.sleep(moving_time+2) # wait for the actuator to reach the next position
-                self.force_sensor.tare() # tare the force sensor
-                time.sleep(0.1) # wait for the force sensor to tare
-                if modulation == False:
-                    states = ['A', 'B', 'C']
-                    for state in states:
-                        self.state = state
-                        self.power_supply_control.set_pressed(state) # set the power supply to the state
-                        print("\n[INFO] The power supply is set to the state: ", state)
-                        time.sleep(0.5) # wait for 1 second
-                        self.start_recording.emit() # record the data
-                        print("\n[INFO] The data is being recorded")
-                        time.sleep(2) # measure for 2 seconds
-                        self.stop_recording.emit() # stop recording the data
-                        print("\n[INFO] The data has been stopped recording")
-                        self.power_supply_control.voltage_reset() # reset the voltage
-                        print("\n[INFO] The power supply voltage is reset")
-                        time.sleep(0.5) # wait for 1 second
-        self.finished.emit()
+            if step_size == 0:
+                self.zero_step_size.emit()
+                return
+            else:
+                steps_nb = np.abs(np.floor((end_pos - start_pos) / (step_size / 1000)))  # number of steps
+                print("\n[INFO] The number of steps is: ", steps_nb)
+                # ---------------------------------------------------------------------------------------------------- #
+                # Get the power supply parameters.
+                # voltage = float(self.power_supply_control.target_voltage_edit.text())
+                modulation = self.power_supply_control.state_opt.isChecked()
+            
+                # ---------------------------------------------------------------------------------------------------- #
+                # Algorithm for the "Force vs Position" experiment.
+                for step in range(int(steps_nb)+1):
+                    # ------------------------------------------------------------------------------------------------ #
+                    if self.stop_event.is_set():
+                        break
+                    # ------------------------------------------------------------------------------------------------ #
+                    self.position = start_pos+step*(step_size/1000) # calculate the position
+                    # print("\n[INFO] The actuator is moving to the position: ", self.position)
+                    self.actuator.move(self.position) # move the actuator to the position
+                    if step == 0:
+                        time.sleep(init_moving_time+2) # wait for the actuator to reach the starting position
+                    else:
+                        time.sleep(moving_time+2) # wait for the actuator to reach the next position
+                    self.force_sensor.tare() # tare the force sensor
+                    time.sleep(0.1) # wait for the force sensor to tare
+                    if modulation == False:
+                        states = ['A', 'B', 'C']
+                        for state in states:
+                            # -------------------------------------------------------------------------------- #
+                            if self.stop_event.is_set():
+                                break
+                            # -------------------------------------------------------------------------------- #
+                            self.state = state
+                            self.power_supply_control.set_pressed(state) # set the power supply to the state
+                            print("\n[INFO] The power supply is set to the state: ", state)
+                            time.sleep(0.5) # wait for 1 second
+                            # -------------------------------------------------------------------------------- #
+                            if self.stop_event.is_set():
+                                break
+                            # -------------------------------------------------------------------------------- #
+                            self.start_recording.emit() # record the data
+                            print("\n[INFO] The data is being recorded")
+                            time.sleep(2) # measure for 2 seconds
+                            # -------------------------------------------------------------------------------- #
+                            if self.stop_event.is_set():
+                                break
+                            # -------------------------------------------------------------------------------- #
+                            self.stop_recording.emit() # stop recording the data
+                            print("\n[INFO] The data has been stopped recording")
+                            # -------------------------------------------------------------------------------- #
+                            if self.stop_event.is_set():
+                                break
+                            # -------------------------------------------------------------------------------- #
+                            self.power_supply_control.voltage_reset() # reset the voltage
+                            print("\n[INFO] The power supply voltage is reset")
+                            time.sleep(0.5) # wait for 1 second
+                    # ------------------------------------------------------------------------------------------------ #
+                    if self.stop_event.is_set():
+                        break
+                    # ------------------------------------------------------------------------------------------------ #
+                if not self.stop_event.is_set():
+                    self.finished.emit() # set the finished event
+
+    def zero_step_size_msg(self):
+        self.zero_step_flag = 1
+        self.finished.emit() # emit the finished signal
     
     def start_indiv_rcd(self):
         self.start_time = time.perf_counter()
@@ -385,8 +426,6 @@ class StaticMode(QWidget):
             rel_time_s = abs_time_s - self.start_time
             force_mN = interpolated_force_sensor_data
             position_mm = interpolated_actuator_data
-
-
             hv_set_kV = interpolated_power_supply_data[:,2]
             hv_vm_kV = interpolated_power_supply_data[:,3]
             hv_err_V = interpolated_power_supply_data[:,4]
@@ -401,7 +440,11 @@ class StaticMode(QWidget):
             folder_name = 'AdditionalDataFiles'
             os.makedirs(folder_name, exist_ok=True)
 
-            file_name = os.path.join(folder_name, f"pos_{str(position_mm[-1])}_state_{self.state}_date_{formatted_time}.csv")
+            # Create a subfolder to contain the data files for the current experiment.
+            subfolder_name = os.path.join(folder_name, f"date_{self.formatted_time}")
+            os.makedirs(subfolder_name, exist_ok=True)
+
+            file_name = os.path.join(subfolder_name, f"pos_{str(self.position)}_state_{self.state}.csv")
             if not os.path.isfile(file_name):
                 with open(file_name, 'w') as f:
                     f.write(f'Experiment: {self.experiment_type.currentText()}\n')
@@ -417,15 +460,30 @@ class StaticMode(QWidget):
                     f.write(f'State: {self.state}\n')
                     f.write(f'Sample rate (Hz): {self.sample_rate}\n')
 
-
-                    f.write(f'Absolute time (s), Relative time (s), Force (mN), Position (mm), hv_set (V), hv_vm (V), hv_err (V), lv_set (V), lv_vm (V), lv_err (V),'
-                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n')
+                    f.write(f'Absolute time (s), Relative time (s),'
+                            f'Force (mN), Position (mm),'
+                            f'hv_set (kV), hv_vm (kV), hv_err (V),'
+                            f'lv_set (V), lv_vm (V), lv_err (V),'
+                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
                     
             # Save the data to the .csv file.   
             save_data = np.column_stack((abs_time_s, rel_time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
                                          cm_w1_uA, cm_w2_uA, cm_w3_uA))
             with open(file_name, 'ab') as f:
-                np.savetxt(f, save_data, fmt='%.8f, %.8f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
+                np.savetxt(f, save_data, fmt='%.8f, %.4f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
     
+    # ####################################################################################################################
+    # LOCK COMMAND
+    def lock_command(self, is_on):
+        if is_on == 1:
+            self.tare_btn.setDisabled(True)
 
+            if self.debug == 1:
+                print("[INFO] Mode locked\n"
+                    "------------------")
+        else:
+            self.st_comboBox.setDisabled(False)
+            if self.debug == 1:
+                print("[INFO] Mode unlocked\n"
+                    "--------------------")
 

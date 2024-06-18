@@ -60,7 +60,7 @@ class Static_PS(QWidget):
             state_layout.addWidget(state_lbl)
             state_layout.addWidget(self.state_opt)
             self.mode_layout.addRow(state_layout)
-            self.mode_layout.addRow(self.update_button)
+            # self.mode_layout.addRow(self.update_button)
 
         # ************************************************************************************************************ #
         # PARAMETERS
@@ -91,7 +91,8 @@ class Static_PS(QWidget):
         if self.mode == "manual":
             self.mode_layout.addRow(self.set_button, self.update_button)
         else:
-            self.mode_layout.addRow(self.update_button)
+            pass
+            # self.mode_layout.addRow(self.update_button)
 
     ########################################################################################################################
     # EXTENDED SET for states A-D, B-E, C-F, Other
