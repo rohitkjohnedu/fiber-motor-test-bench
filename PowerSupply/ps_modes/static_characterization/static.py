@@ -21,6 +21,7 @@ class StaticMode(QWidget):
     def __init__(self, power_supply=None, force_sensor=None, actuator=None, debug=1, parent=None):
         QWidget.__init__(self, parent=parent)
 
+        # Event to stop the data recording.
         self.stop_event = threading.Event()
 
         # Components.
@@ -39,6 +40,7 @@ class StaticMode(QWidget):
             self.force_sensor_debug = 0
             self.actuator_debug = 0 
 
+        # Variables.
         if self.debug == 0:
             self.start_time = 0
             self.plot_interval = 50#ms
@@ -49,6 +51,7 @@ class StaticMode(QWidget):
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.indiv_data_rcd)
 
+            # Signals.
             self.start_recording.connect(self.start_indiv_rcd)
             self.stop_recording.connect(self.stop_indiv_rcd)
             self.zero_step_size.connect(self.zero_step_size_msg)
@@ -60,6 +63,7 @@ class StaticMode(QWidget):
         self.characterization_type_layout = QVBoxLayout(self)
 
         self.auto_mode_toggle = PyToggle()
+        self.auto_mode_toggle.setChecked(True)
 
         self.auto_label = QLabel("Auto")
         self.auto_label.setStyleSheet("font-weight: bold;" "font-size: 22px")
@@ -73,7 +77,7 @@ class StaticMode(QWidget):
         self.auto_mode_layout.addWidget(self.auto_label, alignment=Qt.AlignmentFlag.AlignCenter)
         self.auto_mode_layout.addWidget(self.auto_mode_toggle, alignment=Qt.AlignmentFlag.AlignCenter)
         self.auto_mode_layout.addWidget(self.manual_label, alignment=Qt.AlignmentFlag.AlignCenter)
-
+          
         self.characterization_type_layout.addLayout(self.auto_mode_layout)
 
         self.bottom_frame = QFrame()
@@ -84,9 +88,10 @@ class StaticMode(QWidget):
         self.auto_mode_toggle.stateChanged.connect(self.auto_mode_changed)
 
         self.init_ui('auto')
-        # -------------------------------------------------------------------------------------------------------- #
 
-    def init_ui(self, mode, disable=1):
+    # ************************************************************************************************************ #
+
+    def init_ui(self, mode):
 
         self.control_panel_layout = QVBoxLayout()
 
@@ -107,7 +112,7 @@ class StaticMode(QWidget):
             self.components_control_widgets(mode, exp_type=self.experiment_type.currentText())
         # -------------------------------------------------------------------------------------------------------- #
 
-        if mode == 'manual':
+        elif mode == 'manual':
             # Force sensor "Tare" button.
             self.tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
@@ -120,27 +125,28 @@ class StaticMode(QWidget):
             self.control_panel_layout.addWidget(self.tare_btn)
         
             self.components_control_widgets(mode)
-            self.disable_all_widgets(self.control_panel_layout, disable)
+            self.disable_all_widgets(self.control_panel_layout, disable=1)
         # -------------------------------------------------------------------------------------------------------- #
         self.characterization_type_layout.addLayout(self.control_panel_layout)
+
     # ************************************************************************************************************ #
 
     # Change control interface based on the mode selected.
-    def auto_mode_changed(self, manual):
-        if manual:
-            self.manual_mode_interface()
-        else:
+    def auto_mode_changed(self, auto):
+        if auto:
             self.auto_mode_interface()
-
+        else:
+            self.manual_mode_interface()
+            
     def manual_mode_interface(self):
-        self.auto_mode_toggle.setChecked(True)
+        self.auto_mode_toggle.setChecked(False)
         self.auto_label.setStyleSheet("font-weight: normal; " "font-size: 22px")
         self.manual_label.setStyleSheet("font-weight: bold; " "font-size: 22px")
         self.clear_layout(self.control_panel_layout)
         self.init_ui('manual')
 
     def auto_mode_interface(self):
-        self.auto_mode_toggle.setChecked(False)
+        self.auto_mode_toggle.setChecked(True)
         self.auto_label.setStyleSheet("font-weight: bold; " "font-size: 22px")
         self.manual_label.setStyleSheet("font-weight: normal; " "font-size: 22px")
         self.clear_layout(self.control_panel_layout)
@@ -148,9 +154,9 @@ class StaticMode(QWidget):
 
     def mousePressEvent(self, event):
         if self.auto_label.underMouse():
-            self.auto_mode_changed(manual=False)
-        elif self.manual_label.underMouse():
             self.auto_mode_changed(manual=True)
+        elif self.manual_label.underMouse():
+            self.auto_mode_changed(manual=False)
 
     def clear_layout(self, layout):
         if layout is not None:
@@ -163,6 +169,7 @@ class StaticMode(QWidget):
                     # Recursively clear nested layouts
                     self.clear_layout(item.layout())
             layout.deleteLater()
+
     # ************************************************************************************************************ #
 
     # Widgets for the control panel.
@@ -210,18 +217,22 @@ class StaticMode(QWidget):
         self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
         self.motor_type.currentIndexChanged.connect(self.motor_type_changed)
 
+        self.motor_name_lbl = QLabel("Motor name:")
+        self.motor_name = QLineEdit()
+        self.parameters_groupBox_layout.addRow(self.motor_name_lbl, self.motor_name)
+
         self.motor_length_lbl = QLabel("Fiber length (mm):")
         self.motor_length = QLineEdit()
         self.parameters_groupBox_layout.addRow(self.motor_length_lbl, self.motor_length)
-        # -------------------------------------------------------------------------------------------------------- #
+
         self.motor_number_lbl = QLabel("Number of fibers:")
         self.motor_number = QLineEdit()
         self.parameters_groupBox_layout.addRow(self.motor_number_lbl, self.motor_number)
-        # -------------------------------------------------------------------------------------------------------- #
+
         self.insulator_lbl = QLabel("Insulator:")
         self.insulator = QLineEdit()
         self.parameters_groupBox_layout.addRow(self.insulator_lbl, self.insulator)
-        # -------------------------------------------------------------------------------------------------------- #
+
         self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
 
         self.stator_name_lbl = QLabel("Stator name:")
@@ -231,6 +242,7 @@ class StaticMode(QWidget):
         self.control_panel_layout.addLayout(self.widgets_layout)
 
     # ************************************************************************************************************ #
+
     def experiment_type_widgets(self):
         self.clear_layout(self.widgets_layout)
         experiment_text = self.experiment_type.currentText()
@@ -246,10 +258,15 @@ class StaticMode(QWidget):
         # elif experiment_text == 'Max. Force vs. Frequency':
 
     # ************************************************************************************************************ #
+
     def motor_type_changed(self):
         if self.motor_type.currentText() == 'Motor Fiber':
             self.parameters_groupBox_layout.removeRow(self.stator_name_lbl)
             self.parameters_groupBox_layout.removeRow(self.slider_name_lbl)
+            # -------------------------------------------------------------------------------------------------------- #
+            self.motor_name_lbl = QLabel("Motor name:")
+            self.motor_name = QLineEdit()
+            self.parameters_groupBox_layout.addRow(self.motor_name_lbl, self.motor_name)
             # -------------------------------------------------------------------------------------------------------- #
             self.motor_length_lbl = QLabel("Fiber length (mm):")
             self.motor_length = QLineEdit()
@@ -266,6 +283,7 @@ class StaticMode(QWidget):
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
 
         elif self.motor_type.currentText() == 'Motor Ribbon':
+            self.parameters_groupBox_layout.removeRow(self.motor_name_lbl)
             self.parameters_groupBox_layout.removeRow(self.motor_length_lbl)
             self.parameters_groupBox_layout.removeRow(self.motor_number_lbl)
             self.parameters_groupBox_layout.removeRow(self.insulator_lbl)
@@ -281,17 +299,19 @@ class StaticMode(QWidget):
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
     
     # ************************************************************************************************************ #
-    def disable_all_widgets(self, layout, flag=1):
+
+    def disable_all_widgets(self, layout, disable=1):
         for i in range(layout.count()):
             item = layout.itemAt(i)
             if item.widget() is not None:
-                item.widget().setDisabled(flag)
+                item.widget().setDisabled(disable)
             elif item.layout() is not None:
-                self.disable_all_widgets(item.layout())
+                self.disable_all_widgets(item.layout(), disable)
 
     # ************************************************************************************************************ #
+
     def run_static(self):
-        self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a string
+        self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a str
         self.zero_step_flag = 0
         experiment_text = self.experiment_type.currentText()
         if experiment_text == 'Force vs. Position':
@@ -322,8 +342,8 @@ class StaticMode(QWidget):
                 self.zero_step_size.emit()
                 return
             else:
-                steps_nb = np.abs(np.floor((end_pos - start_pos) / (step_size / 1000)))  # number of steps
-                print("\n[INFO] The number of steps is: ", steps_nb)
+                steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
+                # print("\n[INFO] The number of steps is: ", steps_nb)
                 # ---------------------------------------------------------------------------------------------------- #
                 # Get the power supply parameters.
                 # voltage = float(self.power_supply_control.target_voltage_edit.text())
@@ -354,28 +374,28 @@ class StaticMode(QWidget):
                             # -------------------------------------------------------------------------------- #
                             self.state = state
                             self.power_supply_control.set_pressed(state) # set the power supply to the state
-                            print("\n[INFO] The power supply is set to the state: ", state)
+                            # print("\n[INFO] The power supply is set to the state: ", state)
                             time.sleep(0.5) # wait for 1 second
                             # -------------------------------------------------------------------------------- #
                             if self.stop_event.is_set():
                                 break
                             # -------------------------------------------------------------------------------- #
                             self.start_recording.emit() # record the data
-                            print("\n[INFO] The data is being recorded")
+                            # print("\n[INFO] The data is being recorded")
                             time.sleep(2) # measure for 2 seconds
                             # -------------------------------------------------------------------------------- #
                             if self.stop_event.is_set():
                                 break
                             # -------------------------------------------------------------------------------- #
                             self.stop_recording.emit() # stop recording the data
-                            print("\n[INFO] The data has been stopped recording")
+                            # print("\n[INFO] The data has been stopped recording")
                             # -------------------------------------------------------------------------------- #
                             if self.stop_event.is_set():
                                 break
                             # -------------------------------------------------------------------------------- #
                             self.power_supply_control.voltage_reset() # reset the voltage
-                            print("\n[INFO] The power supply voltage is reset")
-                            time.sleep(0.5) # wait for 1 second
+                            # print("\n[INFO] The power supply voltage is reset")
+                            time.sleep(2) # wait for 1 second
                     # ------------------------------------------------------------------------------------------------ #
                     if self.stop_event.is_set():
                         break
@@ -383,11 +403,17 @@ class StaticMode(QWidget):
                 if not self.stop_event.is_set():
                     self.finished.emit() # set the finished event
 
+    # ************************************************************************************************************ #
+
     def zero_step_size_msg(self):
         self.zero_step_flag = 1
         self.finished.emit() # emit the finished signal
-    
+
+    # ************************************************************************************************************ #
+
     def start_indiv_rcd(self):
+        if self.auto_mode_toggle.isChecked() == False: # Manual mode
+            self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a string
         self.start_time = time.perf_counter()
         self.timer.start(self.plot_interval)
     
@@ -437,53 +463,100 @@ class StaticMode(QWidget):
             cm_w3_uA = interpolated_power_supply_data[:,10]
 
             # Create a folder to store the data files if it doesn't exist.
-            folder_name = 'AdditionalDataFiles'
+            folder_name = 'DataFiles'
             os.makedirs(folder_name, exist_ok=True)
 
-            # Create a subfolder to contain the data files for the current experiment.
-            subfolder_name = os.path.join(folder_name, f"date_{self.formatted_time}")
-            os.makedirs(subfolder_name, exist_ok=True)
+            main_subfolder = os.path.join(folder_name, f"StaticCharacterization")
+            os.makedirs(main_subfolder, exist_ok=True)
 
-            file_name = os.path.join(subfolder_name, f"pos_{str(self.position)}_state_{self.state}.csv")
-            if not os.path.isfile(file_name):
-                with open(file_name, 'w') as f:
-                    f.write(f'Experiment: {self.experiment_type.currentText()}\n')
+            # **************************************************************************************************** #
+            if self.auto_mode_toggle.isChecked() == False: # Manual mode
+                subfolder = os.path.join(main_subfolder, f"Manual")
+                os.makedirs(subfolder, exist_ok=True)
+                # ------------------------------------------------------------------------------------------------ #
+                # Create a temporary file to store the data.
+                temp_file_name = os.path.join(subfolder, f"temp_{self.formatted_time}.csv")
+                # Save the data to the temporary file.
+                save_data = np.column_stack((abs_time_s, rel_time_s,
+                                             force_mN, position_mm,
+                                             hv_set_kV, hv_vm_kV, hv_err_V,
+                                             lv_set_V, lv_vm_V, lv_err_V,
+                                             cm_w1_uA, cm_w2_uA, cm_w3_uA))
+                with open(temp_file_name, 'ab') as t: 
+                    np.savetxt(t, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
+                                                 '% 4.6f, %4.3f,' # force_mN, position_mm
+                                                 '% 6.1f, %6.1f, % 3.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
+                                                 '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
+                                                 '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                # ------------------------------------------------------------------------------------------------ #
+                # Now write the final file combining parameters and data from the temporary file.
+                file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
+                # if not os.path.isfile(file_name):
+                with open(file_name, 'w') as final_file:
                     if self.motor_type.currentText() == 'Motor Fiber':
-                        f.write(f'Motor type: {self.motor_type.currentText()}\n'
-                                f'Fiber length (mm): {self.motor_length.text()}\n'
-                                f'Number of fibers: {self.motor_number.text()}\n'
-                                f'Insulator: {self.insulator.text()}\n')
+                        final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                         f'Motor name: {self.motor_name.text()}\n'
+                                         f'Fiber length (mm): {self.motor_length.text()}\n'
+                                         f'Number of fibers: {self.motor_number.text()}\n'
+                                         f'Insulator: {self.insulator.text()}\n')
                     elif self.motor_type.currentText() == 'Motor Ribbon':
-                        f.write(f'Motor type: {self.motor_type.currentText()}\n'
-                                f'Stator name: {self.stator_name.text()}\n'
-                                f'Slider name: {self.slider_name.text()}\n')
-                    f.write(f'State: {self.state}\n')
-                    f.write(f'Sample rate (Hz): {self.sample_rate}\n')
+                        final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                            f'Stator name: {self.stator_name.text()}\n'
+                                            f'Slider name: {self.slider_name.text()}\n')
+                    final_file.write(f'Sample rate (Hz): {self.sample_rate}\n\n')
+                    final_file.write(f'Absolute time (s), Relative time (s), '
+                                        f'Force (mN), Position (mm), '
+                                        f'hv_set (kV), hv_vm (kV), hv_err (V), '
+                                        f'lv_set (V), lv_vm (V), lv_err (V), '
+                                        f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
 
-                    f.write(f'Absolute time (s), Relative time (s),'
-                            f'Force (mN), Position (mm),'
-                            f'hv_set (kV), hv_vm (kV), hv_err (V),'
-                            f'lv_set (V), lv_vm (V), lv_err (V),'
-                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
-                    
-            # Save the data to the .csv file.   
-            save_data = np.column_stack((abs_time_s, rel_time_s, force_mN, position_mm, hv_set_kV, hv_vm_kV, hv_err_V, lv_set_V, lv_vm_V, lv_err_V,
-                                         cm_w1_uA, cm_w2_uA, cm_w3_uA))
-            with open(file_name, 'ab') as f:
-                np.savetxt(f, save_data, fmt='%.8f, %.4f, %4.6f, %4.3f, %6.1f, %6.1f, % 3.1f, % 3.2f, % 3.2f, % 3.2f, % 3.1f, % 3.1f, % 3.1f')
+                    # Append the data from the temporary file to the final file.
+                    with open(temp_file_name, 'r') as t:
+                        data = t.read()
+                        final_file.write(data)
+
+                # Optionally, delete the temporary file after writing the final file.
+                os.remove(temp_file_name)
+
+            # **************************************************************************************************** #
+            elif self.auto_mode_toggle.isChecked() == True: # Auto mode
+                subfolder = os.path.join(main_subfolder, f"Auto")
+                os.makedirs(subfolder, exist_ok=True)
+                subfolder1 = os.path.join(subfolder, f"date_{self.formatted_time}")
+                os.makedirs(subfolder1, exist_ok=True)
+                file_name = os.path.join(subfolder1, f"pos_{str(self.position)}_state_{self.state}.csv")
+
+                if not os.path.isfile(file_name):
+                    with open(file_name, 'w') as f:
+                        f.write(f'Experiment: {self.experiment_type.currentText()}\n')
+                        if self.motor_type.currentText() == 'Motor Fiber':
+                            f.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                    f'Motor name: {self.motor_name.text()}\n'
+                                    f'Fiber length (mm): {self.motor_length.text()}\n'
+                                    f'Number of fibers: {self.motor_number.text()}\n'
+                                    f'Insulator: {self.insulator.text()}\n')
+                        elif self.motor_type.currentText() == 'Motor Ribbon':
+                            f.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                    f'Stator name: {self.stator_name.text()}\n'
+                                    f'Slider name: {self.slider_name.text()}\n')
+                        f.write(f'State: {self.state}\n')
+                        f.write(f'Sample rate (Hz): {self.sample_rate}\n')
+                        f.write(f'Absolute time (s), Relative time (s), '
+                                f'Force (mN), Position (mm), '
+                                f'hv_set (kV), hv_vm (kV), hv_err (V), '
+                                f'lv_set (V), lv_vm (V), lv_err (V), '
+                                f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
+                        
+                # Save the data to the .csv file.   
+                save_data = np.column_stack((abs_time_s, rel_time_s,
+                                            force_mN, position_mm,
+                                            hv_set_kV, hv_vm_kV, hv_err_V,
+                                            lv_set_V, lv_vm_V, lv_err_V,
+                                            cm_w1_uA, cm_w2_uA, cm_w3_uA))
+                with open(file_name, 'ab') as f:                       
+                    np.savetxt(f, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
+                                                '% 4.6f, %4.3f,' # force_mN, position_mm
+                                                '% 6.1f, %6.1f, % 3.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
+                                                '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
+                                                '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
     
-    # ####################################################################################################################
-    # LOCK COMMAND
-    def lock_command(self, is_on):
-        if is_on == 1:
-            self.tare_btn.setDisabled(True)
-
-            if self.debug == 1:
-                print("[INFO] Mode locked\n"
-                    "------------------")
-        else:
-            self.st_comboBox.setDisabled(False)
-            if self.debug == 1:
-                print("[INFO] Mode unlocked\n"
-                    "--------------------")
-

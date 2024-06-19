@@ -29,7 +29,7 @@ from PowerSupply import HvpsDevice, VoltagePlots, CurrentPlots, StaticMode, Dyna
 from ForceSensor import FutekSensor, ForcePlot
 from StandaTable import StandaTable, PositionPlot
 
-formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
+# formatted_time = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')  # Get the current date and time as a string
 PROGRAM_NAME = "Actuator Test Bench"
 PROGRAM_VERSION = "v1.0"
 
@@ -42,6 +42,8 @@ class LoadingWorker(QThread):
     def run(self):
         result = self.actuator.home_zero()
         self.initialization_finished.emit(result)
+
+#############################################################################################################################
 
 class InfProgressBar(QDialog):
     def __init__(self):
@@ -64,6 +66,8 @@ class InfProgressBar(QDialog):
         layout.addWidget(self.progress_bar)
         self.setLayout(layout)
 
+#############################################################################################################################
+
 class MainWindow(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
@@ -73,15 +77,15 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         # Debug options.
-        self.debug = 1                  # 0: full debug OFF;        1: full debug ON.
+        self.debug = 0                      # 0: full debug OFF;        1: full debug ON.
         if self.debug == 0:
-            self.power_supply_debug = 1 # 1: power supply.
-            self.force_sensor_debug = 1 # 1: force sensor.
-            self.actuator_debug = 1     # 1: actuator.
+            self.power_supply_debug = 1     # 1: power supply.
+            self.force_sensor_debug = 1     # 1: force sensor.
+            self.actuator_debug = 1         # 1: actuator.
         else:
-            self.power_supply_debug = 0 # 0: no power supply.
-            self.force_sensor_debug = 0 # 0: no force sensor.
-            self.actuator_debug = 0     # 0: no actuator.
+            self.power_supply_debug = 0     # 0: no power supply.
+            self.force_sensor_debug = 0     # 0: no force sensor.
+            self.actuator_debug = 0         # 0: no actuator.
         # ------------------------------------------------------------------------------------------------------------ #
         self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
         self.display_currents = 1       # 0: no current plot;       1: current plot.
@@ -99,12 +103,14 @@ class MainWindow(QWidget):
             self.power_supply = HvpsDevice()
         else:
             self.power_supply = None # else no power supply
+        # ------------------------------------------------------------------------------------------------------------ #
 
         # FUTEK FORCE SENSOR (Load cell).
         if self.force_sensor_debug == 1: # if force sensor is connected
             self.force_sensor = FutekSensor()
         else:
             self.force_sensor = None # else no force sensor
+        # ------------------------------------------------------------------------------------------------------------ #
 
         # ACTUATOR (Translation stage)
         if self.actuator_debug == 1: # if actuator is connected
@@ -119,19 +125,37 @@ class MainWindow(QWidget):
         self.current_plot = CurrentPlots(self.power_supply, plot_title='Current', y_max=0.001)
         self.force_plot = ForcePlot(self.force_sensor)
         self.position_plot = PositionPlot(self.actuator)
+        # ------------------------------------------------------------------------------------------------------------ #
 
         # Characterization.
         self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator, self.debug)
         self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator)
+        # ------------------------------------------------------------------------------------------------------------ #
 
         # Layouts.
         self.control_panel_layout = None
         self.monitoring_groupBox_layout = None
+        # ------------------------------------------------------------------------------------------------------------ #
 
         # Control mode.
         self.run_btn_wdgt_static_flag = False
         self.run_btn_wdgt_dynamic_flag = False
         self.emg_stop_btn = None
+        # ------------------------------------------------------------------------------------------------------------ #
+        
+        # Variables for the data interpolation.
+        if self.debug == 0: # if debug mode is OFF
+            self.plot_interval = 50#ms
+            self.start_time = 0
+            self.sample_rate = 400#Hz
+            self.interpolation_stop_time = 0
+
+            # Set a timer with the callback function which reads and displays data from the serial port.
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.plot_update_callback)
+            if self.power_supply.auto_connect():
+                self.timer.start(self.plot_interval)
+        # ------------------------------------------------------------------------------------------------------------ #
 
         # Signalization about finishing the experiment.
         self.static.finished.connect(self.run_button_clicked)
@@ -147,8 +171,8 @@ class MainWindow(QWidget):
         # CONTROL PANEL (Left side of the main window: control panel of the power supply and actuator).
         self.control_panel_layout = QVBoxLayout()
         # ------------------------------------------------------------------------------------------------------------ #
-        # Add the static and dynamic characterization tabs to the control panel
-        self.add_scroll_area_control() # add scroll area to the static and dynamic characterization tabs
+        # Add the static and dynamic characterization tabs to the control panel.
+        self.add_scroll_area_control() # add scroll area to the static and dynamic characterization tabs.
 
         self.characterization_type = QTabWidget()
         self.characterization_type.addTab(self.scroll_area_static, 'Static Characterization')
@@ -156,7 +180,6 @@ class MainWindow(QWidget):
 
         self.control_panel_layout.addWidget(self.characterization_type)
         # ------------------------------------------------------------------------------------------------------------ #
-
         # RUN button
         self.run_button = QPushButton("RUN")
         if self.debug == 0: # if debug mode is OFF
@@ -168,17 +191,12 @@ class MainWindow(QWidget):
                                         "position: center; ")
         self.control_panel_layout.addWidget(self.run_button)
         # ------------------------------------------------------------------------------------------------------------ #
-
         self.main_layout.addLayout(self.control_panel_layout) # add the control panel on the left side.
 
         # ************************************************************************************************************ #
 
         # MONITORING (Right side of the main window: force, voltage, currents and actuator position).
         self.monitoring_groupBox_layout = QVBoxLayout()
-
-        self.plots_groupBox = QGroupBox("Monitoring")
-        self.plots_groupBox.setStyleSheet('font-weight: bold;'
-                                     'background-color: white;')
 
         all_plots_layout = QVBoxLayout()
 
@@ -214,28 +232,22 @@ class MainWindow(QWidget):
             all_plots_layout.addLayout(currents_layout)
         # ------------------------------------------------------------------------------------------------------------ #
 
+        # Group box for the plots.
+        self.plots_groupBox = QGroupBox("Monitoring")
+        self.plots_groupBox.setStyleSheet('font-weight: bold;'
+                                     'background-color: white;')
         self.plots_groupBox.setLayout(all_plots_layout)
-        self.add_scroll_area_monitor() # add scroll area to the monitoring tab
+        # ------------------------------------------------------------------------------------------------------------ #
+
+        # Add the plots to the monitoring layout.
+        self.add_scroll_area_monitor() # add scroll area to the monitoring tab.
         self.monitoring_groupBox_layout.addWidget(self.scroll_area_plots)
-        
+        # ------------------------------------------------------------------------------------------------------------ #
         self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
-
-        # Variables for the data interpolation.
-        if self.debug == 0: # if debug mode is OFF
-            self.plot_interval = 50#ms
-            self.start_time = 0
-            self.sample_rate = 400#Hz
-            self.interpolation_stop_time = 0
-
-            # Set a timer with the callback function which reads and displays data from the serial port.
-            self.timer = QTimer(self)
-            self.timer.timeout.connect(self.plot_update_callback)
-            if self.power_supply.auto_connect():
-                self.timer.start(self.plot_interval)
-
-    # ************************************************************************************************************ #
-    #                                          CALLBACK FOR DATA READING
-    # ************************************************************************************************************ #
+    
+    # **************************************************************************************************************** #
+    #                                       FUNCTIONS FOR THE USER INTERFACE
+    # **************************************************************************************************************** #  
     
     def add_scroll_area_control(self):
         self.scroll_area_static = QScrollArea()
@@ -263,15 +275,14 @@ class MainWindow(QWidget):
             self.force_sensor.start_recording()
         if self.actuator_debug == 1:
             self.actuator.start_recording()
-        # -------------------------------------------------------------------------------------------------------- #
+
+        # Automatic mode
         if self.characterization_type.currentIndex() == 0: # if static characterization is selected
-            if self.static.auto_mode_toggle.isChecked() == False:
+            if self.static.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
                 self.running_thread = Thread(target=self.static.run_static)
                 self.running_thread.start()
-        
         # elif self.static.characterization_type_layout.currentIndex() == 1: # if dynamic characterization is selected
         #     self.dynamic.run_dynamic()
-        # -------------------------------------------------------------------------------------------------------- #
 
     def stop_recording(self):
         self.emg_stop_btn_clicked()
@@ -281,6 +292,8 @@ class MainWindow(QWidget):
             self.force_sensor.stop_recording()
         if self.actuator_debug == 1:
             self.actuator.stop_recording()
+
+    # ************************************************************************************************************ #
         
     def run_button_clicked(self):
         if self.run_button.text() == "RUN":
@@ -293,18 +306,24 @@ class MainWindow(QWidget):
                                            "font-size: 24px;"
                                            "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            if self.static.auto_mode_toggle.isChecked() == False:
+            # Automatic mode
+            if self.static.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
                 self.static.stop_event.clear()
-                if self.static.actuator_control.home_chckbox.isChecked():
+                if self.static.actuator_control.home_chckbox.isChecked(): # if homing is selected
                     self.initialization() # homing the actuator
                 else:
-                    self.start_recording()
-            elif self.static.auto_mode_toggle.isChecked() == True:
-                self.static.init_ui('manual', disable=0)
-                # self.static.disable_all_widgets(self.static.control_panel_layout, flag=False)
+                    self.start_recording()  # without homing
+                self.static.disable_all_widgets(self.static.characterization_type_layout, disable=1)
+            # Manual mode
+            elif self.static.auto_mode_toggle.isChecked() == False: # if manual mode is selected
+                self.static.disable_all_widgets(self.static.control_panel_layout, disable=0)
+                self.static.auto_mode_toggle.setDisabled(True)
+                self.static.auto_label.setDisabled(True)
+                self.static.manual_label.setDisabled(True)
                 self.start_recording()
+                self.static.start_indiv_rcd()
             # -------------------------------------------------------------------------------------------------------- #
-        else:
+        else: # STOP
             # -------------------------------------------------------------------------------------------------------- #
             print("\n[INFO] The measurement is stopped")
             self.run_button.setText("RUN")
@@ -314,24 +333,46 @@ class MainWindow(QWidget):
                                        "font-size: 24px;"
                                        "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            # the user can stop the measurement at any time:
-            if self.running_thread.is_alive():
-                self.static.stop_event.set()
-                self.running_thread.join()
-                self.stop_recording()
-                QMessageBox.information(self, "Information", "The measurement is finished.")
-                QMessageBox.addButton(QPushButton("Open Data Folder"), QMessageBox.ButtonRole.ActionRole)
-                if QMessageBox.clickedButton() == "Open Data Folder":
-                    os.system("start explorer DataFiles")
-            else:
-                self.stop_recording()
-                if self.static.zero_step_flag == 1:
-                    QMessageBox.warning(self, "Warning", "The step size is cannot be zero. Please change the step size.")
-                else:
+            # Automatic mode
+            if self.static.auto_mode_toggle.isChecked() == True:
+                # stop manually
+                if self.running_thread.is_alive():
+                    self.static.stop_event.set()
+                    self.running_thread.join()
+                    self.stop_recording()
+                    self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
                     QMessageBox.information(self, "Information", "The measurement is finished.")
+                    # QMessageBox.addButton(QPushButton("Open Data Folder"), QMessageBox.ButtonRole.ActionRole)
+                    # if QMessageBox.clickedButton() == "Open Data Folder":
+                    #     os.system("start explorer DataFiles")
+                else:
+                    # stop automatically
+                    self.stop_recording()
+                    self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
+                    if self.static.zero_step_flag == 1:
+                        QMessageBox.warning(self, "Warning", "The step size is cannot be zero. Please change the step size.")
+                    else:
+                        QMessageBox.information(self, "Information", "The measurement is finished.")
+            # Manual mode
+            elif self.static.auto_mode_toggle.isChecked() == False:
+                self.static.stop_indiv_rcd()
+                self.stop_recording()
+                self.static.disable_all_widgets(self.static.control_panel_layout, disable=1)
+                self.static.auto_mode_toggle.setDisabled(False)
+                self.static.auto_label.setDisabled(False)
+                self.static.manual_label.setDisabled(False)
+                time.sleep(0.1)
+                QMessageBox.information(self, "Information", "The measurement is finished.")
 
     # ************************************************************************************************************ #
 
+    def emg_stop_btn_clicked(self):
+        self.power_supply.emergency_stop()
+        self.actuator.stop()
+    
+    # ************************************************************************************************************ #
+
+    # Initialization of the actuator.
     def initialization(self):
         self.initializator = LoadingWorker(self.actuator)
         self.initializator.initialization_finished.connect(self.initialization_finished)
@@ -341,7 +382,7 @@ class MainWindow(QWidget):
 
         self.loading.progress_bar.setRange(0, 0)
         self.initializator.start()
-    
+
     def initialization_finished(self, result):
         self.initializator.terminate()
         self.loading.progress_bar.setRange(0, 1)
@@ -360,11 +401,9 @@ class MainWindow(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
         self.start_recording()
         return result
-
-    def emg_stop_btn_clicked(self):
-        self.power_supply.emergency_stop()
-        self.actuator.stop()
     
+    # ************************************************************************************************************ #
+
     def plot_update_callback(self):
         if self.power_supply_debug == 1:
             self.voltage_plot.plot_update(self.start_time)

@@ -520,8 +520,8 @@ class StandaTableWidget(QWidget):
 
         # Widgets initialization "MANUAL"
         homeButton = QPushButton("HOME")
-        upButton = QPushButton("Forward")
-        downButton = QPushButton("Backward")
+        upButton = QPushButton("Backward")
+        downButton = QPushButton("Forward")
         self.speed_edit = QLineEdit(speed_val)
         self.position_edit = QLineEdit(position_val)
         stopButton = QPushButton("STOP")
@@ -537,9 +537,9 @@ class StandaTableWidget(QWidget):
             homeButton = QPushButton("HOME")
             buttonLayout.addRow(homeButton)
 
-            upButton = QPushButton("Forward")
+            upButton = QPushButton("Backward")
             upButton.setFixedWidth(140)
-            downButton = QPushButton("Backward")
+            downButton = QPushButton("Forward")
             # downButton.setFixedWidth(150)
             buttonLayout.addRow(upButton, downButton)
             

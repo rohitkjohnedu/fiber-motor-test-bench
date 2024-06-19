@@ -90,9 +90,6 @@ class Static_PS(QWidget):
     def add_buttons(self):
         if self.mode == "manual":
             self.mode_layout.addRow(self.set_button, self.update_button)
-        else:
-            pass
-            # self.mode_layout.addRow(self.update_button)
 
     ########################################################################################################################
     # EXTENDED SET for states A-D, B-E, C-F, Other
@@ -170,10 +167,10 @@ class Static_PS(QWidget):
             if self.mode == "manual":
                 if self.set_button.text() =="Set":
                     self.set_command(state)
+                else:
+                    self.reset_command()
             elif self.mode == "auto":
                 self.set_command(state)
-            else:
-                self.reset_command()
 
     ####################################################################################################################
     # SET button clicked or ENTER pressed (Votlage => ON)

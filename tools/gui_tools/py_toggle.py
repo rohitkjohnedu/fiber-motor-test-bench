@@ -70,9 +70,9 @@ class PyToggle(QCheckBox):
     def start_transition(self, value):
         self.animation.stop()  # Stop animation if running
         if value:
-            self.animation.setEndValue(self.width() - 26)
-        else:
             self.animation.setEndValue(3)
+        else:
+            self.animation.setEndValue(self.width() - 26)
 
         # START ANIMATION
         self.animation.start()
