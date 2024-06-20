@@ -15,9 +15,11 @@
 
 # python packages
 import sys
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QUrl
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton,
                                 QTabWidget, QScrollArea, QMessageBox, QProgressBar, QDialog, QLabel)
+from PyQt6.QtGui import QDesktopServices
+from pathlib import Path
 import time
 import numpy as np
 import os.path
@@ -129,7 +131,7 @@ class MainWindow(QWidget):
 
         # Characterization.
         self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator, self.debug)
-        self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator)
+        self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator, self.debug)
         # ------------------------------------------------------------------------------------------------------------ #
 
         # Layouts.
@@ -281,8 +283,6 @@ class MainWindow(QWidget):
             if self.static.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
                 self.running_thread = Thread(target=self.static.run_static)
                 self.running_thread.start()
-        # elif self.static.characterization_type_layout.currentIndex() == 1: # if dynamic characterization is selected
-        #     self.dynamic.run_dynamic()
 
     def stop_recording(self):
         self.emg_stop_btn_clicked()
@@ -306,23 +306,10 @@ class MainWindow(QWidget):
                                            "font-size: 24px;"
                                            "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            # Automatic mode
-            if self.static.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
-                self.static.stop_event.clear()
-                if self.static.actuator_control.home_chckbox.isChecked(): # if homing is selected
-                    self.initialization() # homing the actuator
-                else:
-                    self.start_recording()  # without homing
-                self.static.disable_all_widgets(self.static.characterization_type_layout, disable=1)
-            # Manual mode
-            elif self.static.auto_mode_toggle.isChecked() == False: # if manual mode is selected
-                self.static.disable_all_widgets(self.static.control_panel_layout, disable=0)
-                self.static.auto_mode_toggle.setDisabled(True)
-                self.static.auto_label.setDisabled(True)
-                self.static.manual_label.setDisabled(True)
-                self.start_recording()
-                self.static.start_indiv_rcd()
-            # -------------------------------------------------------------------------------------------------------- #
+            if self.characterization_type.currentIndex() == 0: # if static characterization is selected
+                self.do_static_characterization()
+            elif self.characterization_type.currentIndex() == 1: # if dynamic characterization is selected
+                self.do_dynamic_characterization()
         else: # STOP
             # -------------------------------------------------------------------------------------------------------- #
             print("\n[INFO] The measurement is stopped")
@@ -333,36 +320,144 @@ class MainWindow(QWidget):
                                        "font-size: 24px;"
                                        "position: center; ")
             # -------------------------------------------------------------------------------------------------------- #
-            # Automatic mode
-            if self.static.auto_mode_toggle.isChecked() == True:
-                # stop manually
-                if self.running_thread.is_alive():
-                    self.static.stop_event.set()
-                    self.running_thread.join()
-                    self.stop_recording()
-                    self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
-                    QMessageBox.information(self, "Information", "The measurement is finished.")
-                    # QMessageBox.addButton(QPushButton("Open Data Folder"), QMessageBox.ButtonRole.ActionRole)
-                    # if QMessageBox.clickedButton() == "Open Data Folder":
-                    #     os.system("start explorer DataFiles")
-                else:
-                    # stop automatically
-                    self.stop_recording()
-                    self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
-                    if self.static.zero_step_flag == 1:
-                        QMessageBox.warning(self, "Warning", "The step size is cannot be zero. Please change the step size.")
-                    else:
-                        QMessageBox.information(self, "Information", "The measurement is finished.")
-            # Manual mode
-            elif self.static.auto_mode_toggle.isChecked() == False:
-                self.static.stop_indiv_rcd()
+            if self.characterization_type.currentIndex() == 0: # if static characterization is selected
+                self.stop_static_characterization()
+            elif self.characterization_type.currentIndex() == 1: # if dynamic characterization is selected
+                self.stop_dynamic_characterization()
+            # -------------------------------------------------------------------------------------------------------- #
+    
+    # ************************************************************************************************************ #
+    
+    def do_static_characterization(self):
+        # Automatic mode ON
+        if self.static.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
+            self.static.stop_event.clear()
+            if self.static.actuator_control.home_chckbox.isChecked(): # if homing is selected
+                self.initialization() # homing the actuator
+            else:
+                self.start_recording()  # without homing
+            self.static.disable_all_widgets(self.static.characterization_type_layout, disable=1)
+        # -------------------------------------------------------------------------------------------------------- #
+        # Manual mode ON
+        elif self.static.auto_mode_toggle.isChecked() == False: # if manual mode is selected
+            self.static.disable_all_widgets(self.static.control_panel_layout, disable=0)
+            self.static.auto_mode_toggle.setDisabled(True)
+            self.static.auto_label.setDisabled(True)
+            self.static.manual_label.setDisabled(True)
+            self.start_recording()
+            self.static.start_indiv_rcd()
+    
+    # ************************************************************************************************************ #
+
+    def stop_static_characterization(self):
+        # Automatic mode OFF
+        if self.static.auto_mode_toggle.isChecked() == True:
+            # stop manually
+            if self.running_thread.is_alive():
+                self.static.stop_event.set()
+                self.running_thread.join()
                 self.stop_recording()
-                self.static.disable_all_widgets(self.static.control_panel_layout, disable=1)
-                self.static.auto_mode_toggle.setDisabled(False)
-                self.static.auto_label.setDisabled(False)
-                self.static.manual_label.setDisabled(False)
-                time.sleep(0.1)
-                QMessageBox.information(self, "Information", "The measurement is finished.")
+                self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
+                self.msg_finished("StaticCharacterization", "Auto")
+            else:
+                # stop automatically
+                self.stop_recording()
+                self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
+                if self.static.zero_step_flag == 1:
+                    QMessageBox.warning(self, "Warning", "The step size is cannot be zero. Please change the step size.")
+                else:
+                    self.msg_finished("StaticCharacterization", "Auto")
+        # -------------------------------------------------------------------------------------------------------- #
+        # Manual mode OFF
+        elif self.static.auto_mode_toggle.isChecked() == False:
+            self.static.stop_indiv_rcd()
+            self.stop_recording()
+            self.static.disable_all_widgets(self.static.control_panel_layout, disable=1)
+            self.static.auto_mode_toggle.setDisabled(False)
+            self.static.auto_label.setDisabled(False)
+            self.static.manual_label.setDisabled(False)
+            time.sleep(0.1)
+            self.static.remove_temp_files()
+            self.msg_finished("StaticCharacterization", "Manual")
+
+    # ************************************************************************************************************ #
+
+    def do_dynamic_characterization(self):
+        # Automatic mode ON
+        if self.dynamic.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
+            pass
+            # self.dynamic.stop_event.clear()
+            # if self.dynamic.actuator_control.home_chckbox.isChecked(): # if homing is selected
+            #     self.initialization() # homing the actuator
+            # else:
+            #     self.start_recording()  # without homing
+            # self.dynamic.disable_all_widgets(self.dynamic.characterization_type_layout, disable=1)
+        # -------------------------------------------------------------------------------------------------------- #
+        # Manual mode ON
+        elif self.dynamic.auto_mode_toggle.isChecked() == False: # if manual mode is selected
+            self.dynamic.disable_all_widgets(self.dynamic.control_panel_layout, disable=0)
+            self.dynamic.auto_mode_toggle.setDisabled(True)
+            self.dynamic.auto_label.setDisabled(True)
+            self.dynamic.manual_label.setDisabled(True)
+            self.start_recording()
+            self.dynamic.start_indiv_rcd()
+    
+    # ************************************************************************************************************ #
+
+    def stop_dynamic_characterization(self):
+        # Automatic mode OFF
+        if self.dynamic.auto_mode_toggle.isChecked() == True:
+            pass
+            # # stop manually
+            # if self.running_thread.is_alive():
+            #     self.dynamic.stop_event.set()
+            #     self.running_thread.join()
+            #     self.stop_recording()
+            #     self.dynamic.disable_all_widgets(self.dynamic.characterization_type_layout, disable=0)
+            #     self.msg_finished("Auto")
+            # else:
+            #     # stop automatically
+            #     self.stop_recording()
+            #     self.dynamic.disable_all_widgets(self.dynamic.characterization_type_layout, disable=0)
+            #     if self.dynamic.zero_step_flag == 1:
+            #         QMessageBox.warning(self, "Warning", "The step size is cannot be zero. Please change the step size.")
+            #     else:
+            #         self.msg_finished("Auto")
+        # -------------------------------------------------------------------------------------------------------- #
+        # Manual mode OFF
+        elif self.dynamic.auto_mode_toggle.isChecked() == False:
+            self.dynamic.stop_indiv_rcd()
+            self.stop_recording()
+            self.dynamic.disable_all_widgets(self.dynamic.control_panel_layout, disable=1)
+            self.dynamic.auto_mode_toggle.setDisabled(False)
+            self.dynamic.auto_label.setDisabled(False)
+            self.dynamic.manual_label.setDisabled(False)
+            time.sleep(0.1)
+            self.dynamic.remove_temp_files()
+            self.msg_finished("DynamicCharacterization", "Manual")
+    
+    # ************************************************************************************************************ #
+
+    def msg_finished(self, characterization, mode):
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setText("The measurement is finished.")
+        msg_box.setWindowTitle("Information")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+
+        open_folder_btn = QPushButton("Open Data Folder")
+        msg_box.addButton(open_folder_btn, QMessageBox.ButtonRole.ActionRole)
+
+        msg_box.exec()
+
+        if msg_box.clickedButton() == open_folder_btn:
+            home_dir = str(Path.home())
+            data_folder = f"OneDrive - epfl.ch/Documents/GitHub/actuator_test_bench_software/DataFiles/{characterization}/{mode}"
+            os.makedirs(os.path.join(home_dir, data_folder), exist_ok=True)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.join(home_dir, data_folder)))
+        elif msg_box.clickedButton() == QMessageBox.StandardButton.Ok:
+            msg_box.close()
+            
 
     # ************************************************************************************************************ #
 
