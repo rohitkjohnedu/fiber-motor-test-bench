@@ -7,7 +7,7 @@ class Thread(QThread):
     finish = pyqtSignal()
 
     def __init__(self, device, channels_keys, modul_freq, duty_cycle, sequence_freq, moving_time, direction, 
-                 repeated_mode, t_forward, t_backward, repetitions):
+                 repeated_mode, t_forward, t_backward, repetitions, debug=0):
         super().__init__()
 
         self.device = device
@@ -22,6 +22,7 @@ class Thread(QThread):
         self.t_backward = t_backward
         self.repetitions = repetitions
         self.stop_flag = False
+        self.debug = 0
 
     def run(self):
         if self.repeated_mode:
@@ -44,70 +45,85 @@ class Thread(QThread):
             phase_shift_2 = 120
             duration_2 = self.t_forward
             direction_2 = "-----> Forward"
-        print("\n[INFO] Loop started.")
+        if self.debug == 1:
+            print("\n[INFO] Loop started.")
         for repetition in range(self.repetitions):
             if not self.stop_flag:
                     if self.sequence_freq is None:
                         if self.device.hb_set(self.channels_keys, self.modul_freq, self.duty_cycle, phase_shift_1):
-                            print(direction_1)
+                            if self.debug == 1:
+                                print(direction_1)
                     else:
                          self.sequence_time = 1/self.sequence_freq
             else:
-                    print("[INFO] Loop interrupted.\n------------------------")
+                    if self.debug == 1:
+                        print("[INFO] Loop interrupted.\n------------------------")
                     self.finish.emit()
                     break
                 # ------------------------------------------------------------------------------------------- #
             if not self.stop_flag:       
                     time.sleep(duration_1)
             else:
-                    print("[INFO] Loop interrupted.\n------------------------")
+                    if self.debug == 1:
+                        print("[INFO] Loop interrupted.\n------------------------")
                     self.finish.emit()
                     break
                 # ------------------------------------------------------------------------------------------- #
             if not self.stop_flag:
                     if self.device.hb_set(self.channels_keys, self.modul_freq, self.duty_cycle, phase_shift_2):
-                        print(direction_2)
+                        if self.debug == 1:
+                            print(direction_2)
             else:
-                    print("[INFO] Loop interrupted.\n------------------------")
+                    if self.debug == 1:
+                        print("[INFO] Loop interrupted.\n------------------------")
                     self.finish.emit()
                     break
                 # ------------------------------------------------------------------------------------------- #
             if not self.stop_flag:
                     time.sleep(duration_2)
             else:
-                    print("[INFO] Loop interrupted.\n------------------------")
+                    if self.debug == 1:
+                        print("[INFO] Loop interrupted.\n------------------------")
                     self.finish.emit()
                     break
             # ------------------------------------------------------------------------------------------- #
         if not self.stop_flag:
             self.finish.emit()
-            print("[INFO] Loop finished.\n---------------------")
+            if self.debug == 1:
+                print("[INFO] Loop finished.\n---------------------")
     
     def single_run(self):
-        print("\n[INFO] Run started.")
+        if self.debug == 1:
+            print("\n[INFO] Run started.")
         if self.direction == "Forward":
             if self.device.hb_set(self.channels_keys, self.modul_freq, self.duty_cycle, phase_shift=120):
-                print("-----> Forward")
+                if self.debug == 1:
+                    print("-----> Forward")
                 time.sleep(self.moving_time)
                 if not self.stop_flag:
                     self.finish.emit()
-                    print("[INFO] Run finished.\n--------------------")
+                    if self.debug == 1:
+                        print("[INFO] Run finished.\n--------------------")
         elif self.direction == "Backward":
             if self.device.hb_set(self.channels_keys, self.modul_freq, self.duty_cycle, phase_shift=240):
-                print("<----- Backward")
+                if self.debug == 1:
+                    print("<----- Backward")
                 time.sleep(self.moving_time)
                 if not self.stop_flag:
                     self.finish.emit()
-                    print("[INFO] Run finished.\n--------------------")
+                    if self.debug == 1:
+                        print("[INFO] Run finished.\n--------------------")
 
 
 class Dynamic_PS(QWidget):
-    def __init__(self, device=None, mode=None, parent=None):
+    def __init__(self, device=None, mode=None, exp_type=None, debug=0, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # PS device
         self.device = device
         self.mode = mode
+        self.exp_type = exp_type
+        self.debug = debug
         # ------------------- #
         self.run_thread = None
         self.sleep_thread = None
@@ -247,7 +263,8 @@ class Dynamic_PS(QWidget):
         new_hv = float(self.target_voltage_edit.text())
         if new_hv == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
-            print("\n[INFO] Please, set the voltage value\n------------------------------------")
+            if self.debug == 1:
+                print("\n[INFO] Please, set the voltage value\n------------------------------------")
             return
         else: 
             if self.set_button.text() =="Set":
@@ -272,13 +289,14 @@ class Dynamic_PS(QWidget):
                         t_backward = None
                     if not self.run_thread or not self.run_thread.isRunning():
                         self.run_thread = Thread(self.device, self.channels_keys, modul_freq, duty_cycle, sequence_freq,
-                                                moving_time, direction, repeated_mode, t_forward, t_backward, repetitions)
+                                                moving_time, direction, repeated_mode, t_forward, t_backward, repetitions, debug=self.debug)
                         self.run_thread.finish.connect(self.reset_command)
                         self.run_thread.start()
             else:
                 if self.run_thread and self.run_thread.isRunning():
                     self.run_thread.stop_flag = True
-                    print("[INFO] Run interrupted.\n----------------------")
+                    if self.debug == 1:
+                        print("[INFO] Run interrupted.\n----------------------")
                     self.reset_command()
 
     ####################################################################################################################
@@ -289,7 +307,8 @@ class Dynamic_PS(QWidget):
             self.reset_command()
         else:
             if self.device.set_voltage(new_hv):
-                print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv))
+                if self.debug == 1:
+                    print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv))
                 if self.set_button.text() == "Set":
                     self.set_button.setText("Reset")
                 return True
@@ -298,7 +317,8 @@ class Dynamic_PS(QWidget):
     # RESET button clicked or 0 voltage SET (Votlage => OFF)
     def voltage_reset(self):
         if self.device.voltage_stop():
-            print("[INFO] HV OFF\n------------------")
+            if self.debug == 1:
+                print("[INFO] HV OFF\n------------------")
 
     ####################################################################################################################
     # LOCK COMMAND
@@ -316,8 +336,9 @@ class Dynamic_PS(QWidget):
                 self.repetitions_edit.setDisabled(True)
                 self.t_forward_edit.setDisabled(True)
                 self.t_backward_edit.setDisabled(True)
-            print("[INFO] Mode locked\n"
-                  "------------------")
+            if self.debug == 1:
+                print("[INFO] Mode locked\n"
+                    "------------------")
         else:
             self.target_voltage_edit.setDisabled(False)
             self.modul_freq_edit.setDisabled(False)
@@ -331,8 +352,9 @@ class Dynamic_PS(QWidget):
                 self.repetitions_edit.setDisabled(False)
                 self.t_forward_edit.setDisabled(False)
                 self.t_backward_edit.setDisabled(False)
-            print("\n[INFO] Mode unlocked\n"
-                  "--------------------")
+            if self.debug == 1:
+                print("\n[INFO] Mode unlocked\n"
+                    "--------------------")
 
     ####################################################################################################################
     # RESET COMMAND
@@ -342,6 +364,7 @@ class Dynamic_PS(QWidget):
         self.set_button.setText("Set")
         self.voltage_reset()
         if self.device.hb_stop_multi():
-            print("[INFO] Mode 3: Half-Bridges 1-3 OFF")
+            if self.debug == 1:
+                print("[INFO] Mode 3: Half-Bridges 1-3 OFF")
 
 

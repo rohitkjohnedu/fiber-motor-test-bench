@@ -1,8 +1,0 @@
-Motor type: Motor Fiber
-Fiber length (mm): 
-Number of fibers: 
-Insulator: 
-Sample rate (Hz): 400
-
-Absolute time (s), Relative time (s),Force (mN), Position (mm),hv_set (kV), hv_vm (kV), hv_err (V),lv_set (V), lv_vm (V), lv_err (V),cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)
-

@@ -27,17 +27,19 @@ class Static_PS(QWidget):
             # state_lbl.setFixedWidth(150)
 
             self.st_comboBox = QComboBox()
-            states = ['A', 'B', 'C', 'D', 'E', 'F', 'A-D', 'B-E', 'C-F', 'Other']
-            for state in states:
+            self.states = ['A', 'B', 'C', 'D', 'E', 'F', 'A-D', 'B-E', 'C-F', 'Other']
+            for state in self.states:
                 self.st_comboBox.addItem(state)
         else:
-            state_lbl = QLabel("Modulation:")
-            state_lbl.setFixedWidth(175)
+            # state_lbl = QLabel("Control sequence:") ##############################################################
 
-            self.state_opt = QCheckBox()
-            self.state_opt.setText("ON")
-            self.state_opt.setChecked(False)
-            self.state_opt.setDisabled(True)
+            modulation_lbl = QLabel("Modulation:")
+            modulation_lbl.setFixedWidth(175)
+
+            self.modulation_opt = QCheckBox()
+            self.modulation_opt.setText("ON")
+            self.modulation_opt.setChecked(False)
+            self.modulation_opt.setDisabled(True)
         # ------------------------------------------------------------------------------------------------------------ #
         # The following widgets are used in "ACTIONS" section as a place holders, but then initialized in "EXTENDED SET"
         self.freq_edit = QLineEdit("1")
@@ -57,10 +59,9 @@ class Static_PS(QWidget):
             self.mode_layout.addRow(self.set_button, self.update_button)
         else:
             state_layout = QHBoxLayout()
-            state_layout.addWidget(state_lbl)
-            state_layout.addWidget(self.state_opt)
+            state_layout.addWidget(modulation_lbl)
+            state_layout.addWidget(self.modulation_opt)
             self.mode_layout.addRow(state_layout)
-            # self.mode_layout.addRow(self.update_button)
 
         # ************************************************************************************************************ #
         # PARAMETERS

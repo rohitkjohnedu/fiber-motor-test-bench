@@ -64,8 +64,8 @@ class StandaTable:
         self.available_devices = []
 
         self.buffer_length = DEFAULT_BUFFER_LENGTH
-        self.buffer_raw_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
-        self.buffer_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
+        # self.buffer_raw_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
+        self.buffer_data = np.zeros((self.buffer_length, 3), dtype=np.float64)
         self.sample = 0
         self.read_samples = 0
 
@@ -339,7 +339,7 @@ class StandaTable:
         Clear both data buffer and raw data buffer
         :return: None
         """
-        self.buffer_data = np.zeros((self.buffer_length, 2))
+        self.buffer_data = np.zeros((self.buffer_length, 3))
         self.sample = 0
 
     def get_new_data(self):
@@ -361,7 +361,7 @@ class StandaTable:
         self.data_lock.acquire()  # Get multithreading lock to avoir data buffer modification
         data = self.buffer_data[0:self.sample,:] 
         self.data_lock.release()  # Release lock
-        return data[:, 0], data[:, 1]  # Return time and forces buffers
+        return data[:, 0], data[:, 1], data[:,2] # Return time and forces buffers
     
 
     def get_current_position(self):
@@ -489,12 +489,14 @@ class StandaTable:
         while self.continuous_reading_flag and self.is_connected:  # While Flag is true and Table is connected
             try:
                 pos = self.get_position()  # Read current position
+                speed = self.get_speed()  # Read current speed
             except:
                 pos = None
-            if isinstance(pos, (int, float)):
+                speed = None
+            if isinstance(pos, (int, float)) and isinstance(speed, (int, float)):
                 self.data_lock.acquire()  # Set Lock for data manipulation
                 current_time = time.perf_counter()  # Current time
-                self.buffer_data[self.sample, :] = [current_time, pos]
+                self.buffer_data[self.sample, :] = [current_time, pos, speed]
                 self.data_lock.release()  # Release data lock
                 self.sample += 1 
 
@@ -602,17 +604,19 @@ class StandaTableWidget(QWidget):
                 stopButton.released.connect(self.Motor.stop)
                 self.speed_edit.textChanged.connect(self.setSpeedCallback)
                 goToPosition.clicked.connect(self.goToPositionCallback)
+                self.position_edit.returnPressed.connect(self.goToPositionCallback)
 
     def goToPositionCallback(self):
         target_position = float(self.position_edit.text())
         self.Motor.move(target_position, 0)
 
     def setSpeedCallback(self):
-        target_speed = float(self.speed_edit.text())
-        if target_speed > self.Motor.max_speed:
-            target_speed = self.Motor.max_speed
-            self.speed_edit.setText(str(target_speed))
-        self.Motor.set_speed(target_speed)
+        if self.speed_edit.text() != '':
+            target_speed = float(self.speed_edit.text())
+            if target_speed > self.Motor.max_speed:
+                target_speed = self.Motor.max_speed
+                self.speed_edit.setText(str(target_speed))
+            self.Motor.set_speed(target_speed)
 
 ############################################################################################################
 
@@ -639,7 +643,7 @@ class PositionPlot(QWidget):
 
     def plot_update(self, start_time):
         if self.actuator.is_connected:
-            epoch_time_position, position = self.actuator.get_buffer()
+            epoch_time_position, position, speed = self.actuator.get_buffer()
             tplot = epoch_time_position - start_time
 
             if len(tplot) > self.maxPlotHistoryLength:
