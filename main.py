@@ -329,7 +329,7 @@ class MainWindow(QWidget):
     # ************************************************************************************************************ #
     
     def do_static_characterization(self):
-        # Automatic mode ON
+        # Automatic mode turn ON
         if self.static.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
             self.static.stop_event.clear()
             if self.static.actuator_control.home_chckbox.isChecked(): # if homing is selected
@@ -338,7 +338,7 @@ class MainWindow(QWidget):
                 self.start_recording()  # without homing
             self.static.disable_all_widgets(self.static.characterization_type_layout, disable=1)
         # -------------------------------------------------------------------------------------------------------- #
-        # Manual mode ON
+        # Manual mode turn ON
         elif self.static.auto_mode_toggle.isChecked() == False: # if manual mode is selected
             self.static.disable_all_widgets(self.static.control_panel_layout, disable=0)
             self.static.auto_mode_toggle.setDisabled(True)
@@ -350,7 +350,7 @@ class MainWindow(QWidget):
     # ************************************************************************************************************ #
 
     def stop_static_characterization(self):
-        # Automatic mode OFF
+        # Automatic mode turn OFF
         if self.static.auto_mode_toggle.isChecked() == True:
             # stop manually
             if self.running_thread.is_alive():
@@ -368,7 +368,7 @@ class MainWindow(QWidget):
                 else:
                     self.msg_finished("StaticCharacterization", "Auto")
         # -------------------------------------------------------------------------------------------------------- #
-        # Manual mode OFF
+        # Manual mode turn OFF
         elif self.static.auto_mode_toggle.isChecked() == False:
             self.static.stop_indiv_rcd()
             self.stop_recording()
@@ -383,7 +383,7 @@ class MainWindow(QWidget):
     # ************************************************************************************************************ #
 
     def do_dynamic_characterization(self):
-        # Automatic mode ON
+        # Automatic mode turn ON
         if self.dynamic.auto_mode_toggle.isChecked() == True: # if automatic mode is selected
             pass
             # self.dynamic.stop_event.clear()
@@ -393,7 +393,7 @@ class MainWindow(QWidget):
             #     self.start_recording()  # without homing
             # self.dynamic.disable_all_widgets(self.dynamic.characterization_type_layout, disable=1)
         # -------------------------------------------------------------------------------------------------------- #
-        # Manual mode ON
+        # Manual mode turn ON
         elif self.dynamic.auto_mode_toggle.isChecked() == False: # if manual mode is selected
             self.dynamic.disable_all_widgets(self.dynamic.control_panel_layout, disable=0)
             self.dynamic.auto_mode_toggle.setDisabled(True)
@@ -405,7 +405,7 @@ class MainWindow(QWidget):
     # ************************************************************************************************************ #
 
     def stop_dynamic_characterization(self):
-        # Automatic mode OFF
+        # Automatic mode turn OFF
         if self.dynamic.auto_mode_toggle.isChecked() == True:
             pass
             # # stop manually
@@ -424,7 +424,7 @@ class MainWindow(QWidget):
             #     else:
             #         self.msg_finished("Auto")
         # -------------------------------------------------------------------------------------------------------- #
-        # Manual mode OFF
+        # Manual mode turn OFF
         elif self.dynamic.auto_mode_toggle.isChecked() == False:
             self.dynamic.stop_indiv_rcd()
             self.stop_recording()

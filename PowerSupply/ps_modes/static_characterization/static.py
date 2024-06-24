@@ -55,10 +55,6 @@ class StaticMode(QWidget):
             self.start_recording.connect(self.start_indiv_rcd)
             self.stop_recording.connect(self.stop_indiv_rcd)
             self.zero_step_size.connect(self.zero_step_size_msg)
-
-            # if self.actuator_control is not None:
-            #     # Save metadata that changes during the experiment.
-            #     self.actuator_control.speed_edit.textChanged.connect(self.speed_in_array)
  
     # ************************************************************************************************************ #
     #                                     STATIC CHARACTERIZATION INTERFACE                                        #
@@ -90,7 +86,7 @@ class StaticMode(QWidget):
         self.characterization_type_layout.addWidget(self.bottom_frame)
 
         self.auto_mode_toggle.stateChanged.connect(self.auto_mode_changed)
-
+    
         self.init_ui('auto')
 
     # ************************************************************************************************************ #
@@ -189,8 +185,6 @@ class StaticMode(QWidget):
 
         actuator_groupBox_layout = QFormLayout(actuator_groupBox)
         actuator_groupBox_layout.addRow(self.actuator_control)
-
-        # self.actuator_control.speed_edit.textChanged.connect(self.speed_in_array)
         # -------------------------------------------------------------------------------------------------------- #
             
         # Power supply control panel.
@@ -202,6 +196,9 @@ class StaticMode(QWidget):
 
         self.power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
         self.power_supply_groupBox_layout.addRow(self.power_supply_control)
+
+        self.power_supply_control.set_button.clicked.connect(self.update_values)
+        self.power_supply_control.update_button.clicked.connect(self.update_values)
 
         power_supply_groupBox.setLayout(self.power_supply_groupBox_layout)
         # -------------------------------------------------------------------------------------------------------- #
@@ -421,10 +418,6 @@ class StaticMode(QWidget):
         if self.auto_mode_toggle.isChecked() == False: # Manual mode
             self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a string
         self.start_time = time.perf_counter()
-        # init_time = f"{time.perf_counter():.8f}"
-        # if self.actuator_control.speed_edit.text() != '':
-        #     init_speed = f"{float(self.actuator_control.speed_edit.text()):.1f}"
-        #     self.speed_arr = [[init_time, init_speed]]
         self.timer.start(self.plot_interval)
 
     def stop_indiv_rcd(self):
@@ -451,16 +444,16 @@ class StaticMode(QWidget):
             interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
             self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
 
-            interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
-            interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
-            interpolated_actuator_pos = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
-            interpolated_actuator_speed = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 2])
-            interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
+            self.interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
+            interpolated_force_sensor_data = np.interp(self.interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+            interpolated_actuator_pos = np.interp(self.interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
+            interpolated_actuator_speed = np.interp(self.interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 2])
+            interpolated_power_supply_data = np.zeros((len(self.interpolation_time), 11))
             for i1 in range(2, 11):
-                interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+                interpolated_power_supply_data[:, i1] = np.interp(self.interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
-            state = np.full(len(interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
-            abs_time_s = interpolation_time
+            # aquired data
+            abs_time_s = self.interpolation_time
             rel_time_s = abs_time_s - self.start_time
             force_mN = interpolated_force_sensor_data
             position_mm = interpolated_actuator_pos
@@ -474,6 +467,29 @@ class StaticMode(QWidget):
             cm_w1_uA = interpolated_power_supply_data[:,8]
             cm_w2_uA = interpolated_power_supply_data[:,9]
             cm_w3_uA = interpolated_power_supply_data[:,10]
+
+            # interface data
+            self.state_index = self.power_supply_control.state_index
+            if self.state_index >= 6:
+                if self.power_supply_control.set_button.text() == 'Reset':
+                    state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
+                    freq_Hz = np.full(len(self.interpolation_time), self.freq_Hz, dtype='<f8')
+                    duty_cycle = np.full(len(self.interpolation_time), self.duty_cycle, dtype='<f8')
+                    ph1 = np.full(len(self.interpolation_time), self.ph1, dtype='<f8')
+                    ph2 = np.full(len(self.interpolation_time), self.ph2, dtype='<f8')
+                    ph3 = np.full(len(self.interpolation_time), self.ph3, dtype='<f8')
+                else:
+                    state = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                    freq_Hz = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                    duty_cycle = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                    ph1 = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                    ph2 = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                    ph3 = np.full(len(self.interpolation_time), '-', dtype='<U32')
+            else:
+                if self.power_supply_control.set_button.text() == 'Reset':
+                    state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
+                else:
+                    state = np.full(len(self.interpolation_time), '-', dtype='<U32')
 
             # Create a folder to store the data files if it doesn't exist.
             folder_name = 'DataFiles'
@@ -489,12 +505,23 @@ class StaticMode(QWidget):
                 # ------------------------------------------------------------------------------------------------ #
                 # Create a temporary file to store the data.
                 self.temp_file_name = os.path.join(subfolder, f"temp_{self.formatted_time}.csv")
-
-                save_data = np.zeros(abs_time_s.size, dtype=[('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
-                                                            ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
-                                                            ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
-                                                            # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
-                                                            ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')])
+                # ------------------------------------------------------------------------------------------------ #
+                dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
+                        ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
+                        ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
+                        # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
+                        ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
+                
+                if self.state_index >= 6:
+                    if self.power_supply_control.set_button.text() == 'Reset': 
+                        new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
+                                        ('ph1_deg', '<f8'), ('ph2_deg', '<f8'), ('ph3_deg', '<f8')]
+                    else:
+                        new_elements = [('freq_Hz', '<U32'), ('duty_cycle_%', '<U32'),
+                                        ('ph1_deg', '<U32'), ('ph2_deg', '<U32'), ('ph3_deg', '<U32')]
+                    dtype.extend(new_elements)
+                # ------------------------------------------------------------------------------------------------ #
+                save_data = np.zeros(abs_time_s.size, dtype=dtype)
                 save_data['state'] = state
                 save_data['abs_time_s'] = abs_time_s
                 save_data['rel_time_s'] = rel_time_s
@@ -510,13 +537,25 @@ class StaticMode(QWidget):
                 save_data['cm_w1_uA'] = cm_w1_uA
                 save_data['cm_w2_uA'] = cm_w2_uA
                 save_data['cm_w3_uA'] = cm_w3_uA
-
+                if self.state_index >= 6:
+                    save_data['freq_Hz'] = freq_Hz
+                    save_data['duty_cycle_%'] = duty_cycle
+                    save_data['ph1_deg'] = ph1
+                    save_data['ph2_deg'] = ph2
+                    save_data['ph3_deg'] = ph3
+                # ------------------------------------------------------------------------------------------------ #
                 with open(self.temp_file_name, 'ab') as t:
-                    np.savetxt(t, save_data, fmt='%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
-                                                 '% 4.6f, %3.3f, %.1f,' # force_mN, position_mm, speed_mm_s
-                                                 '%5.1f, %5.1f, % 5.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
-                                                 # '% 3.2f, %3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
-                                                 '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                    fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
+                    fmt += '% 4.6f, %4.3f, %.1f ' # force_mN, position_mm, speed_mm_s
+                    fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
+                    # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
+                    fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                    if self.state_index >= 6:
+                        if self.power_supply_control.set_button.text() == 'Reset': 
+                            fmt += ', %4.0f, %2.0f, %3.0f, %3.0f, %3.0f'
+                        else:
+                            fmt += ', %s, %s, %s, %s, %s'
+                    np.savetxt(t, save_data, fmt=fmt)
                 # ------------------------------------------------------------------------------------------------ #
                 # Now write the final file combining parameters and data from the temporary file.
                 file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
@@ -542,99 +581,99 @@ class StaticMode(QWidget):
                     final_file.write('\n---------------------Program_Info-------------------------\n\n'
                                         f'Sample rate (Hz): {self.sample_rate}\n')
                     # ------------------------------------------------------------------------------------------------ #
-                    # final_file.write('\n-------------------Power_Supply_Info----------------------\n\n')
-                    # self.state_index = self.power_supply_control.state_index
-                    # final_file.write(f'State: {self.power_supply_control.states[self.state_index]}\n')
-                    # if self.state_index >= 6:
-                    #     final_file.write(f'Frequency (Hz): {self.power_supply_control.freq_edit.text()}\n'
-                    #                      f'Duty cycle (%): {self.power_supply_control.duty_cycle_edit.text()}\n') # always 50%
-                    #     if self.state_index == 6: # 'A-D'
-                    #         final_file.write(f'CH1 Phase shift (degrees): 0\n'
-                    #                          f'CH2 Phase shift (degrees): 180\n'
-                    #                          f'CH3 Phase shift (degrees): 180\n')
-                    #     elif self.state_index == 7: # 'B-E'
-                    #         final_file.write(f'CH1 Phase shift (degrees): 180\n'
-                    #                          f'CH2 Phase shift (degrees): 0\n'
-                    #                          f'CH3 Phase shift (degrees): 180\n')
-                    #     elif self.state_index == 8: # 'C-F'
-                    #         final_file.write(f'CH1 Phase shift (degrees): 180\n'
-                    #                          f'CH2 Phase shift (degrees): 180\n'
-                    #                          f'CH3 Phase shift (degrees): 0\n')
-                    #     elif self.state_index == 9: # 'Other'
-                    #         final_file.write(f'CH1 Phase shift (degrees): {self.power_supply_control.ch1_phase_shift_edit.text()}\n'
-                    #                          f'CH2 Phase shift (degrees): {self.power_supply_control.ch2_phase_shift_edit.text()}\n'
-                    #                          f'CH3 Phase shift (degrees): {self.power_supply_control.ch3_phase_shift_edit.text()}\n')                   
+                    final_file.write('\n---------------------Explanatory_Note-------------------------\n\n'
+                                        f'When the PS is set ON, the variables (state, freq, DC, phase shifts)\n'
+                                        f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
+                                        f'Voltage aquired from the PS is recorded with a small delay raletivly to\n'
+                                        f'the other variables. The delay is due to the PS response time.\n')              
                     # ----------------------------------------------------------------------------------------------------------------- #
                     final_file.write('\n----------------------Data_Info---------------------------\n\n')
                     final_file.write(f'state, abs. t (s), rel. t (s), '
                                      f'F (mN), p (mm), v (mm/s), '
-                                    #  f'f (Hz), DC (%), '
-                                    #  f'ph1 (deg), ph2 (deg), ph3 (deg), '
                                      f'hv_set (kV), hv_vm (kV), hv_err (V), '
                                     #  f'lv_set (V), lv_vm (V), lv_err (V), '
-                                     f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
-
+                                     f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)')
+                    if self.state_index >= 6:
+                        final_file.write(f', freq (Hz), DC (%), '
+                                            f'ph1 (deg), ph2 (deg), ph3 (deg)\n\n')
+                    else:
+                        final_file.write('\n\n')
+                    # ----------------------------------------------------------------------------------------------------------------- #
                     # Append the data from the temporary file to the final file.
                     with open(self.temp_file_name, 'r') as t:
                         data = t.read()
                         final_file.write(data)
 
             # **************************************************************************************************** #
-            elif self.auto_mode_toggle.isChecked() == True: # Auto mode
-                subfolder = os.path.join(main_subfolder, f"Auto")
-                os.makedirs(subfolder, exist_ok=True)
-                subfolder1 = os.path.join(subfolder, f"date_{self.formatted_time}")
-                os.makedirs(subfolder1, exist_ok=True)
-                file_name = os.path.join(subfolder1, f"pos_{str(self.position)}_state_{self.state}.csv")
+            # elif self.auto_mode_toggle.isChecked() == True: # Auto mode
+            #     subfolder = os.path.join(main_subfolder, f"Auto")
+            #     os.makedirs(subfolder, exist_ok=True)
+            #     subfolder1 = os.path.join(subfolder, f"date_{self.formatted_time}")
+            #     os.makedirs(subfolder1, exist_ok=True)
+            #     file_name = os.path.join(subfolder1, f"pos_{str(self.position)}_state_{self.state}.csv")
 
-                if not os.path.isfile(file_name):
-                    with open(file_name, 'w') as f:
-                        f.write(f'Experiment: {self.experiment_type.currentText()}\n')
-                        if self.motor_type.currentText() == 'Motor Fiber':
-                            f.write(f'Motor type: {self.motor_type.currentText()}\n'
-                                    f'Motor name: {self.motor_name.text()}\n'
-                                    f'Fiber length (mm): {self.motor_length.text()}\n'
-                                    f'Number of fibers: {self.motor_number.text()}\n'
-                                    f'Insulator: {self.insulator.text()}\n')
-                        elif self.motor_type.currentText() == 'Motor Ribbon':
-                            f.write(f'Motor type: {self.motor_type.currentText()}\n'
-                                    f'Stator name: {self.stator_name.text()}\n'
-                                    f'Slider name: {self.slider_name.text()}\n')
-                        f.write(f'State: {self.state}\n')
-                        # ------------------------------------------------------------------------------------------------ #
-                        # final_file.write('------------------------------------------------------------\n')
-                        # if self.power_supply_control.modulation_opt.isChecked():
-                        #     final_file.write(f'Modulation: ON\n\n')
-                        # else:
-                        #     final_file.write(f'Modulation: OFF\n\n')
-                        f.write(f'Sample rate (Hz): {self.sample_rate}\n')
-                        f.write(f'Absolute time (s), Relative time (s), '
-                                f'Force (mN), Position (mm), '
-                                f'hv_set (kV), hv_vm (kV), hv_err (V), '
-                                # f'lv_set (V), lv_vm (V), lv_err (V), '
-                                f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
+            #     if not os.path.isfile(file_name):
+            #         with open(file_name, 'w') as f:
+            #             f.write(f'Experiment: {self.experiment_type.currentText()}\n')
+            #             if self.motor_type.currentText() == 'Motor Fiber':
+            #                 f.write(f'Motor type: {self.motor_type.currentText()}\n'
+            #                         f'Motor name: {self.motor_name.text()}\n'
+            #                         f'Fiber length (mm): {self.motor_length.text()}\n'
+            #                         f'Number of fibers: {self.motor_number.text()}\n'
+            #                         f'Insulator: {self.insulator.text()}\n')
+            #             elif self.motor_type.currentText() == 'Motor Ribbon':
+            #                 f.write(f'Motor type: {self.motor_type.currentText()}\n'
+            #                         f'Stator name: {self.stator_name.text()}\n'
+            #                         f'Slider name: {self.slider_name.text()}\n')
+            #             f.write(f'State: {self.state}\n')
+            #             # ------------------------------------------------------------------------------------------------ #
+            #             # final_file.write('------------------------------------------------------------\n')
+            #             # if self.power_supply_control.modulation_opt.isChecked():
+            #             #     final_file.write(f'Modulation: ON\n\n')
+            #             # else:
+            #             #     final_file.write(f'Modulation: OFF\n\n')
+            #             f.write(f'Sample rate (Hz): {self.sample_rate}\n')
+            #             f.write(f'Absolute time (s), Relative time (s), '
+            #                     f'Force (mN), Position (mm), '
+            #                     f'hv_set (kV), hv_vm (kV), hv_err (V), '
+            #                     # f'lv_set (V), lv_vm (V), lv_err (V), '
+            #                     f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
                         
-                # Save the data to the .csv file.   
-                save_data = np.column_stack((abs_time_s, rel_time_s,
-                                            force_mN, position_mm,
-                                            hv_set_kV, hv_vm_kV, hv_err_V,
-                                            # lv_set_V, lv_vm_V, lv_err_V,
-                                            cm_w1_uA, cm_w2_uA, cm_w3_uA))
-                with open(file_name, 'ab') as f:                       
-                    np.savetxt(f, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
-                                                 '% 4.6f, %4.3f, ' # force_mN, position_mm
-                                                 '%5.1f, %5.1f, % 5.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
-                                                 # '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
-                                                 '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
+            #     # Save the data to the .csv file.   
+            #     save_data = np.column_stack((abs_time_s, rel_time_s,
+            #                                 force_mN, position_mm,
+            #                                 hv_set_kV, hv_vm_kV, hv_err_V,
+            #                                 # lv_set_V, lv_vm_V, lv_err_V,
+            #                                 cm_w1_uA, cm_w2_uA, cm_w3_uA))
+            #     with open(file_name, 'ab') as f:                       
+            #         np.savetxt(f, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
+            #                                      '% 4.6f, %4.3f, ' # force_mN, position_mm
+            #                                      '%5.1f, %5.1f, % 5.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
+            #                                      # '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
+            #                                      '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
                     
     # ************************************************************************************************************ #
     def remove_temp_files(self):
         os.remove(self.temp_file_name)
     
     # ************************************************************************************************************ #
-    # def speed_in_array(self):
-    #     Time = f"{time.perf_counter():.8f}"
-    #     if self.actuator_control.speed_edit.text() != '':
-    #         Speed = f"{float(self.actuator_control.speed_edit.text()):.1f}"
-    #         self.speed_arr = np.append(self.speed_arr, [Time, Speed])
-    
+    def update_values(self):
+        if self.state_index >= 6:
+            self.freq_Hz = float(self.power_supply_control.freq_edit.text())
+            self.duty_cycle = float(self.power_supply_control.duty_cycle_edit.text())
+            if self.state_index == 6: # 'A-D'
+                self.ph1 = 0
+                self.ph2 = 180
+                self.ph3 = 180
+            elif self.state_index == 7: # 'B-E'
+                self.ph1 = 180
+                self.ph2 = 0
+                self.ph3 = 180
+            elif self.state_index == 8: # 'C-F'
+                self.ph1 = 180
+                self.ph2 = 180
+                self.ph3 = 0
+            elif self.state_index == 9: # 'Other'
+                self.ph1 = float(self.power_supply_control.ch1_phase_shift_edit.text())
+                self.ph2 = float(self.power_supply_control.ch2_phase_shift_edit.text())
+                self.ph3 = float(self.power_supply_control.ch3_phase_shift_edit.text())
