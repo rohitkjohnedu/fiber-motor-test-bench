@@ -31,7 +31,10 @@ class Static_PS(QWidget):
             for state in self.states:
                 self.st_comboBox.addItem(state)
         else:
-            # state_lbl = QLabel("Control sequence:") ##############################################################
+            control_seq_lbl = QLabel("Control sequence:")
+            self.control_sequence = QComboBox()
+            self.control_sequence.addItem("A-B-C")
+            self.control_sequence.addItem("D-E-F")
 
             modulation_lbl = QLabel("Modulation:")
             modulation_lbl.setFixedWidth(175)
@@ -62,6 +65,7 @@ class Static_PS(QWidget):
             state_layout.addWidget(modulation_lbl)
             state_layout.addWidget(self.modulation_opt)
             self.mode_layout.addRow(state_layout)
+            self.mode_layout.addRow(control_seq_lbl, self.control_sequence)
 
         # ************************************************************************************************************ #
         # PARAMETERS
@@ -236,8 +240,6 @@ class Static_PS(QWidget):
     def set_command(self, state=None):
         new_hv_val = float(self.target_voltage_edit.text())
         if self.mode == "manual":
-            if self.debug == 1:
-                print("manual")
             if self.st_comboBox is not None:
                 state_index = self.st_comboBox.currentIndex()
         else:
@@ -247,6 +249,12 @@ class Static_PS(QWidget):
                 state_index = 1
             elif state == "C":
                 state_index = 2
+            elif state == "D":
+                state_index = 3
+            elif state == "E":
+                state_index = 4
+            elif state == "F":
+                state_index = 5
 
         if new_hv_val == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
@@ -281,9 +289,8 @@ class Static_PS(QWidget):
                         self.AC_set(self.channels_keys, freq_val,  duty_val, ph_shifts) # phase shift set for other
                     self.lock_command(is_on=1)
                 else:
-                    if self.state_opt.isChecked() == False:
+                    if self.modulation_opt.isChecked() == False:
                         self.DC_set(self.channels_keys, state_index)
-
 
     ####################################################################################################################
     # LOCK COMMAND

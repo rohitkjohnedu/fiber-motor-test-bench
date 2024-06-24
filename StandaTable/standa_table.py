@@ -4,8 +4,9 @@ import logging
 import time
 from threading import Thread, Lock, RLock
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QLabel, QCheckBox, QFrame
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt6.QtWidgets import (QWidget, QApplication, QHBoxLayout, QPushButton, QLineEdit, QFormLayout,
+                             QLabel, QCheckBox, QFrame, QVBoxLayout, QDialog, QProgressBar, QMessageBox)
 import pyqtgraph as pg
 
 import numpy as np
@@ -43,6 +44,38 @@ def check_connection(func):
     is_connected_wrapper.__doc__ = func.__doc__
 
     return is_connected_wrapper
+
+class LoadingWorker(QThread):
+    initialization_finished = pyqtSignal(bool)
+    def __init__(self, Motor, parent=None):
+        super().__init__(parent)
+        self.Motor = Motor
+    
+    def run(self):
+        result = self.Motor.home_zero()
+        self.initialization_finished.emit(result)
+
+
+class InfProgressBar(QDialog):
+    def __init__(self, title="InfProgressBar", message="Please wait for the end."):
+        super().__init__()
+
+        self.setWindowTitle(title)
+        self.setFixedSize(300, 100)
+
+        inf_label = QLabel(message)
+        inf_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.progress_bar.setStyleSheet("font-weight: bold; font-size: 16px;")
+
+        layout = QVBoxLayout()
+        layout.addWidget(inf_label)
+        layout.addWidget(self.progress_bar)
+        self.setLayout(layout)
 
 
 class StandaTable:
@@ -596,7 +629,7 @@ class StandaTableWidget(QWidget):
         # Actions
         if self.mode == 'manual':
             if self.Motor is not None:
-                homeButton.released.connect(self.Motor.home_zero)
+                homeButton.released.connect(self.go_home)
                 upButton.pressed.connect(self.Motor.left)
                 upButton.released.connect(self.Motor.stop)
                 downButton.pressed.connect(self.Motor.right)
@@ -617,7 +650,25 @@ class StandaTableWidget(QWidget):
                 target_speed = self.Motor.max_speed
                 self.speed_edit.setText(str(target_speed))
             self.Motor.set_speed(target_speed)
+    
+    def go_home(self):
+        self.initializator = LoadingWorker(self.Motor)
+        self.initializator.initialization_finished.connect(self.initialization_finished)
 
+        self.loading = InfProgressBar(title="Go home and set zero", message="Please wait while the actuator go home and set zero.")
+        self.loading.show()
+
+        self.loading.progress_bar.setRange(0, 0)
+        self.initializator.start()
+        
+    def initialization_finished(self, result):
+        self.initializator.terminate()
+        self.loading.progress_bar.setRange(0, 1)
+        self.loading.progress_bar.setValue(1 if result else 0)
+        time.sleep(1)
+        self.loading.close()
+        return result
+    
 ############################################################################################################
 
 class PositionPlot(QWidget):

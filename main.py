@@ -48,13 +48,13 @@ class LoadingWorker(QThread):
 #############################################################################################################################
 
 class InfProgressBar(QDialog):
-    def __init__(self):
+    def __init__(self, title="InfProgressBar", message="Please wait for the end."):
         super().__init__()
     
-        self.setWindowTitle("Initialization")
+        self.setWindowTitle(title)
         self.setFixedSize(300, 100)
 
-        inf_label = QLabel("Please wait while the system is initializing.")
+        inf_label = QLabel(message)
         inf_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.progress_bar = QProgressBar()
@@ -458,7 +458,6 @@ class MainWindow(QWidget):
         elif msg_box.clickedButton() == QMessageBox.StandardButton.Ok:
             msg_box.close()
             
-
     # ************************************************************************************************************ #
 
     def emg_stop_btn_clicked(self):
@@ -472,7 +471,7 @@ class MainWindow(QWidget):
         self.initializator = LoadingWorker(self.actuator)
         self.initializator.initialization_finished.connect(self.initialization_finished)
 
-        self.loading = InfProgressBar()
+        self.loading = InfProgressBar(title="Initialization", message="Please wait while the system is initializing.")
         self.loading.show()
 
         self.loading.progress_bar.setRange(0, 0)
