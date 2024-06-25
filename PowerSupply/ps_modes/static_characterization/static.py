@@ -100,7 +100,7 @@ class StaticMode(QWidget):
             experiment_type_layout = QFormLayout()
             experiment_type_label = QLabel("Experiment:")
             self.experiment_type = QComboBox()
-            experiments = ['Force vs. Position', 'Force vs. Voltage and Position']
+            experiments = ['Force vs. Position', 'Force vs. Voltage and Position', 'Force vs. Frequency and Position']
             # experiments = ['Force vs. Position', 'Force vs. Voltage and Position', 'Force vs. Frequency and Position', 
             #             'Max. Force vs. Voltage', 'Max. Force vs. Frequency']
             for experiment in experiments:
@@ -249,14 +249,13 @@ class StaticMode(QWidget):
     def experiment_type_widgets(self):
         self.clear_layout(self.widgets_layout)
         experiment_text = self.experiment_type.currentText()
+        # print("\n[INFO] The experiment type is: ", experiment_text)
         if experiment_text == 'Force vs. Position':
             self.components_control_widgets(mode='auto', exp_type=experiment_text)
-        # if experiment_text == 'Force vs. Voltage and Position':
-        #     self.components_control_widgets(mode='auto', exp_type=experiment_text)
-        else:
-            pass
-        # elif experiment_text == 'Force vs. Voltage and Position':
-        # elif experiment_text == 'Force vs. Frequency and Position':
+        if experiment_text == 'Force vs. Voltage and Position':
+            self.components_control_widgets(mode='auto', exp_type=experiment_text)
+        elif experiment_text == 'Force vs. Frequency and Position':
+            self.components_control_widgets(mode='auto', exp_type=experiment_text)
         # elif experiment_text == 'Max. Force vs. Voltage':
         # elif experiment_text == 'Max. Force vs. Frequency':
 
@@ -317,101 +316,115 @@ class StaticMode(QWidget):
         self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a str
         self.zero_step_flag = 0
         experiment_text = self.experiment_type.currentText()
+        # --------------------------------------------------------------------------------- #
         if experiment_text == 'Force vs. Position':
+            self.force_vs_position()
+            if not self.stop_event.is_set():
+                self.finished.emit() # set the finished event
+        # --------------------------------------------------------------------------------- #
+        elif experiment_text == 'Force vs. Voltage and Position':
+            start_volt = float(self.power_supply_control.start_volt_edit.text())
+            end_volt = float(self.power_supply_control.end_volt_edit.text())
+            step_size = float(self.power_supply_control.step_volt_edit.text())
+            steps_nb = np.abs(np.floor(np.round((end_volt - start_volt) / (step_size), 10)))
+            for voltage in range(int(steps_nb)+1):
+                self.power_supply_control.target_voltage_edit.setText(str(voltage))
+                self.force_vs_position()
+            if not self.stop_event.is_set():
+                self.finished.emit() # set the finished event
+        # --------------------------------------------------------------------------------- #
+        elif experiment_text == 'Force vs. Frequency and Position':
+            start_freq = float(self.power_supply_control.start_freq_edit.text())
+            end_freq = float(self.power_supply_control.end_freq_edit.text())
+            step_size = float(self.power_supply_control.step_freq_edit.text())
+            steps_nb = np.abs(np.floor(np.round((end_freq - start_freq) / (step_size), 10)))
+            for freq in range(int(steps_nb)+1):
+                self.power_supply_control.freq_edit.setText(str(freq))
+                self.force_vs_position()
+            if not self.stop_event.is_set():
+                self.finished.emit() # set the finished event
+
+    # ************************************************************************************************************ #
+
+    def force_vs_position(self):
+        # Get the actuator parameters.
+        current_pos = self.actuator.get_position()
+        start_pos = float(self.actuator_control.start_pos_edit.text())
+        end_pos = float(self.actuator_control.end_pos_edit.text())
+        step_size = float(self.actuator_control.step_size_edit.text())
+        speed = float(self.actuator_control.speed_edit.text())
+
+        # Set speed to the actuator.
+        if speed > self.actuator.max_speed:
+            speed = self.actuator.max_speed
+        # self.actuator_control.speed_edit.setText(str(speed))
+        self.actuator.set_speed(speed)
+            
+        # Calculate the time to wait for the actuator to reach the position.
+        if self.actuator_control.home_chckbox.isChecked():
+            init_moving_time = start_pos / speed
+        else:
+            init_moving_time = np.abs(current_pos - start_pos) / speed
+
+        moving_time = np.abs(end_pos - start_pos) / speed
+
+        # Calculate the number of steps.
+        if step_size == 0:
+            self.zero_step_size.emit()
+            return
+        else:
+            steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
+            # print("\n[INFO] The number of steps is: ", steps_nb)
             # ---------------------------------------------------------------------------------------------------- #
-            # Get the actuator parameters.
-            current_pos = self.actuator.get_position()
-            start_pos = float(self.actuator_control.start_pos_edit.text())
-            end_pos = float(self.actuator_control.end_pos_edit.text())
-            step_size = float(self.actuator_control.step_size_edit.text())
-            speed = float(self.actuator_control.speed_edit.text())
-
-            # Set speed to the actuator.
-            if speed > self.actuator.max_speed:
-                speed = self.actuator.max_speed
-            # self.actuator_control.speed_edit.setText(str(speed))
-            self.actuator.set_speed(speed)
-            
-            # Calculate the time to wait for the actuator to reach the position.
-            if self.actuator_control.home_chckbox.isChecked():
-                init_moving_time = start_pos / speed
-            else:
-                init_moving_time = np.abs(current_pos - start_pos) / speed
-
-            moving_time = np.abs(end_pos - start_pos) / speed
-
-            # Calculate the number of steps.
-            if step_size == 0:
-                self.zero_step_size.emit()
-                return
-            else:
-                steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
-                # print("\n[INFO] The number of steps is: ", steps_nb)
-                # ---------------------------------------------------------------------------------------------------- #
-                # Get the power supply parameters.
-                # voltage = float(self.power_supply_control.target_voltage_edit.text())
-                modulation = self.power_supply_control.modulation_opt.isChecked()
-            
-                # ---------------------------------------------------------------------------------------------------- #
-                # Algorithm for the "Force vs Position" experiment.
-                for step in range(int(steps_nb)+1):
-                    # ------------------------------------------------------------------------------------------------ #
+            # Get the power supply parameters.
+            modulation = self.power_supply_control.modulation_opt.isChecked()
+            # ---------------------------------------------------------------------------------------------------- #
+            # Algorithm for the "Force vs Position" experiment.
+            for step in range(int(steps_nb)+1):
+                # ------------------------------------------------------------------------------------------------ #
+                if self.stop_event.is_set():
+                    break
+                # ------------------------------------------------------------------------------------------------ #
+                self.position = start_pos+step*(step_size/1000) # calculate the position
+                # print("\n[INFO] The actuator is moving to the position: ", self.position)
+                self.actuator.move(self.position) # move the actuator to the position
+                if step == 0:
+                    time.sleep(init_moving_time+2) # wait for the actuator to reach the starting position
+                else:
+                    time.sleep(moving_time+2) # wait for the actuator to reach the next position
+                self.force_sensor.tare() # tare the force sensor
+                time.sleep(0.1) # wait for the force sensor to tare
+                if modulation == False:
+                    states_txt = self.power_supply_control.control_sequence.currentText() # get the states
+                    if states_txt == 'A-B-C':
+                        states = ['A', 'B', 'C']
+                    elif states_txt == 'D-E-F':
+                        states = ['D', 'E', 'F']
+                else:
+                    states = ['A-D', 'B-E', 'C-F']
+                # print("\n[INFO] The power supply states are: ", states)
+                for state in states:
+                    # -------------------------------------------------------------------------------- #
                     if self.stop_event.is_set():
                         break
-                    # ------------------------------------------------------------------------------------------------ #
-                    self.position = start_pos+step*(step_size/1000) # calculate the position
-                    # print("\n[INFO] The actuator is moving to the position: ", self.position)
-                    self.actuator.move(self.position) # move the actuator to the position
-                    if step == 0:
-                        time.sleep(init_moving_time+2) # wait for the actuator to reach the starting position
-                    else:
-                        time.sleep(moving_time+2) # wait for the actuator to reach the next position
-                    self.force_sensor.tare() # tare the force sensor
-                    time.sleep(0.1) # wait for the force sensor to tare
-                    if modulation == False:
-                        states_txt = self.power_supply_control.control_sequence.currentText() # get the states
-                        if states_txt == 'A-B-C':
-                            states = ['A', 'B', 'C']
-                        elif states_txt == 'D-E-F':
-                            states = ['D', 'E', 'F']
-                    else:
-                        states = ['A-D', 'B-E', 'C-F']
-                    # print("\n[INFO] The power supply states are: ", states)
-                    for state in states:
-                        # -------------------------------------------------------------------------------- #
-                        if self.stop_event.is_set():
-                            break
-                        # -------------------------------------------------------------------------------- #
-                        self.state = state # (for later use in the program)
-                        self.power_supply_control.set_pressed(state) # set the power supply to the state
-                        # print("\n[INFO] The power supply is set to the state: ", state)
-                        time.sleep(0.5) # wait for 1 second
-                        # -------------------------------------------------------------------------------- #
-                        if self.stop_event.is_set():
-                            break
-                        # -------------------------------------------------------------------------------- #
-                        self.start_recording.emit() # record the data
-                        # print("\n[INFO] The data is being recorded")
-                        time.sleep(2) # measure for 2 seconds
-                        # -------------------------------------------------------------------------------- #
-                        if self.stop_event.is_set():
-                            break
-                        # -------------------------------------------------------------------------------- #
-                        self.stop_recording.emit() # stop recording the data
-                        # print("\n[INFO] The data has been stopped recording")
-                        # -------------------------------------------------------------------------------- #
-                        if self.stop_event.is_set():
-                            break
-                        # -------------------------------------------------------------------------------- #
-                        self.power_supply_control.reset_command(state) # reset the power supply
-                        # print("\n[INFO] The power supply is reset")
-                        time.sleep(2) # wait for 1 second
-                    # ------------------------------------------------------------------------------------------------ #
-                    if self.stop_event.is_set():
-                        break
-                    # ------------------------------------------------------------------------------------------------ #
-                if not self.stop_event.is_set():
-                    self.finished.emit() # set the finished event
+                    # -------------------------------------------------------------------------------- #
+                    self.state = state # (for later use in the program)
+                    self.power_supply_control.set_pressed(state) # set the power supply to the state
+                    # print("\n[INFO] The power supply is set to the state: ", state)
+                    time.sleep(0.5) # wait for 1 second
+                    # -------------------------------------------------------------------------------- #
+                    self.start_recording.emit() # record the data
+                    # print("\n[INFO] The data is being recorded")
+                    time.sleep(2) # measure for 2 seconds
+                    self.stop_recording.emit() # stop recording the data
+                    # print("\n[INFO] The data has been stopped recording")
+                    # -------------------------------------------------------------------------------- #
+                    self.power_supply_control.reset_command(state) # reset the power supply
+                    # print("\n[INFO] The power supply is reset")
+                    time.sleep(2) # wait for 1 second
+                # ------------------------------------------------------------------------------------------------ #
+                if self.stop_event.is_set():
+                    break
 
     # ************************************************************************************************************ #
 

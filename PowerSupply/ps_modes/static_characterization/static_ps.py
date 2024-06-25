@@ -23,8 +23,6 @@ class Static_PS(QWidget):
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # ------------------------------------------------------------------------------------------------------------ #
         state_lbl = QLabel("State:")
-        # state_lbl.setFixedWidth(150)
-
         self.st_comboBox = QComboBox()
         self.states = ['A', 'B', 'C', 'D', 'E', 'F', 'A-D', 'B-E', 'C-F', 'Other']
         for state in self.states:
@@ -34,6 +32,10 @@ class Static_PS(QWidget):
         self.control_sequence = QComboBox()
         self.control_sequence.addItem("A-B-C")
         self.control_sequence.addItem("D-E-F")
+
+        self.control_seq_lbl = QLabel("Control sequence:")
+        self.control_seq_modul = QLabel('(A-D)-(B-E)-(C-F)')
+        self.control_seq_modul.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         modulation_lbl = QLabel("Modulation:")
         modulation_lbl.setFixedWidth(175)
@@ -55,7 +57,51 @@ class Static_PS(QWidget):
 
         self.update_button = QPushButton("Update")
         # ------------------------------------------------------------------------------------------------------------ #
-        self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
+
+        # ************************************************************************************************************ #
+        # Experiment dependent layout
+        if self.exp_type == "Force vs. Position":
+            self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif self.exp_type == "Force vs. Voltage and Position":
+            start_volt_lbl = QLabel("Start voltage (V):")
+            self.start_volt_edit = QLineEdit("0")
+            self.start_volt_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(start_volt_lbl, self.start_volt_edit)
+        
+            end_volt_lbl = QLabel("End voltage (V):")
+            self.end_volt_edit = QLineEdit("0")
+            self.end_volt_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(end_volt_lbl, self.end_volt_edit)
+
+            step_volt_lbl = QLabel("Step voltage (V):")
+            self.step_volt_edit = QLineEdit("0")
+            self.step_volt_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(step_volt_lbl, self.step_volt_edit)
+        # ------------------------------------------------------------------------------------------------------------ #
+        elif self.exp_type == "Force vs. Frequency and Position":
+            self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
+
+            start_freq_lbl = QLabel("Start frequency (Hz):")
+            self.start_freq_edit = QLineEdit("0")
+            self.start_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(start_freq_lbl, self.start_freq_edit)
+        
+            end_freq_lbl = QLabel("End frequency (Hz):")
+            self.end_freq_edit = QLineEdit("0")
+            self.end_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(end_freq_lbl, self.end_freq_edit)
+
+            step_freq_lbl = QLabel("Step frequency (Hz):")
+            self.step_freq_edit = QLineEdit("0")
+            self.step_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(step_freq_lbl, self.step_freq_edit)
+
+            self.modulation_opt.setChecked(True)
+            self.modulation_opt.setDisabled(True)
+
+        # ************************************************************************************************************ #
+        # Mode dependent layout
         if self.mode == "manual":
             self.mode_layout.addRow(state_lbl, self.st_comboBox)
             self.mode_layout.addRow(self.set_button, self.update_button)
@@ -64,7 +110,10 @@ class Static_PS(QWidget):
             state_layout.addWidget(modulation_lbl)
             state_layout.addWidget(self.modulation_opt)
             self.mode_layout.addRow(state_layout)
-            self.mode_layout.addRow(self.control_seq_lbl, self.control_sequence)
+            if self.exp_type == "Force vs. Frequency and Position":
+                self.mode_layout.addRow(self.control_seq_lbl, self.control_seq_modul)
+            else:    
+                self.mode_layout.addRow(self.control_seq_lbl, self.control_sequence)
 
         # ************************************************************************************************************ #
         # PARAMETERS
@@ -259,6 +308,9 @@ class Static_PS(QWidget):
     ####################################################################################################################
     # SET COMMAND
     def set_command(self, state=None):
+        # if self.exp_type == "Force vs Voltage and Position":
+        #     new_hv_val = 
+        # else:
         new_hv_val = float(self.target_voltage_edit.text())
         if self.mode == "manual":
             if self.st_comboBox is not None:
