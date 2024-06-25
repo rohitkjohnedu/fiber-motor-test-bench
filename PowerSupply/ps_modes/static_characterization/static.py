@@ -370,41 +370,42 @@ class StaticMode(QWidget):
                     time.sleep(0.1) # wait for the force sensor to tare
                     if modulation == False:
                         states_txt = self.power_supply_control.control_sequence.currentText() # get the states
-                        print("\n[INFO] The power supply states are: ", states_txt)
                         if states_txt == 'A-B-C':
                             states = ['A', 'B', 'C']
                         elif states_txt == 'D-E-F':
                             states = ['D', 'E', 'F']
-                        print("\n[INFO] The power supply states are: ", states)
-                        for state in states:
-                            # -------------------------------------------------------------------------------- #
-                            if self.stop_event.is_set():
-                                break
-                            # -------------------------------------------------------------------------------- #
-                            self.state = state
-                            self.power_supply_control.set_pressed(state) # set the power supply to the state
-                            # print("\n[INFO] The power supply is set to the state: ", state)
-                            time.sleep(0.5) # wait for 1 second
-                            # -------------------------------------------------------------------------------- #
-                            if self.stop_event.is_set():
-                                break
-                            # -------------------------------------------------------------------------------- #
-                            self.start_recording.emit() # record the data
-                            # print("\n[INFO] The data is being recorded")
-                            time.sleep(2) # measure for 2 seconds
-                            # -------------------------------------------------------------------------------- #
-                            if self.stop_event.is_set():
-                                break
-                            # -------------------------------------------------------------------------------- #
-                            self.stop_recording.emit() # stop recording the data
-                            # print("\n[INFO] The data has been stopped recording")
-                            # -------------------------------------------------------------------------------- #
-                            if self.stop_event.is_set():
-                                break
-                            # -------------------------------------------------------------------------------- #
-                            self.power_supply_control.voltage_reset() # reset the voltage
-                            # print("\n[INFO] The power supply voltage is reset")
-                            time.sleep(2) # wait for 1 second
+                    else:
+                        states = ['A-D', 'B-E', 'C-F']
+                    # print("\n[INFO] The power supply states are: ", states)
+                    for state in states:
+                        # -------------------------------------------------------------------------------- #
+                        if self.stop_event.is_set():
+                            break
+                        # -------------------------------------------------------------------------------- #
+                        self.state = state # (for later use in the program)
+                        self.power_supply_control.set_pressed(state) # set the power supply to the state
+                        # print("\n[INFO] The power supply is set to the state: ", state)
+                        time.sleep(0.5) # wait for 1 second
+                        # -------------------------------------------------------------------------------- #
+                        if self.stop_event.is_set():
+                            break
+                        # -------------------------------------------------------------------------------- #
+                        self.start_recording.emit() # record the data
+                        # print("\n[INFO] The data is being recorded")
+                        time.sleep(2) # measure for 2 seconds
+                        # -------------------------------------------------------------------------------- #
+                        if self.stop_event.is_set():
+                            break
+                        # -------------------------------------------------------------------------------- #
+                        self.stop_recording.emit() # stop recording the data
+                        # print("\n[INFO] The data has been stopped recording")
+                        # -------------------------------------------------------------------------------- #
+                        if self.stop_event.is_set():
+                            break
+                        # -------------------------------------------------------------------------------- #
+                        self.power_supply_control.reset_command(state) # reset the power supply
+                        # print("\n[INFO] The power supply is reset")
+                        time.sleep(2) # wait for 1 second
                     # ------------------------------------------------------------------------------------------------ #
                     if self.stop_event.is_set():
                         break
@@ -558,9 +559,9 @@ class StaticMode(QWidget):
                     fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
                     if self.state_index >= 6:
                         if self.power_supply_control.set_button.text() == 'Reset': 
-                            fmt += ', %4.0f, %2.0f, %3.0f, %3.0f, %3.0f'
+                            fmt += ', %4.0f, %2.0f, %3.0f, %3.0f, %3.0f' # freq_Hz, duty_cycle, ph1, ph2, ph3
                         else:
-                            fmt += ', %s, %s, %s, %s, %s'
+                            fmt += ', %s, %s, %s, %s, %s' # freq_Hz, duty_cycle, ph1, ph2, ph3
                     np.savetxt(t, save_data, fmt=fmt)
                 # ------------------------------------------------------------------------------------------------ #
                 # Now write the final file combining parameters and data from the temporary file.
@@ -588,9 +589,9 @@ class StaticMode(QWidget):
                                         f'Sample rate (Hz): {self.sample_rate}\n')
                     # ------------------------------------------------------------------------------------------------ #
                     final_file.write('\n-------------------Explanatory_Note-----------------------\n\n'
-                                        f'When the PS is set ON, the variables (state, freq, DC, phase shifts)'
+                                        f'When the PS is set ON, the variables (state, freq, DC, phase shifts) '
                                         f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
-                                        f'Voltage aquired from the PS is recorded with a small delay raletivly to'
+                                        f'Voltage aquired from the PS is recorded with a small delay raletivly to '
                                         f'the other variables. The delay is due to the PS response time.\n')              
                     # ----------------------------------------------------------------------------------------------------------------- #
                     final_file.write('\n----------------------Data_Info---------------------------\n\n')
@@ -618,23 +619,37 @@ class StaticMode(QWidget):
                 os.makedirs(subfolder1, exist_ok=True)
                 file_name = os.path.join(subfolder1, f"pos_{str(self.position)}_state_{self.state}.csv")
                 # ------------------------------------------------------------------------------------------------ #
-                dtype = [('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
+                # Interface parameters.
+                state = np.full(len(self.interpolation_time), self.state, dtype='<U32')
+                if self.power_supply_control.modulation_opt.isChecked():
+                    freq_Hz = np.full(len(self.interpolation_time), float(self.power_supply_control.freq_edit.text()), dtype='<f8')
+                    duty_cycle = np.full(len(self.interpolation_time), float(self.power_supply_control.duty_cycle_edit.text()), dtype='<f8')
+                    if self.state == 'A-D':
+                        ph1 = np.full(len(self.interpolation_time), 0, dtype='<f8')
+                        ph2 = np.full(len(self.interpolation_time), 180, dtype='<f8')
+                        ph3 = np.full(len(self.interpolation_time), 0, dtype='<f8')
+                    elif self.state == 'B-E':
+                        ph1 = np.full(len(self.interpolation_time), 180, dtype='<f8')
+                        ph2 = np.full(len(self.interpolation_time), 0, dtype='<f8')
+                        ph3 = np.full(len(self.interpolation_time), 180, dtype='<f8')
+                    elif self.state == 'C-F':
+                        ph1 = np.full(len(self.interpolation_time), 180, dtype='<f8')
+                        ph2 = np.full(len(self.interpolation_time), 180, dtype='<f8')
+                        ph3 = np.full(len(self.interpolation_time), 0, dtype='<f8')
+                # ------------------------------------------------------------------------------------------------ #
+                dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
                         ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
                         ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
                         # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
                         ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
                 
-                # if self.state_index >= 6:
-                #     if self.power_supply_control.set_button.text() == 'Reset': 
-                #         new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
-                #                         ('ph1_deg', '<f8'), ('ph2_deg', '<f8'), ('ph3_deg', '<f8')]
-                #     else:
-                #         new_elements = [('freq_Hz', '<U32'), ('duty_cycle_%', '<U32'),
-                #                         ('ph1_deg', '<U32'), ('ph2_deg', '<U32'), ('ph3_deg', '<U32')]
-                #     dtype.extend(new_elements)
-
+                if self.power_supply_control.modulation_opt.isChecked():
+                    new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
+                                        ('ph1_deg', '<f8'), ('ph2_deg', '<f8'), ('ph3_deg', '<f8')]
+                    dtype.extend(new_elements)
                 # ------------------------------------------------------------------------------------------------ #
                 save_data = np.zeros(abs_time_s.size, dtype=dtype)
+                save_data['state'] = state
                 save_data['abs_time_s'] = abs_time_s
                 save_data['rel_time_s'] = rel_time_s
                 save_data['force_mN'] = force_mN
@@ -649,8 +664,13 @@ class StaticMode(QWidget):
                 save_data['cm_w1_uA'] = cm_w1_uA
                 save_data['cm_w2_uA'] = cm_w2_uA
                 save_data['cm_w3_uA'] = cm_w3_uA
+                if self.power_supply_control.modulation_opt.isChecked():
+                    save_data['freq_Hz'] = freq_Hz
+                    save_data['duty_cycle_%'] = duty_cycle
+                    save_data['ph1_deg'] = ph1
+                    save_data['ph2_deg'] = ph2
+                    save_data['ph3_deg'] = ph3
                 # ------------------------------------------------------------------------------------------------ #
-
                 if not os.path.isfile(file_name):
                     with open(file_name, 'w') as final_file:
                         # ------------------------------------------------------------------------------------------------ #
@@ -660,10 +680,10 @@ class StaticMode(QWidget):
                                          f'Mode: Auto\n'
                                          f'Experiment: {self.experiment_type.currentText()}\n')
                         # ------------------------------------------------------------------------------------------------ #
-                        # if self.power_supply_control.modulation_opt.isChecked():
-                        #     final_file.write(f'Modulation: ON\n\n')
-                        # else:
-                        #     final_file.write(f'Modulation: OFF\n\n')
+                        if self.power_supply_control.modulation_opt.isChecked():
+                            final_file.write(f'Modulation: ON\n')
+                        else:
+                            final_file.write(f'Modulation: OFF\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n-----------------------Motor_Info--------------------------\n\n')
                         if self.motor_type.currentText() == 'Motor Fiber':
@@ -681,30 +701,27 @@ class StaticMode(QWidget):
                                             f'Sample rate (Hz): {self.sample_rate}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n----------------------Data_Info---------------------------\n\n')
-                        final_file.write(f'abs. t (s), rel. t (s), '
+                        final_file.write(f'state, abs. t (s), rel. t (s), '
                                          f'F (mN), p (mm), v (mm/s), '
                                          f'hv_set (kV), hv_vm (kV), hv_err (V), '
                                          #  f'lv_set (V), lv_vm (V), lv_err (V), '
-                                         f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
+                                         f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)')
                         
-                        # if self.power_supply_control.modulation_opt.isChecked() == True:
-                        #     final_file.write(f', freq (Hz), DC (%), '
-                        #                      f'ph1 (deg), ph2 (deg), ph3 (deg)\n\n')
-                        # else:
-                        #     final_file.write('\n\n')
-                
-                # Save the data to the .csv file.   
-                save_data = np.column_stack((abs_time_s, rel_time_s,
-                                            force_mN, position_mm,
-                                            hv_set_kV, hv_vm_kV, hv_err_V,
-                                            # lv_set_V, lv_vm_V, lv_err_V,
-                                            cm_w1_uA, cm_w2_uA, cm_w3_uA))
-                with open(file_name, 'ab') as f:                       
-                    np.savetxt(f, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
-                                                 '% 4.6f, %4.3f, ' # force_mN, position_mm
-                                                 '%5.1f, %5.1f, % 5.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
-                                                 # '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
-                                                 '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                        if self.power_supply_control.modulation_opt.isChecked() == True:
+                            final_file.write(f', freq (Hz), DC (%), '
+                                             f'ph1 (deg), ph2 (deg), ph3 (deg)\n\n')
+                        else:
+                            final_file.write('\n\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                with open(file_name, 'ab') as f:
+                    fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
+                    fmt += '% 4.6f, %4.3f, %.1f ' # force_mN, position_mm, speed_mm_s
+                    fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
+                    # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
+                    fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                    if self.power_supply_control.modulation_opt.isChecked():
+                        fmt += ', %3.0f, %2.0f, %3.0f, %3.0f, %3.0f' # freq_Hz, duty_cycle, ph1, ph2, ph3                
+                    np.savetxt(f, save_data, fmt=fmt)
                     
     # ************************************************************************************************************ #
     def remove_temp_files(self):
