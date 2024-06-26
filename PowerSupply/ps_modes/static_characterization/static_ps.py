@@ -21,6 +21,9 @@ class Static_PS(QWidget):
 
         self.target_voltage_edit = QLineEdit("0")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        voltage_range_lbl = QLabel("<i>Voltage range (V): 950-4500</i>")
+        voltage_range_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
         # ------------------------------------------------------------------------------------------------------------ #
         state_lbl = QLabel("State:")
         self.st_comboBox = QComboBox()
@@ -62,6 +65,7 @@ class Static_PS(QWidget):
         # Experiment dependent layout
         if self.exp_type == "Force vs. Position":
             self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
+            self.mode_layout.addRow(voltage_range_lbl)
         # ------------------------------------------------------------------------------------------------------------ #
         elif self.exp_type == "Force vs. Voltage and Position":
             start_volt_lbl = QLabel("Start voltage (V):")
@@ -74,6 +78,8 @@ class Static_PS(QWidget):
             self.end_volt_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(end_volt_lbl, self.end_volt_edit)
 
+            self.mode_layout.addRow(voltage_range_lbl)
+
             step_volt_lbl = QLabel("Step voltage (V):")
             self.step_volt_edit = QLineEdit("0")
             self.step_volt_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -81,6 +87,7 @@ class Static_PS(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         elif self.exp_type == "Force vs. Frequency and Position":
             self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
+            self.mode_layout.addRow(voltage_range_lbl)
 
             start_freq_lbl = QLabel("Start frequency (Hz):")
             self.start_freq_edit = QLineEdit("0")
@@ -91,6 +98,10 @@ class Static_PS(QWidget):
             self.end_freq_edit = QLineEdit("0")
             self.end_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(end_freq_lbl, self.end_freq_edit)
+
+            freq_range_lbl = QLabel("<i>Frequency range (Hz): 0-1000</i>")
+            freq_range_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(freq_range_lbl)
 
             step_freq_lbl = QLabel("Step frequency (Hz):")
             self.step_freq_edit = QLineEdit("0")
@@ -103,6 +114,8 @@ class Static_PS(QWidget):
         # ************************************************************************************************************ #
         # Mode dependent layout
         if self.mode == "manual":
+            self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
+            self.mode_layout.addRow(voltage_range_lbl)
             self.mode_layout.addRow(state_lbl, self.st_comboBox)
             self.mode_layout.addRow(self.set_button, self.update_button)
         else:
@@ -217,10 +230,15 @@ class Static_PS(QWidget):
             self.mode_layout.addRow(self.control_seq_lbl, self.control_seq_modul)
             self.freq_label = QLabel("Modul. frequency (Hz):")
             self.freq_edit = QLineEdit("1")
+            self.freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(self.freq_label, self.freq_edit)
+            self.freq_range_lbl = QLabel("<i>Frequency range (Hz): 0-1000</i>")
+            self.freq_range_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+            self.mode_layout.addRow(self.freq_range_lbl)
         else:
             self.mode_layout.removeRow(self.control_seq_modul)
             self.mode_layout.removeRow(self.freq_edit)
+            self.mode_layout.removeRow(self.freq_range_lbl)
             self.control_seq_lbl = QLabel("Control sequence:")
             self.control_sequence = QComboBox()
             self.control_sequence.addItem("A-B-C")

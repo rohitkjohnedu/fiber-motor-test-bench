@@ -359,14 +359,23 @@ class MainWindow(QWidget):
                 self.stop_recording()
                 self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
                 self.msg_finished("StaticCharacterization", "Auto")
+            # stop automatically
             else:
-                # stop automatically
                 self.stop_recording()
                 self.static.disable_all_widgets(self.static.characterization_type_layout, disable=0)
                 if self.static.zero_step_flag == 1:
                     QMessageBox.warning(self, "Warning", "The step size is cannot be zero. Please change the step size.")
+                elif self.static.out_of_range_volt_flag == 1:
+                    QMessageBox.warning(self, "Warning", "The voltage is out of the range.\nPlease change the voltage in range [950; 4500].")
+                elif self.static.zero_step_volt_flag == 1:
+                    QMessageBox.warning(self, "Warning", "The voltage step is cannot be zero. Please change the voltage step.")
+                elif self.static.out_of_range_freq_flag == 1:
+                    QMessageBox.warning(self, "Warning", "The frequency is out of the range.\nPlease change the frequency in range [0; 1000].")
+                elif self.static.zero_step_freq_flag == 1:
+                    QMessageBox.warning(self, "Warning", "The frequency step is cannot be zero. Please change the frequency step.")
                 else:
                     self.msg_finished("StaticCharacterization", "Auto")
+                
         # -------------------------------------------------------------------------------------------------------- #
         # Manual mode turn OFF
         elif self.static.auto_mode_toggle.isChecked() == False:

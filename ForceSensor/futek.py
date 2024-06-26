@@ -134,9 +134,11 @@ class FutekSensor():
         self.device_handle = None
 
         self.buffer_length = DEFAULT_BUFFER_LENGTH
+        self.taring_buffer_raw_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
         self.buffer_raw_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
         self.buffer_data = np.zeros((self.buffer_length, 2), dtype=np.float64)
         self.sample = 0
+        self.taring_sample = 0
         self.read_samples = 0
 
         self.continuous_reading_flag = False
@@ -145,10 +147,6 @@ class FutekSensor():
         self.reading_thread_lock = RLock()  # Lock for multithreading
 
         self.connect()
-
-    # def auto_connect(self):  
-    #     self.connect()
-    #     return self
 
     @property
     def is_connected(self):
@@ -188,7 +186,6 @@ class FutekSensor():
         if self.device_handle:
             self.futek_dll.Close_Device_Connection(self.device_handle)
         return self.is_connected
-
 
     def get_sensor_load(self):
         """
@@ -286,16 +283,19 @@ class FutekSensor():
         """
         if self.is_connected:
             if self.continuous_reading_flag:
-                self.get_buffer()  # Reset buffer
+                self.taring_buffer_raw_data = np.zeros((self.buffer_length, 2))
+                self.taring_sample = 0
                 time.sleep(0.05)  # Wait for Measurement
-                self.taring_force = np.mean(self.buffer_raw_data[0:self.sample, 1])  # Get mean value
-                self.get_buffer()  # Reset buffer
+                self.taring_force = np.mean(self.taring_buffer_raw_data[0:self.taring_sample, 1])  # Get mean value
+
+                # self.buffer_raw_data = np.zeros((self.buffer_length, 2))
+                # self.sample = 0
+                # time.sleep(0.05)  # Wait for Measurement
+                # self.taring_force = np.mean(self.buffer_raw_data[0:self.sample, 1])  # Get mean value
             else:
                 self.start_recording()
-                self.get_buffer()  # Reset buffer
                 time.sleep(0.05)  # Wait for Measurement
                 self.taring_force = np.mean(self.buffer_raw_data[0:self.sample, 1])  # Get mean value
-                self.get_buffer()  # Reset buffer
                 self.stop_recording()
         else:
             _error_display("Impossible to tare : Force sensor not connected")
@@ -327,6 +327,9 @@ class FutekSensor():
         self.buffer_raw_data = np.zeros((self.buffer_length, 2))
         self.sample = 0
 
+        self.taring_buffer_raw_data = np.zeros((self.buffer_length, 2))
+        self.taring_sample = 0
+
     def get_new_data(self):
         self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
         if self.read_samples - 500 > 0:
@@ -353,8 +356,7 @@ class FutekSensor():
         :rtype: tuple of ndarray
         """
         self.reading_thread_lock.acquire()  # Get multithreading lock to avoir data buffer modification
-
-        data = self.buffer_data[0:self.sample,:] 
+        data = self.buffer_data[0:self.sample,:]
         self.reading_thread_lock.release()  # Release lock
         return data[:, 0], data[:, 1]  # Return time and forces buffers
 
@@ -373,8 +375,10 @@ class FutekSensor():
                     self.reading_thread_lock.acquire()  # Get multithreading lock
                     self.buffer_data[self.sample, :] = [current_time, current_force]
                     self.buffer_raw_data[self.sample, :] = [current_time, raw_force]
+                    self.taring_buffer_raw_data[self.taring_sample, :] = [current_time, raw_force]
                     self.reading_thread_lock.release()  # Release data lock
-                    self.sample += 1  # Increment sample counter      
+                    self.sample += 1  # Increment sample counter
+                    self.taring_sample += 1   
             else:  # If force sensor is not connected
                 time.sleep(0.01)
 

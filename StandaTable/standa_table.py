@@ -581,10 +581,18 @@ class StandaTableWidget(QWidget):
             self.speed_edit = QLineEdit(speed_val)
             self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             buttonLayout.addRow("Speed (mm/s):", self.speed_edit)
-        
+
+            speed_max_lbl = QLabel("<i>4 mm/s maximum speed</i>")
+            speed_max_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(speed_max_lbl)
+
             self.position_edit = QLineEdit(position_val)
             self.position_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             buttonLayout.addRow("Position (mm):", self.position_edit)
+
+            step_size_min_lbl = QLabel("<i>2.5 um minimum step size</i>")
+            step_size_min_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(step_size_min_lbl)
 
             stopButton = QPushButton("STOP")
             buttonLayout.addRow(stopButton)
@@ -621,10 +629,18 @@ class StandaTableWidget(QWidget):
             self.step_size_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             buttonLayout.addRow(step_size_lbl, self.step_size_edit)
 
+            step_size_min_lbl = QLabel("<i>2.5 um minimum step size</i>")
+            step_size_min_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(step_size_min_lbl)
+
             speed_label = QLabel("Speed (mm/s):")
             self.speed_edit = QLineEdit(speed_val)
             self.speed_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             buttonLayout.addRow(speed_label, self.speed_edit)
+
+            speed_max_lbl = QLabel("<i>4 mm/s maximum speed</i>")
+            speed_max_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+            buttonLayout.addRow(speed_max_lbl)
 
         # Actions
         if self.mode == 'manual':

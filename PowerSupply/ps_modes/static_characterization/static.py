@@ -1,6 +1,6 @@
 # python packages
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import (QWidget, QLabel, QGroupBox, QFormLayout, QPushButton,
+from PyQt6.QtWidgets import (QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QCheckBox,
                              QComboBox, QLineEdit, QVBoxLayout, QHBoxLayout, QFrame)
 import numpy as np
 import time
@@ -16,8 +16,10 @@ class StaticMode(QWidget):
     start_recording = pyqtSignal()
     stop_recording = pyqtSignal()
     finished = pyqtSignal()
-    zero_step_size = pyqtSignal()
-
+    # zero_step_size = pyqtSignal()
+    # out_of_range_volt = pyqtSignal()
+    # out_of_range_freq = pyqtSignal()
+    
     def __init__(self, power_supply=None, force_sensor=None, actuator=None, debug=1, parent=None):
         QWidget.__init__(self, parent=parent)
 
@@ -54,7 +56,9 @@ class StaticMode(QWidget):
             # Signals.
             self.start_recording.connect(self.start_indiv_rcd)
             self.stop_recording.connect(self.stop_indiv_rcd)
-            self.zero_step_size.connect(self.zero_step_size_msg)
+            # self.zero_step_size.connect(self.zero_step_size_msg)
+            # self.out_of_range_volt.connect(self.out_of_range_volt_msg)
+            # self.out_of_range_freq.connect(self.out_of_range_freq_msg)
  
     # ************************************************************************************************************ #
     #                                     STATIC CHARACTERIZATION INTERFACE                                        #
@@ -113,6 +117,17 @@ class StaticMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
 
         elif mode == 'manual':
+            # Data save option.
+            data_save_opt_layout = QHBoxLayout()
+            self.data_save_lbl = QLabel("Save data:")
+            self.data_save_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.data_save_lbl.setFixedWidth(175)
+            self.data_save_opt = QCheckBox()
+            self.data_save_opt.setChecked(True)
+            data_save_opt_layout.addWidget(self.data_save_lbl)
+            data_save_opt_layout.addWidget(self.data_save_opt)
+            self.control_panel_layout.addLayout(data_save_opt_layout)
+
             # Force sensor "Tare" button.
             self.tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
@@ -309,40 +324,82 @@ class StaticMode(QWidget):
                 item.widget().setDisabled(disable)
             elif item.layout() is not None:
                 self.disable_all_widgets(item.layout(), disable)
+        # if layout is self.control_panel_layout:
+        #     self.data_save_lbl.setDisabled(False)
+        #     self.data_save_opt.setDisabled(False)
 
     # ************************************************************************************************************ #
 
     def run_static(self):
         self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a str
         self.zero_step_flag = 0
+        self.out_of_range_volt_flag = 0
+        self.zero_step_volt_flag = 0
+        self.out_of_range_freq_flag = 0
+        self.zero_step_freq_flag = 0
         experiment_text = self.experiment_type.currentText()
         # --------------------------------------------------------------------------------- #
         if experiment_text == 'Force vs. Position':
-            self.force_vs_position()
-            if not self.stop_event.is_set():
+            voltage = float(self.power_supply_control.target_voltage_edit.text())
+            if not (950<voltage<4500):
+                self.out_of_range_volt_flag = 1
                 self.finished.emit() # set the finished event
+            else:
+                self.force_vs_position()
+                if not self.stop_event.is_set():
+                    self.finished.emit() # set the finished event
         # --------------------------------------------------------------------------------- #
-        elif experiment_text == 'Force vs. Voltage and Position':
-            start_volt = float(self.power_supply_control.start_volt_edit.text())
+        elif experiment_text == 'Force vs. Voltage and Position': # Min. volt = 950 V, max. volt = 4500 V
+            # Get the power supply parameters.
+            start_volt = float(self.power_supply_control.start_volt_edit.text())        
             end_volt = float(self.power_supply_control.end_volt_edit.text())
-            step_size = float(self.power_supply_control.step_volt_edit.text())
-            steps_nb = np.abs(np.floor(np.round((end_volt - start_volt) / (step_size), 10)))
-            for voltage in range(int(steps_nb)+1):
-                self.power_supply_control.target_voltage_edit.setText(str(voltage))
-                self.force_vs_position()
-            if not self.stop_event.is_set():
-                self.finished.emit() # set the finished event
+            if not (950<=start_volt<=4500) or not (950<=end_volt<=4500):
+                self.out_of_range_volt_flag = 1
+                if not self.stop_event.is_set():
+                    self.finished.emit() # set the finished event
+            else:
+                step_size = float(self.power_supply_control.step_volt_edit.text())
+                # Calculate the number of steps.
+                if step_size == 0:
+                    self.zero_step_volt_flag = 1
+                    if not self.stop_event.is_set():
+                        self.finished.emit() # set the finished event
+                else:
+                    steps_nb = np.abs(np.floor(np.round((end_volt - start_volt) / (step_size), 10)))
+                    for voltage in range(int(steps_nb)+1):
+                        self.power_supply_control.target_voltage_edit.setText(str(voltage))
+                        self.force_vs_position()
+                    if not self.stop_event.is_set():
+                        self.finished.emit() # set the finished event
         # --------------------------------------------------------------------------------- #
-        elif experiment_text == 'Force vs. Frequency and Position':
-            start_freq = float(self.power_supply_control.start_freq_edit.text())
-            end_freq = float(self.power_supply_control.end_freq_edit.text())
-            step_size = float(self.power_supply_control.step_freq_edit.text())
-            steps_nb = np.abs(np.floor(np.round((end_freq - start_freq) / (step_size), 10)))
-            for freq in range(int(steps_nb)+1):
-                self.power_supply_control.freq_edit.setText(str(freq))
-                self.force_vs_position()
-            if not self.stop_event.is_set():
-                self.finished.emit() # set the finished event
+        elif experiment_text == 'Force vs. Frequency and Position': # Min. freq = 0 Hz, max. freq = 1000 Hz
+            # Get the power supply parameters.
+            voltage = float(self.power_supply_control.target_voltage_edit.text())
+            if not (950<voltage<4500):
+                self.out_of_range_volt_flag = 1
+                if not self.stop_event.is_set():
+                    self.finished.emit() # set the finished event
+            else:
+                start_freq = float(self.power_supply_control.start_freq_edit.text())       
+                end_freq = float(self.power_supply_control.end_freq_edit.text())
+                if not (0<=start_freq<=1000) or not (0<=end_freq<=1000):
+                    self.out_of_range_freq_flag = 1
+                    if not self.stop_event.is_set():
+                        self.finished.emit() # set the finished event
+                else:
+                    step_size = float(self.power_supply_control.step_freq_edit.text())
+                    # Calculate the number of steps.
+                    if step_size == 0:
+                        self.zero_step_freq_flag = 1
+                        if not self.stop_event.is_set():
+                            self.finished.emit() # set the finished event
+                    else:
+                        steps_nb = np.abs(np.floor(np.round((end_freq - start_freq) / (step_size), 10)))
+                        for freq in range(int(steps_nb)+1):
+                            self.power_supply_control.freq_edit.setText(str(freq))
+                            self.force_vs_position()
+                        if not self.stop_event.is_set():
+                            self.finished.emit() # set the finished event
 
     # ************************************************************************************************************ #
 
@@ -357,7 +414,6 @@ class StaticMode(QWidget):
         # Set speed to the actuator.
         if speed > self.actuator.max_speed:
             speed = self.actuator.max_speed
-        # self.actuator_control.speed_edit.setText(str(speed))
         self.actuator.set_speed(speed)
             
         # Calculate the time to wait for the actuator to reach the position.
@@ -370,8 +426,7 @@ class StaticMode(QWidget):
 
         # Calculate the number of steps.
         if step_size == 0:
-            self.zero_step_size.emit()
-            return
+            self.zero_step_flag = 1
         else:
             steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
             # print("\n[INFO] The number of steps is: ", steps_nb)
@@ -409,9 +464,11 @@ class StaticMode(QWidget):
                         break
                     # -------------------------------------------------------------------------------- #
                     self.state = state # (for later use in the program)
+                    self.force_sensor.tare() # tare the force sensor
+                    time.sleep(0.1) # wait for the force sensor to tare
                     self.power_supply_control.set_pressed(state) # set the power supply to the state
                     # print("\n[INFO] The power supply is set to the state: ", state)
-                    time.sleep(0.5) # wait for 1 second
+                    time.sleep(0.5) 
                     # -------------------------------------------------------------------------------- #
                     self.start_recording.emit() # record the data
                     # print("\n[INFO] The data is being recorded")
@@ -425,12 +482,6 @@ class StaticMode(QWidget):
                 # ------------------------------------------------------------------------------------------------ #
                 if self.stop_event.is_set():
                     break
-
-    # ************************************************************************************************************ #
-
-    def zero_step_size_msg(self):
-        self.zero_step_flag = 1
-        self.finished.emit() # emit the finished signal
 
     # ************************************************************************************************************ #
 
@@ -497,132 +548,133 @@ class StaticMode(QWidget):
 
             # **************************************************************************************************** #
             if self.auto_mode_toggle.isChecked() == False: # Manual mode
-                subfolder = os.path.join(main_subfolder, f"Manual")
-                os.makedirs(subfolder, exist_ok=True)
-                # ------------------------------------------------------------------------------------------------ #
-                # Create a temporary file to store the data.
-                self.temp_file_name = os.path.join(subfolder, f"temp_{self.formatted_time}.csv")
-                # ------------------------------------------------------------------------------------------------ #
-                # Interface parameters.
-                self.state_index = self.power_supply_control.state_index
-                if self.state_index >= 6:
-                    if self.power_supply_control.set_button.text() == 'Reset':
-                        state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
-                        freq_Hz = np.full(len(self.interpolation_time), self.freq_Hz, dtype='<f8')
-                        duty_cycle = np.full(len(self.interpolation_time), self.duty_cycle, dtype='<f8')
-                        ph1 = np.full(len(self.interpolation_time), self.ph1, dtype='<f8')
-                        ph2 = np.full(len(self.interpolation_time), self.ph2, dtype='<f8')
-                        ph3 = np.full(len(self.interpolation_time), self.ph3, dtype='<f8')
+                if self.data_save_opt.isChecked():
+                    subfolder = os.path.join(main_subfolder, f"Manual")
+                    os.makedirs(subfolder, exist_ok=True)
+                    # ------------------------------------------------------------------------------------------------ #
+                    # Create a temporary file to store the data.
+                    self.temp_file_name = os.path.join(subfolder, f"temp_{self.formatted_time}.csv")
+                    # ------------------------------------------------------------------------------------------------ #
+                    # Interface parameters.
+                    self.state_index = self.power_supply_control.state_index
+                    if self.state_index >= 6:
+                        if self.power_supply_control.set_button.text() == 'Reset':
+                            state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
+                            freq_Hz = np.full(len(self.interpolation_time), self.freq_Hz, dtype='<f8')
+                            duty_cycle = np.full(len(self.interpolation_time), self.duty_cycle, dtype='<f8')
+                            ph1 = np.full(len(self.interpolation_time), self.ph1, dtype='<f8')
+                            ph2 = np.full(len(self.interpolation_time), self.ph2, dtype='<f8')
+                            ph3 = np.full(len(self.interpolation_time), self.ph3, dtype='<f8')
+                        else:
+                            state = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                            freq_Hz = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                            duty_cycle = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                            ph1 = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                            ph2 = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                            ph3 = np.full(len(self.interpolation_time), '-', dtype='<U32')
                     else:
-                        state = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                        freq_Hz = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                        duty_cycle = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                        ph1 = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                        ph2 = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                        ph3 = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                else:
-                    if self.power_supply_control.set_button.text() == 'Reset':
-                        state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
-                    else:
-                        state = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                # ------------------------------------------------------------------------------------------------ #
-                dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
-                        ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
-                        ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
-                        # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
-                        ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
-                
-                if self.state_index >= 6:
-                    if self.power_supply_control.set_button.text() == 'Reset': 
-                        new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
-                                        ('ph1_deg', '<f8'), ('ph2_deg', '<f8'), ('ph3_deg', '<f8')]
-                    else:
-                        new_elements = [('freq_Hz', '<U32'), ('duty_cycle_%', '<U32'),
-                                        ('ph1_deg', '<U32'), ('ph2_deg', '<U32'), ('ph3_deg', '<U32')]
-                    dtype.extend(new_elements)
-                # ------------------------------------------------------------------------------------------------ #
-                save_data = np.zeros(abs_time_s.size, dtype=dtype)
-                save_data['state'] = state
-                save_data['abs_time_s'] = abs_time_s
-                save_data['rel_time_s'] = rel_time_s
-                save_data['force_mN'] = force_mN
-                save_data['position_mm'] = position_mm
-                save_data['speed_mm_s'] = speed_mm_s
-                save_data['hv_set_kV'] = hv_set_kV
-                save_data['hv_vm_kV'] = hv_vm_kV
-                save_data['hv_err_V'] = hv_err_V
-                # save_data['lv_set_V'] = lv_set_V
-                # save_data['lv_vm_V'] = lv_vm_V
-                # save_data['lv_err_V'] = lv_err_V
-                save_data['cm_w1_uA'] = cm_w1_uA
-                save_data['cm_w2_uA'] = cm_w2_uA
-                save_data['cm_w3_uA'] = cm_w3_uA
-                if self.state_index >= 6:
-                    save_data['freq_Hz'] = freq_Hz
-                    save_data['duty_cycle_%'] = duty_cycle
-                    save_data['ph1_deg'] = ph1
-                    save_data['ph2_deg'] = ph2
-                    save_data['ph3_deg'] = ph3
-                # ------------------------------------------------------------------------------------------------ #
-                with open(self.temp_file_name, 'ab') as t:
-                    fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
-                    fmt += '% 4.6f, %4.3f, %.1f ' # force_mN, position_mm, speed_mm_s
-                    fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
-                    # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
-                    fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                        if self.power_supply_control.set_button.text() == 'Reset':
+                            state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
+                        else:
+                            state = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                    # ------------------------------------------------------------------------------------------------ #
+                    dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
+                            ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
+                            ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
+                            # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
+                            ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
+                    
                     if self.state_index >= 6:
                         if self.power_supply_control.set_button.text() == 'Reset': 
-                            fmt += ', %4.0f, %2.0f, %3.0f, %3.0f, %3.0f' # freq_Hz, duty_cycle, ph1, ph2, ph3
+                            new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
+                                            ('ph1_deg', '<f8'), ('ph2_deg', '<f8'), ('ph3_deg', '<f8')]
                         else:
-                            fmt += ', %s, %s, %s, %s, %s' # freq_Hz, duty_cycle, ph1, ph2, ph3
-                    np.savetxt(t, save_data, fmt=fmt)
-                # ------------------------------------------------------------------------------------------------ #
-                # Now write the final file combining parameters and data from the temporary file.
-                file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
-                with open(file_name, 'w') as final_file:
+                            new_elements = [('freq_Hz', '<U32'), ('duty_cycle_%', '<U32'),
+                                            ('ph1_deg', '<U32'), ('ph2_deg', '<U32'), ('ph3_deg', '<U32')]
+                        dtype.extend(new_elements)
                     # ------------------------------------------------------------------------------------------------ #
-                    final_file.write('--------------------Experiment_Info------------------------\n\n'
-                                     f'Datetime: {self.formatted_time}\n'
-                                     f'Characterization: Static\n'
-                                     f'Mode: Manual\n')
-                    # ------------------------------------------------------------------------------------------------ #
-                    final_file.write('\n-----------------------Motor_Info--------------------------\n\n')
-                    if self.motor_type.currentText() == 'Motor Fiber':
-                        final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
-                                         f'Motor name: {self.motor_name.text()}\n'
-                                         f'Fiber length (mm): {self.motor_length.text()}\n'
-                                         f'Number of fibers: {self.motor_number.text()}\n'
-                                         f'Insulator: {self.insulator.text()}\n')
-                    elif self.motor_type.currentText() == 'Motor Ribbon':
-                        final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
-                                         f'Stator name: {self.stator_name.text()}\n'
-                                         f'Slider name: {self.slider_name.text()}\n')
-                    # ------------------------------------------------------------------------------------------------ #
-                    final_file.write('\n---------------------Program_Info-------------------------\n\n'
-                                        f'Sample rate (Hz): {self.sample_rate}\n')
-                    # ------------------------------------------------------------------------------------------------ #
-                    final_file.write('\n-------------------Explanatory_Note-----------------------\n\n'
-                                        f'When the PS is set ON, the variables (state, freq, DC, phase shifts) '
-                                        f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
-                                        f'Voltage aquired from the PS is recorded with a small delay raletivly to '
-                                        f'the other variables. The delay is due to the PS response time.\n')              
-                    # ----------------------------------------------------------------------------------------------------------------- #
-                    final_file.write('\n----------------------Data_Info---------------------------\n\n')
-                    final_file.write(f'state, abs. t (s), rel. t (s), '
-                                     f'F (mN), p (mm), v (mm/s), '
-                                     f'hv_set (kV), hv_vm (kV), hv_err (V), '
-                                    #  f'lv_set (V), lv_vm (V), lv_err (V), '
-                                     f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)')
+                    save_data = np.zeros(abs_time_s.size, dtype=dtype)
+                    save_data['state'] = state
+                    save_data['abs_time_s'] = abs_time_s
+                    save_data['rel_time_s'] = rel_time_s
+                    save_data['force_mN'] = force_mN
+                    save_data['position_mm'] = position_mm
+                    save_data['speed_mm_s'] = speed_mm_s
+                    save_data['hv_set_kV'] = hv_set_kV
+                    save_data['hv_vm_kV'] = hv_vm_kV
+                    save_data['hv_err_V'] = hv_err_V
+                    # save_data['lv_set_V'] = lv_set_V
+                    # save_data['lv_vm_V'] = lv_vm_V
+                    # save_data['lv_err_V'] = lv_err_V
+                    save_data['cm_w1_uA'] = cm_w1_uA
+                    save_data['cm_w2_uA'] = cm_w2_uA
+                    save_data['cm_w3_uA'] = cm_w3_uA
                     if self.state_index >= 6:
-                        final_file.write(f', freq (Hz), DC (%), '
-                                            f'ph1 (deg), ph2 (deg), ph3 (deg)\n\n')
-                    else:
-                        final_file.write('\n\n')
-                    # ----------------------------------------------------------------------------------------------------------------- #
-                    # Append the data from the temporary file to the final file.
-                    with open(self.temp_file_name, 'r') as t:
-                        data = t.read()
-                        final_file.write(data)
+                        save_data['freq_Hz'] = freq_Hz
+                        save_data['duty_cycle_%'] = duty_cycle
+                        save_data['ph1_deg'] = ph1
+                        save_data['ph2_deg'] = ph2
+                        save_data['ph3_deg'] = ph3
+                    # ------------------------------------------------------------------------------------------------ #
+                    with open(self.temp_file_name, 'ab') as t:
+                        fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
+                        fmt += '% 4.6f, %4.3f, %.1f ' # force_mN, position_mm, speed_mm_s
+                        fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
+                        # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
+                        fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                        if self.state_index >= 6:
+                            if self.power_supply_control.set_button.text() == 'Reset': 
+                                fmt += ', %4.0f, %2.0f, %3.0f, %3.0f, %3.0f' # freq_Hz, duty_cycle, ph1, ph2, ph3
+                            else:
+                                fmt += ', %s, %s, %s, %s, %s' # freq_Hz, duty_cycle, ph1, ph2, ph3
+                        np.savetxt(t, save_data, fmt=fmt)
+                    # ------------------------------------------------------------------------------------------------ #
+                    # Now write the final file combining parameters and data from the temporary file.
+                    file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
+                    with open(file_name, 'w') as final_file:
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('--------------------Experiment_Info------------------------\n\n'
+                                        f'Datetime: {self.formatted_time}\n'
+                                        f'Characterization: Static\n'
+                                        f'Mode: Manual\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('\n-----------------------Motor_Info--------------------------\n\n')
+                        if self.motor_type.currentText() == 'Motor Fiber':
+                            final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                            f'Motor name: {self.motor_name.text()}\n'
+                                            f'Fiber length (mm): {self.motor_length.text()}\n'
+                                            f'Number of fibers: {self.motor_number.text()}\n'
+                                            f'Insulator: {self.insulator.text()}\n')
+                        elif self.motor_type.currentText() == 'Motor Ribbon':
+                            final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                            f'Stator name: {self.stator_name.text()}\n'
+                                            f'Slider name: {self.slider_name.text()}\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('\n---------------------Program_Info-------------------------\n\n'
+                                            f'Sample rate (Hz): {self.sample_rate}\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('\n-------------------Explanatory_Note-----------------------\n\n'
+                                            f'When the PS is set ON, the variables (state, freq, DC, phase shifts) '
+                                            f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
+                                            f'Voltage aquired from the PS is recorded with a small delay raletivly to '
+                                            f'the other variables. The delay is due to the PS response time.\n')              
+                        # ----------------------------------------------------------------------------------------------------------------- #
+                        final_file.write('\n----------------------Data_Info---------------------------\n\n')
+                        final_file.write(f'state, abs. t (s), rel. t (s), '
+                                        f'F (mN), p (mm), v (mm/s), '
+                                        f'hv_set (kV), hv_vm (kV), hv_err (V), '
+                                        #  f'lv_set (V), lv_vm (V), lv_err (V), '
+                                        f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)')
+                        if self.state_index >= 6:
+                            final_file.write(f', freq (Hz), DC (%), '
+                                                f'ph1 (deg), ph2 (deg), ph3 (deg)\n\n')
+                        else:
+                            final_file.write('\n\n')
+                        # ----------------------------------------------------------------------------------------------------------------- #
+                        # Append the data from the temporary file to the final file.
+                        with open(self.temp_file_name, 'r') as t:
+                            data = t.read()
+                            final_file.write(data)
 
             # **************************************************************************************************** #
             elif self.auto_mode_toggle.isChecked() == True: # Auto mode
