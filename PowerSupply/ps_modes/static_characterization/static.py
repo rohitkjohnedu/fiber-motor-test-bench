@@ -117,6 +117,7 @@ class StaticMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
 
         elif mode == 'manual':
+            self.upper_control_layout = QVBoxLayout()
             # Data save option.
             data_save_opt_layout = QHBoxLayout()
             self.data_save_lbl = QLabel("Save data:")
@@ -126,7 +127,7 @@ class StaticMode(QWidget):
             self.data_save_opt.setChecked(True)
             data_save_opt_layout.addWidget(self.data_save_lbl)
             data_save_opt_layout.addWidget(self.data_save_opt)
-            self.control_panel_layout.addLayout(data_save_opt_layout)
+            self.upper_control_layout.addLayout(data_save_opt_layout)
 
             # Force sensor "Tare" button.
             self.tare_btn = QPushButton("TARE FORCE")
@@ -142,7 +143,8 @@ class StaticMode(QWidget):
             self.components_control_widgets(mode)
             self.disable_all_widgets(self.control_panel_layout, disable=1)
         # -------------------------------------------------------------------------------------------------------- #
-        self.characterization_type_layout.addLayout(self.control_panel_layout)
+        self.upper_control_layout.addLayout(self.control_panel_layout)
+        self.characterization_type_layout.addLayout(self.upper_control_layout)
 
     # ************************************************************************************************************ #
 
@@ -324,9 +326,6 @@ class StaticMode(QWidget):
                 item.widget().setDisabled(disable)
             elif item.layout() is not None:
                 self.disable_all_widgets(item.layout(), disable)
-        # if layout is self.control_panel_layout:
-        #     self.data_save_lbl.setDisabled(False)
-        #     self.data_save_opt.setDisabled(False)
 
     # ************************************************************************************************************ #
 
@@ -651,13 +650,13 @@ class StaticMode(QWidget):
                                             f'Slider name: {self.slider_name.text()}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n---------------------Program_Info-------------------------\n\n'
-                                            f'Sample rate (Hz): {self.sample_rate}\n')
+                                        f'Sample rate (Hz): {self.sample_rate}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n-------------------Explanatory_Note-----------------------\n\n'
-                                            f'When the PS is set ON, the variables (state, freq, DC, phase shifts) '
-                                            f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
-                                            f'Voltage aquired from the PS is recorded with a small delay raletivly to '
-                                            f'the other variables. The delay is due to the PS response time.\n')              
+                                        f'When the PS is set ON, the variables (state, freq, DC, phase shifts) '
+                                        f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
+                                        f'Voltage aquired from the PS is recorded with a small delay raletivly to '
+                                        f'the other variables. The delay is due to the PS response time.\n')              
                         # ----------------------------------------------------------------------------------------------------------------- #
                         final_file.write('\n----------------------Data_Info---------------------------\n\n')
                         final_file.write(f'state, abs. t (s), rel. t (s), '
@@ -781,7 +780,7 @@ class StaticMode(QWidget):
                                              f'Slider name: {self.slider_name.text()}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n---------------------Program_Info-------------------------\n\n'
-                                            f'Sample rate (Hz): {self.sample_rate}\n')
+                                        f'Sample rate (Hz): {self.sample_rate}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n----------------------Data_Info---------------------------\n\n')
                         final_file.write(f'state, abs. t (s), rel. t (s), '

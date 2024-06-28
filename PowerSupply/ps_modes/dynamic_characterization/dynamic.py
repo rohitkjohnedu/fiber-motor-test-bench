@@ -1,7 +1,7 @@
 # python packages
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (QWidget, QGroupBox, QFormLayout, QLabel, QPushButton, QComboBox,
-                             QVBoxLayout, QLineEdit, QHBoxLayout, QFrame)
+                             QVBoxLayout, QLineEdit, QHBoxLayout, QFrame, QCheckBox)
 import numpy as np
 import time
 import threading
@@ -110,6 +110,18 @@ class DynamicMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
 
         if mode == 'manual':
+            self.upper_control_layout = QVBoxLayout()
+            # Data save option.
+            data_save_opt_layout = QHBoxLayout()
+            self.data_save_lbl = QLabel("Save data:")
+            self.data_save_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.data_save_lbl.setFixedWidth(175)
+            self.data_save_opt = QCheckBox()
+            self.data_save_opt.setChecked(True)
+            data_save_opt_layout.addWidget(self.data_save_lbl)
+            data_save_opt_layout.addWidget(self.data_save_opt)
+            self.upper_control_layout.addLayout(data_save_opt_layout)
+
             # Force sensor "Tare" button.
             tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
@@ -124,7 +136,8 @@ class DynamicMode(QWidget):
             self.components_control_widgets(mode)
             self.disable_all_widgets(self.control_panel_layout, disable=1)
         # -------------------------------------------------------------------------------------------------------- #
-        self.characterization_type_layout.addLayout(self.control_panel_layout)
+        self.upper_control_layout.addLayout(self.control_panel_layout)
+        self.characterization_type_layout.addLayout(self.upper_control_layout)
 
     # ************************************************************************************************************ #
     
@@ -453,9 +466,9 @@ class DynamicMode(QWidget):
             hv_set_kV = interpolated_power_supply_data[:,2]
             hv_vm_kV = interpolated_power_supply_data[:,3]
             hv_err_V = interpolated_power_supply_data[:,4]
-            lv_set_V = interpolated_power_supply_data[:,5]
-            lv_vm_V = interpolated_power_supply_data[:,6]
-            lv_err_V = interpolated_power_supply_data[:,7]
+            # lv_set_V = interpolated_power_supply_data[:,5]
+            # lv_vm_V = interpolated_power_supply_data[:,6]
+            # lv_err_V = interpolated_power_supply_data[:,7]
             cm_w1_uA = interpolated_power_supply_data[:,8]
             cm_w2_uA = interpolated_power_supply_data[:,9]
             cm_w3_uA = interpolated_power_supply_data[:,10]
@@ -469,48 +482,70 @@ class DynamicMode(QWidget):
 
             # **************************************************************************************************** #
             if self.auto_mode_toggle.isChecked() == False: # Manual mode
-                subfolder = os.path.join(main_subfolder, f"Manual")
-                os.makedirs(subfolder, exist_ok=True)
-                # ------------------------------------------------------------------------------------------------ #
-                # Create a temporary file to store the data.
-                self.temp_file_name = os.path.join(subfolder, f"temp_{self.formatted_time}.csv")
-                # Save the data to the temporary file.
-                save_data = np.column_stack((abs_time_s, rel_time_s,
-                                             force_mN, position_mm,
-                                             hv_set_kV, hv_vm_kV, hv_err_V,
-                                             lv_set_V, lv_vm_V, lv_err_V,
-                                             cm_w1_uA, cm_w2_uA, cm_w3_uA))
-                with open(self.temp_file_name, 'ab') as t: 
-                    np.savetxt(t, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
-                                                 '% 4.6f, %4.3f,' # force_mN, position_mm
-                                                 '% 6.1f, %6.1f, % 3.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
-                                                 '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
-                                                 '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
-                # ------------------------------------------------------------------------------------------------ #
-                # Now write the final file combining parameters and data from the temporary file.
-                file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
-                with open(file_name, 'w') as final_file:
-                    if self.motor_type.currentText() == 'Motor Fiber':
-                        final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
-                                         f'Motor name: {self.motor_name.text()}\n'
-                                         f'Fiber length (mm): {self.motor_length.text()}\n'
-                                         f'Number of fibers: {self.motor_number.text()}\n'
-                                         f'Insulator: {self.insulator.text()}\n')
-                    elif self.motor_type.currentText() == 'Motor Ribbon':
-                        final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
+                if self.data_save_opt.isChecked():
+                    subfolder = os.path.join(main_subfolder, f"Manual")
+                    os.makedirs(subfolder, exist_ok=True)
+                    # ------------------------------------------------------------------------------------------------ #
+                    # Create a temporary file to store the data.
+                    self.temp_file_name = os.path.join(subfolder, f"temp_{self.formatted_time}.csv")
+                    # ------------------------------------------------------------------------------------------------ #
+                    # Interface parameters.
+
+                    # ------------------------------------------------------------------------------------------------ #
+                    # Save the data to the temporary file.
+                    save_data = np.column_stack((abs_time_s, rel_time_s,
+                                                force_mN, position_mm,
+                                                hv_set_kV, hv_vm_kV, hv_err_V,
+                                                #  lv_set_V, lv_vm_V, lv_err_V,
+                                                cm_w1_uA, cm_w2_uA, cm_w3_uA))
+                    with open(self.temp_file_name, 'ab') as t: 
+                        np.savetxt(t, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
+                                                    '% 4.6f, %4.3f,' # force_mN, position_mm
+                                                    '% 6.1f, %6.1f, % 3.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
+                                                    #  '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
+                                                    '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                    # ------------------------------------------------------------------------------------------------ #
+                    # Now write the final file combining parameters and data from the temporary file.
+                    file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
+                    with open(file_name, 'w') as final_file:
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('--------------------Experiment_Info------------------------\n\n'
+                                        f'Datetime: {self.formatted_time}\n'
+                                        f'Characterization: Dynamic\n'
+                                        f'Mode: Manual\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('\n-----------------------Motor_Info--------------------------\n\n')
+                        if self.motor_type.currentText() == 'Motor Fiber':
+                            final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
+                                            f'Motor name: {self.motor_name.text()}\n'
+                                            f'Fiber length (mm): {self.motor_length.text()}\n'
+                                            f'Number of fibers: {self.motor_number.text()}\n'
+                                            f'Insulator: {self.insulator.text()}\n')
+                        elif self.motor_type.currentText() == 'Motor Ribbon':
+                            final_file.write(f'Motor type: {self.motor_type.currentText()}\n'
                                             f'Stator name: {self.stator_name.text()}\n'
                                             f'Slider name: {self.slider_name.text()}\n')
-                    final_file.write(f'Sample rate (Hz): {self.sample_rate}\n\n')
-                    final_file.write(f'Absolute time (s), Relative time (s), '
-                                        f'Force (mN), Position (mm), '
-                                        f'hv_set (kV), hv_vm (kV), hv_err (V), '
-                                        f'lv_set (V), lv_vm (V), lv_err (V), '
-                                        f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('\n---------------------Program_Info-------------------------\n\n'
+                                        f'Sample rate (Hz): {self.sample_rate}\n\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write('\n-------------------Explanatory_Note-----------------------\n\n'
+                                        f'When the PS is set ON, the variables (state, freq, DC, phase shifts) '
+                                        f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
+                                        f'Voltage aquired from the PS is recorded with a small delay raletivly to '
+                                        f'the other variables. The delay is due to the PS response time.\n')
+                        # ----------------------------------------------------------------------------------------------------------------- #
+                        final_file.write('\n----------------------Data_Info---------------------------\n\n')
+                        final_file.write(f'Absolute time (s), Relative time (s), '
+                                            f'Force (mN), Position (mm), '
+                                            f'hv_set (kV), hv_vm (kV), hv_err (V), '
+                                            # f'lv_set (V), lv_vm (V), lv_err (V), '
+                                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
 
-                    # Append the data from the temporary file to the final file.
-                    with open(self.temp_file_name, 'r') as t:
-                        data = t.read()
-                        final_file.write(data)
+                        # Append the data from the temporary file to the final file.
+                        with open(self.temp_file_name, 'r') as t:
+                            data = t.read()
+                            final_file.write(data)
 
             # **************************************************************************************************** #
             # elif self.auto_mode_toggle.isChecked() == True: # Auto mode
