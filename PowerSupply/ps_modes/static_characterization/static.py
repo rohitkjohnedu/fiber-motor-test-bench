@@ -337,9 +337,9 @@ class StaticMode(QWidget):
         self.zero_step_volt_flag = 0
         self.out_of_range_freq_flag = 0
         self.zero_step_freq_flag = 0
-        experiment_text = self.experiment_type.currentText()
+        self.experiment_text = self.experiment_type.currentText()
         # --------------------------------------------------------------------------------- #
-        if experiment_text == 'Force vs. Position':
+        if self.experiment_text == 'Force vs. Position':
             voltage = float(self.power_supply_control.target_voltage_edit.text())
             if not (950<voltage<4500):
                 self.out_of_range_volt_flag = 1
@@ -349,7 +349,7 @@ class StaticMode(QWidget):
                 if not self.stop_event.is_set():
                     self.finished.emit() # set the finished event
         # --------------------------------------------------------------------------------- #
-        elif experiment_text == 'Force vs. Voltage and Position': # Min. volt = 950 V, max. volt = 4500 V
+        elif self.experiment_text == 'Force vs. Voltage and Position': # Min. volt = 950 V, max. volt = 4500 V
             # Get the power supply parameters.
             start_volt = float(self.power_supply_control.start_volt_edit.text())        
             end_volt = float(self.power_supply_control.end_volt_edit.text())
@@ -372,7 +372,7 @@ class StaticMode(QWidget):
                     if not self.stop_event.is_set():
                         self.finished.emit() # set the finished event
         # --------------------------------------------------------------------------------- #
-        elif experiment_text == 'Force vs. Frequency and Position': # Min. freq = 0 Hz, max. freq = 1000 Hz
+        elif self.experiment_text == 'Force vs. Frequency and Position': # Min. freq = 0 Hz, max. freq = 1000 Hz
             # Get the power supply parameters.
             voltage = float(self.power_supply_control.target_voltage_edit.text())
             if not (950<voltage<4500):
@@ -618,7 +618,7 @@ class StaticMode(QWidget):
                     # ------------------------------------------------------------------------------------------------ #
                     with open(self.temp_file_name, 'ab') as t:
                         fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
-                        fmt += '% 4.6f, %4.3f, %.1f ' # force_mN, position_mm, speed_mm_s
+                        fmt += '% 4.6f, %4.3f, %.1f, ' # force_mN, position_mm, speed_mm_s
                         fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
                         # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
                         fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
@@ -680,9 +680,10 @@ class StaticMode(QWidget):
             elif self.auto_mode_toggle.isChecked() == True: # Auto mode
                 subfolder = os.path.join(main_subfolder, f"Auto")
                 os.makedirs(subfolder, exist_ok=True)
-                subfolder1 = os.path.join(subfolder, f"date_{self.formatted_time}")
-                os.makedirs(subfolder1, exist_ok=True)
-                file_name = os.path.join(subfolder1, f"pos_{str(self.position)}_state_{self.state}.csv")
+                # subfolder1 = os.path.join(subfolder, f"date_{self.formatted_time}")
+                # os.makedirs(subfolder1, exist_ok=True)
+                # file_name = os.path.join(subfolder1, f"pos_{str(self.position)}_state_{self.state}.csv")
+                file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
                 # ------------------------------------------------------------------------------------------------ #
                 # Interface parameters.
                 state = np.full(len(self.interpolation_time), self.state, dtype='<U32')
@@ -743,12 +744,29 @@ class StaticMode(QWidget):
                                          f'Datetime: {self.formatted_time}\n'
                                          f'Characterization: Static\n'
                                          f'Mode: Auto\n'
-                                         f'Experiment: {self.experiment_type.currentText()}\n')
+                                         f'Experiment: {self.experiment_text}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         if self.power_supply_control.modulation_opt.isChecked():
-                            final_file.write(f'Modulation: ON\n')
+                            final_file.write(f'Modulation: ON\n'
+                                             f'Control sequence: {self.power_supply_control.control_seq_modul}\n'
+                                             f'Modulation frequency (Hz): {self.power_supply_control.freq_edit.text()}\n')
                         else:
-                            final_file.write(f'Modulation: OFF\n')
+                            final_file.write(f'Modulation: OFF\n'
+                                             f'Control sequence: {self.power_supply_control.control_sequence.currentText()}\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        final_file.write(f'Start position (mm): {self.actuator_control.start_pos_edit.text()}\n'
+                                         f'End position (mm): {self.actuator_control.end_pos_edit.text()}\n'
+                                         f'Step size (mm): {self.actuator_control.step_size_edit.text()}\n')
+                        if not self.experiment_text == 'Force vs. Voltage and Position':
+                            final_file.write(f'Target voltage (V): {self.power_supply_control.target_voltage_edit.text()}\n')
+                            if self.experiment_text == 'Force vs. Frequency and Position':
+                                final_file.write(f'Start mod. freq. (Hz): {self.power_supply_control.start_freq_edit.text()}\n'
+                                                 f'End mod. freq. (Hz): {self.power_supply_control.end_freq_edit.text()}\n'
+                                                 f'Step mod. freq. (Hz): {self.power_supply_control.step_freq_edit.text()}\n')
+                        else:
+                            final_file.write(f'Start voltage (V): {self.power_supply_control.start_volt_edit.text()}\n'
+                                             f'End voltage (V): {self.power_supply_control.end_volt_edit.text()}\n'
+                                             f'Step voltage (V): {self.power_supply_control.step_volt_edit.text()}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n-----------------------Motor_Info--------------------------\n\n')
                         if self.motor_type.currentText() == 'Motor Fiber':
@@ -780,7 +798,7 @@ class StaticMode(QWidget):
                         # ------------------------------------------------------------------------------------------------ #
                 with open(file_name, 'ab') as f:
                     fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
-                    fmt += '% 4.6f, %4.3f, %.1f ' # force_mN, position_mm, speed_mm_s
+                    fmt += '% 4.6f, %4.3f, %.1f, ' # force_mN, position_mm, speed_mm_s
                     fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
                     # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
                     fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA

@@ -89,12 +89,12 @@ class Static_PS(QWidget):
             self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
             self.mode_layout.addRow(voltage_range_lbl)
 
-            start_freq_lbl = QLabel("Start frequency (Hz):")
+            start_freq_lbl = QLabel("Start mod. freq. (Hz):")
             self.start_freq_edit = QLineEdit("0")
             self.start_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(start_freq_lbl, self.start_freq_edit)
         
-            end_freq_lbl = QLabel("End frequency (Hz):")
+            end_freq_lbl = QLabel("End mod. freq. (Hz):")
             self.end_freq_edit = QLineEdit("0")
             self.end_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(end_freq_lbl, self.end_freq_edit)
@@ -103,7 +103,7 @@ class Static_PS(QWidget):
             freq_range_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(freq_range_lbl)
 
-            step_freq_lbl = QLabel("Step frequency (Hz):")
+            step_freq_lbl = QLabel("Step mod. freq. (Hz):")
             self.step_freq_edit = QLineEdit("0")
             self.step_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             self.mode_layout.addRow(step_freq_lbl, self.step_freq_edit)
@@ -407,7 +407,7 @@ class Static_PS(QWidget):
             self.lock_command(is_on=0)
             # ---------------------------------- #
             self.set_button.setText("Set")
-            self.target_voltage_edit.setText("0")
+            # self.target_voltage_edit.setText("0")
             # ---------------------------------- #
             if self.st_comboBox is not None:
                 state_index = self.st_comboBox.currentIndex()
@@ -464,22 +464,3 @@ class Static_PS(QWidget):
         if self.debug == 1:
             print("[INFO] Emergency stop\n"
                 "---------------------")
-
-
-        # if state_index < 3: # states A, B, C
-        #     if self.device.hb_set(channels_keys[state_index], freq_val, duty_val):
-        #         if self.debug == 1:
-        #             print("[INFO] Mode 1: Half-Bridge {} ON (NO SWITCH)".format(state_index+1))
-        # else:
-        #     if state_index == 3: # state D
-        #         if self.device.hb_set(second_ch, freq_val, duty_val) and self.device.hb_set(third_ch, freq_val, duty_val):
-        #             if self.debug == 1:
-        #                 print("[INFO] Mode 1: Half-Bridges 2-3 ON (NO SWITCH)")
-        #     elif state_index == 4: # state E
-        #         if self.device.hb_set(first_ch, freq_val, duty_val) and self.device.hb_set(third_ch, freq_val, duty_val):
-        #             if self.debug == 1:
-        #                 print("[INFO] Mode 1: Half-Bridges 1-3 ON (NO SWITCH)")
-        #     elif state_index == 5: # state F
-        #         if self.device.hb_set(first_ch, freq_val, duty_val) and self.device.hb_set(second_ch, freq_val, duty_val):
-        #             if self.debug == 1:
-        #                 print("[INFO] Mode 1: Half-Bridges 1-2 ON (NO SWITCH)")

@@ -287,15 +287,12 @@ class FutekSensor():
                 self.taring_sample = 0
                 time.sleep(0.05)  # Wait for Measurement
                 self.taring_force = np.mean(self.taring_buffer_raw_data[0:self.taring_sample, 1])  # Get mean value
-
-                # self.buffer_raw_data = np.zeros((self.buffer_length, 2))
-                # self.sample = 0
-                # time.sleep(0.05)  # Wait for Measurement
-                # self.taring_force = np.mean(self.buffer_raw_data[0:self.sample, 1])  # Get mean value
             else:
                 self.start_recording()
+                self.taring_buffer_raw_data = np.zeros((self.buffer_length, 2))
+                self.taring_sample = 0
                 time.sleep(0.05)  # Wait for Measurement
-                self.taring_force = np.mean(self.buffer_raw_data[0:self.sample, 1])  # Get mean value
+                self.taring_force = np.mean(self.taring_buffer_raw_data[0:self.taring_sample, 1])  # Get mean value
                 self.stop_recording()
         else:
             _error_display("Impossible to tare : Force sensor not connected")

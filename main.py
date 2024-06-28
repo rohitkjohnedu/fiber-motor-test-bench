@@ -89,12 +89,12 @@ class MainWindow(QWidget):
             self.force_sensor_debug = 0     # 0: no force sensor.
             self.actuator_debug = 0         # 0: no actuator.
         # ------------------------------------------------------------------------------------------------------------ #
-        self.display_voltages = 2       # 0: no voltage plot;       1: high voltage plot;    2: high + low voltage plots.
-        self.display_currents = 1       # 0: no current plot;       1: current plot.
+        self.display_voltages = 1       # 0: no voltage plot;     1: high voltage plot;    2: high + low voltage plots.
+        self.display_currents = 1       # 0: no current plot;     1: current plot.
         # ------------------------------------------------------------------------------------------------------------ #
-        self.display_force = 1          # 0: no force plot;         1: force plot.
+        self.display_force = 1          # 0: no force plot;       1: force plot.
         # ------------------------------------------------------------------------------------------------------------ #
-        self.display_position = 1       # 0: no actuator plot;      1: actuator plot.
+        self.display_position = 1       # 0: no actuator plot;    1: actuator plot.
 
         # ************************************************************************************************************ #
         #                                   DEFINITION OF THE INTERFACE OBJECTS
@@ -388,6 +388,15 @@ class MainWindow(QWidget):
             time.sleep(0.1)
             self.static.remove_temp_files()
             self.msg_finished("StaticCharacterization", "Manual")
+        
+        # -------------------------------------------------------------------------------------------------------- #
+        # Clear data buffers
+        if self.power_supply_debug == 1:
+            self.power_supply.clear_buffer()
+        if self.force_sensor_debug == 1:
+            self.force_sensor.clear_buffer()
+        if self.actuator_debug == 1:
+            self.actuator.clear_buffer()
 
     # ************************************************************************************************************ #
 
@@ -444,6 +453,15 @@ class MainWindow(QWidget):
             time.sleep(0.1)
             self.dynamic.remove_temp_files()
             self.msg_finished("DynamicCharacterization", "Manual")
+        
+        # -------------------------------------------------------------------------------------------------------- #
+        # Clear data buffers
+        if self.power_supply_debug == 1:
+            self.power_supply.clear_buffer()
+        if self.force_sensor_debug == 1:
+            self.force_sensor.clear_buffer()
+        if self.actuator_debug == 1:
+            self.actuator.clear_buffer()
     
     # ************************************************************************************************************ #
 

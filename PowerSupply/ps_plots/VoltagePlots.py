@@ -58,7 +58,7 @@ class VoltagePlots(QWidget):
         hv_plot.setYRange(y_min, y_hv_max)
         
         # Creat a new viewbox for the low voltage plot:
-        if self.display_index is not None:
+        if self.display_index == 2:
             self.lv_plot = pg.ViewBox()
             hv_plot.showAxis('right')
             hv_plot.scene().addItem(self.lv_plot)
@@ -84,7 +84,7 @@ class VoltagePlots(QWidget):
         # Create the plots:
         self.hv_set_plot = hv_plot.plot(pen=color[2], name="Target high voltage")
         self.hv_now_plot = hv_plot.plot(pen=color[0], name="Output high voltage")
-        if self.display_index is not None:
+        if self.display_index == 2:
             self.lv_set_plot = pg.PlotCurveItem(pen=color[8], name="Target low voltage")
             self.lv_plot.addItem(self.lv_set_plot)
             self.lv_now_plot = pg.PlotCurveItem(pen=color[6], name="Output low voltage")
@@ -93,7 +93,7 @@ class VoltagePlots(QWidget):
 
         self.legend.addItem(self.hv_set_plot, 'HV assigned')
         self.legend.addItem(self.hv_now_plot, 'HV measured')
-        if self.display_index is not None:
+        if self.display_index == 2:
             self.legend.addItem(self.lv_set_plot, 'LV assigned')
             self.legend.addItem(self.lv_now_plot, 'LV measured')
 
@@ -116,9 +116,8 @@ class VoltagePlots(QWidget):
             if len(tplot) > self.maxPlotHistoryLength:
                 tplot = tplot[-self.maxPlotHistoryLength:]
 
-            if self.display_index != 0:
-                hv_set = data[:, 2]
-                if len(tplot) > self.maxPlotHistoryLength:
+            hv_set = data[:, 2]
+            if len(tplot) > self.maxPlotHistoryLength:
                                 hv_set = hv_set[-self.maxPlotHistoryLength:]
                                 hv_vm = hv_vm[-self.maxPlotHistoryLength:]
             
@@ -146,7 +145,7 @@ class VoltagePlots(QWidget):
     def update_plot(self, t, y1, y2, y3=0, y4=0):
         self.hv_set_plot.setData(t, y1) 
         self.hv_now_plot.setData(t, y2)
-        if self.display_index is not None:
+        if self.display_index == 2:
             self.lv_set_plot.setData(t, y3)
             self.lv_now_plot.setData(t, y4)
     # ------------------------------------------------------------------------------------------------------------------ #
@@ -159,6 +158,6 @@ class VoltagePlots(QWidget):
             for i, (variable, value)  in enumerate(zip(['HV assigned', 'HV measured'],
                                                         [hv_set, hv_now])):
                 self.legend.items[i][1].setText("{}: {} V".format(variable, value))
-                
-            for i, (variable, value)  in enumerate(zip(['LV assigned', 'LV measured'], [lv_set, lv_now])):
-                self.legend.items[i+2][1].setText("{}: {} V".format(variable, value))
+            if self.display_index == 2:    
+                for i, (variable, value)  in enumerate(zip(['LV assigned', 'LV measured'], [lv_set, lv_now])):
+                    self.legend.items[i+2][1].setText("{}: {} V".format(variable, value))
