@@ -114,6 +114,7 @@ class StaticMode(QWidget):
             self.control_panel_layout.addLayout(experiment_type_layout)
 
             self.components_control_widgets(mode, exp_type=self.experiment_type.currentText())
+            self.characterization_type_layout.addLayout(self.control_panel_layout)
         # -------------------------------------------------------------------------------------------------------- #
 
         elif mode == 'manual':
@@ -142,9 +143,9 @@ class StaticMode(QWidget):
         
             self.components_control_widgets(mode)
             self.disable_all_widgets(self.control_panel_layout, disable=1)
-        # -------------------------------------------------------------------------------------------------------- #
-        self.upper_control_layout.addLayout(self.control_panel_layout)
-        self.characterization_type_layout.addLayout(self.upper_control_layout)
+
+            self.upper_control_layout.addLayout(self.control_panel_layout)
+            self.characterization_type_layout.addLayout(self.upper_control_layout)
 
     # ************************************************************************************************************ #
 
@@ -166,7 +167,7 @@ class StaticMode(QWidget):
         self.auto_mode_toggle.setChecked(True)
         self.auto_label.setStyleSheet("font-weight: bold; " "font-size: 22px")
         self.manual_label.setStyleSheet("font-weight: normal; " "font-size: 22px")
-        self.clear_layout(self.control_panel_layout)
+        self.clear_layout(self.upper_control_layout)
         self.init_ui('auto')
 
     def mousePressEvent(self, event):

@@ -326,9 +326,6 @@ class Static_PS(QWidget):
     ####################################################################################################################
     # SET COMMAND
     def set_command(self, state=None):
-        # if self.exp_type == "Force vs Voltage and Position":
-        #     new_hv_val = 
-        # else:
         new_hv_val = float(self.target_voltage_edit.text())
         if self.mode == "manual":
             if self.st_comboBox is not None:
@@ -368,7 +365,6 @@ class Static_PS(QWidget):
                         ch1_phase_shift = float(self.ch1_phase_shift_edit.text())
                         ch2_phase_shift = float(self.ch2_phase_shift_edit.text())
                         ch3_phase_shift = float(self.ch3_phase_shift_edit.text())
-                
                 if  state_index < 6: # states A, B, C, D, E, F
                     self.DC_set(self.channels_keys, state_index)
                 elif  state_index == 6: # state A-D
@@ -447,7 +443,7 @@ class Static_PS(QWidget):
         elif state_index == 5:
             if self.device.hb_stop(self.channels_keys[0]) and self.device.hb_stop(self.channels_keys[1]):
                 if self.debug == 1:
-                    print("[INFO] Mode 4: Half-Bridges 1-2 OFF")
+                    print("[INFO] Mode 3: Half-Bridges 1-2 OFF")
         else:
             if self.device.hb_stop_shift():
                 if self.debug == 1:  
@@ -455,12 +451,12 @@ class Static_PS(QWidget):
 
     ####################################################################################################################
     # EMERGENCY STOP
-    def emergency_stop(self, device):
-        device.emergency_stop()
-        if self.set_button.text() == "Reset":
-            self.reset_command()
-            self.set_button.setText("Set")
-            self.target_voltage_edit.setText("0")
-        if self.debug == 1:
-            print("[INFO] Emergency stop\n"
-                "---------------------")
+    # def emergency_stop(self, device):
+    #     device.emergency_stop()
+    #     if self.set_button.text() == "Reset":
+    #         self.reset_command()
+    #         self.set_button.setText("Set")
+    #         self.target_voltage_edit.setText("0")
+    #     if self.debug == 1:
+    #         print("[INFO] Emergency stop\n"
+    #             "---------------------")

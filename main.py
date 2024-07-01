@@ -79,7 +79,7 @@ class MainWindow(QWidget):
         # ************************************************************************************************************ #
 
         # Debug options.
-        self.debug = 0                      # 0: full debug OFF;        1: full debug ON.
+        self.debug = 1                      # 0: full debug OFF;        1: full debug ON.
         if self.debug == 0:
             self.power_supply_debug = 1     # 1: power supply.
             self.force_sensor_debug = 1     # 1: force sensor.
