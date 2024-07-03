@@ -118,7 +118,7 @@ class DynamicMode(QWidget):
             self.data_save_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.data_save_lbl.setFixedWidth(175)
             self.data_save_opt = QCheckBox()
-            self.data_save_opt.setChecked(True)
+            self.data_save_opt.setChecked(False) # Default is not to save the data.
             data_save_opt_layout.addWidget(self.data_save_lbl)
             data_save_opt_layout.addWidget(self.data_save_opt)
             self.upper_control_layout.addLayout(data_save_opt_layout)

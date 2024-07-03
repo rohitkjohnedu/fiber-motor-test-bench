@@ -25,14 +25,6 @@ class Thread(QThread):
         self.stop_flag = False
         self.debug = debug
 
-        if self.modulation is True:
-            step_period = 1/self.step_freq
-            half_step_period = step_period/2
-            self.modul_period = half_step_period/3
-            print("modul_period: ", self.modul_period)
-            self.modul_freq = 1/self.modul_period
-            self.modul_duty = 50
-
     def run(self):
         if self.repeated_mode:
             self.loop()
@@ -48,41 +40,7 @@ class Thread(QThread):
             self.loop_no_modulation()
     
     def loop_modulation(self):
-        if self.direction == "Forward":
-            ph_shift_1 = [0, 180, 180] # 'A-D'
-            ph_shift_2 = [180, 0, 180] # 'B-E'
-            ph_shift_3 = [180, 180, 0] # 'C-F'
-            phase_shift_1 = [ph_shift_1, ph_shift_2, ph_shift_3]
-            duration_1 = self.t_forward
-            # direction_1 = "-----> Forward"
-            ph_shift_1 = [0, 180, 180] # 'A-D'
-            ph_shift_2 = [180, 180, 0] # 'C-F'
-            ph_shift_3 = [180, 0, 180] # 'B-E'
-            phase_shift_2 = [ph_shift_1, ph_shift_2, ph_shift_3]
-            duration_2 = self.t_backward
-            # direction_2 = "-----> Backward"
-        elif self.direction == "Backward":
-            ph_shift_1 = [0, 180, 180] # 'A-D'
-            ph_shift_2 = [180, 180, 0] # 'C-F'
-            ph_shift_3 = [180, 0, 180] # 'B-E'
-            phase_shift_1 = [ph_shift_1, ph_shift_2, ph_shift_3]
-            duration_1 = self.t_backward
-            # direction_1 = "-----> Backward"
-            ph_shift_1 = [0, 180, 180] # 'A-D'
-            ph_shift_2 = [180, 0, 180] # 'B-E'
-            ph_shift_3 = [180, 180, 0] # 'C-F'
-            phase_shift_2 = [ph_shift_1, ph_shift_2, ph_shift_3]
-            duration_2 = self.t_forward
-            # direction_2 = "-----> Forward"
-        for repetitions in range(self.repetitions):
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            self.single_run_modulation(phase_shift_1, duration_1)
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            self.single_run_modulation(phase_shift_2, duration_2)
+        pass
 
     def loop_no_modulation(self):
         if self.direction == "Forward":
@@ -102,42 +60,24 @@ class Thread(QThread):
         if self.debug == 1:
             print("\n[INFO] Loop started.")
         for repetition in range(self.repetitions):
-            if not self.stop_flag:
-                if self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_1):
-                    if self.debug == 1:
-                        print(direction_1)
-            else:
-                if self.debug == 1:
-                    print("[INFO] Loop interrupted.\n------------------------")
-                self.finish.emit()
-                break
-                # ------------------------------------------------------------------------------------------- #
-            if not self.stop_flag:       
-                time.sleep(duration_1)
-            else:
-                if self.debug == 1:
-                    print("[INFO] Loop interrupted.\n------------------------")
-                self.finish.emit()
-                break
-                # ------------------------------------------------------------------------------------------- #
-            if not self.stop_flag:
-                if self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_2):
-                    if self.debug == 1:
-                        print(direction_2)
-            else:
-                if self.debug == 1:
-                    print("[INFO] Loop interrupted.\n------------------------")
-                self.finish.emit()
-                break
-                # ------------------------------------------------------------------------------------------- #
-            if not self.stop_flag:
-                time.sleep(duration_2)
-            else:
-                if self.debug == 1:
-                    print("[INFO] Loop interrupted.\n------------------------")
-                self.finish.emit()
+            if self.stop_flag:
+                print("[INFO] Loop interrupted.\n----------------------")
                 break
             # ------------------------------------------------------------------------------------------- #
+            self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_1)
+            if self.debug == 1:
+                print(direction_1)
+            # ------------------------------------------------------------------------------------------- #
+            time.sleep(duration_1)
+            # ------------------------------------------------------------------------------------------- #
+            self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_2)
+            if self.debug == 1:
+                print(direction_2)
+            # ------------------------------------------------------------------------------------------- #
+            time.sleep(duration_2)
+            # ------------------------------------------------------------------------------------------- #
+            if self.debug == 1:
+                print("[INFO] Repetition: {}".format(repetition+1))
         if not self.stop_flag:
             self.finish.emit()
             if self.debug == 1:
@@ -147,73 +87,46 @@ class Thread(QThread):
     
     def single_run(self):
         if self.modulation is True:
-            if self.direction == "Forward":
-                ph_shift_1 = [0, 180, 180] # 'A-D'
-                ph_shift_2 = [180, 0, 180] # 'B-E'
-                ph_shift_3 = [180, 180, 0] # 'C-F'
-                self.phase_shift = [ph_shift_1, ph_shift_2, ph_shift_3]
-            elif self.direction == "Backward":
-                ph_shift_1 = [0, 180, 180] # 'A-D'
-                ph_shift_2 = [180, 180, 0] # 'C-F'
-                ph_shift_3 = [180, 0, 180] # 'B-E'
-                self.phase_shift = [ph_shift_1, ph_shift_2, ph_shift_3]
-            self.single_run_modulation(self.phase_shift, self.moving_time)
+            self.single_run_modulation()
         else:
             self.single_run_no_modulation()
 
-    def single_run_modulation(self, phase_shift, duration):
-        ph_shift_1 = phase_shift[0]
-        ph_shift_2 = phase_shift[1]
-        ph_shift_3 = phase_shift[2]
-        start = time.perf_counter()
-        while time.perf_counter() < (start + duration):
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            self.device.hb_set(self.channels_keys, self.modul_freq, self.modul_duty, ph_shift_1) # 'A-D'
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            time.sleep(self.modul_period)
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            self.device.hb_set(self.channels_keys, self.modul_freq, self.modul_duty, ph_shift_2) # 'B-E' or 'C-F'
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            time.sleep(self.modul_period)
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            self.device.hb_set(self.channels_keys, self.modul_freq, self.modul_duty, ph_shift_3) # 'C-F' or 'B-E'
-            if self.stop_flag:
-                self.finish.emit()
-                break
-            time.sleep(self.modul_period)
-    
+    def single_run_modulation(self):
+        pass
+        
     def single_run_no_modulation(self):
         if self.debug == 1:
             print("\n[INFO] Run started.")
+        # ------------------------------------------------------------------------------------------------------------ #
         if self.direction == "Forward":
             if self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift=120):
+                # --------------------------- #
                 if self.debug == 1:
                     print("-----> Forward")
+                # --------------------------- #
                 time.sleep(self.moving_time)
+                # --------------------------- #
                 if not self.stop_flag:
                     self.finish.emit()
-                    if self.debug == 1:
-                        print("[INFO] Run finished.\n--------------------")
+                # --------------------------- #
+                if self.debug == 1:
+                    print("[INFO] Run finished.\n--------------------")
+        # ------------------------------------------------------------------------------------------------------------ #            
         elif self.direction == "Backward":
             if self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift=240):
+                # --------------------------- #
                 if self.debug == 1:
                     print("<----- Backward")
+                # --------------------------- #
                 time.sleep(self.moving_time)
+                # --------------------------- #
                 if not self.stop_flag:
                     self.finish.emit()
-                    if self.debug == 1:
-                        print("[INFO] Run finished.\n--------------------")
+                # --------------------------- #
+                if self.debug == 1:
+                    print("[INFO] Run finished.\n--------------------")
 
+############################################################################################################################   
 
 class Dynamic_PS(QWidget):
     def __init__(self, device=None, mode=None, exp_type=None, debug=0, parent=None):
@@ -235,6 +148,7 @@ class Dynamic_PS(QWidget):
         target_voltage_lbl = QLabel("Voltage (V):")
         
         self.target_voltage_edit = QLineEdit("0")
+        self.target_voltage_edit.setText("3000")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # ------------------------------------------------------------------------------------------------------------ #
         # hb_number_lbl = QLabel("Channels:")
@@ -296,7 +210,7 @@ class Dynamic_PS(QWidget):
         self.set_button = QPushButton("Set")
         # ------------------------------------------------------------------------------------------------------------ #
         self.mode_layout.addRow(target_voltage_lbl, self.target_voltage_edit)
-        self.mode_layout.addRow(self.modulation_layout)
+        # self.mode_layout.addRow(self.modulation_layout)
         self.mode_layout.addRow(step_freq_lbl, self.step_freq_edit)
         self.mode_layout.addRow(self.repeated_mode_layout)
         self.mode_layout.addRow(self.direction_label, self.direction_edit)
@@ -314,95 +228,11 @@ class Dynamic_PS(QWidget):
         if self.device is not None:
             self.set_button.clicked.connect(self.set_pressed)
         self.repeated_mode_checkbox.stateChanged.connect(self.repeated_mode_changed)
-        # self.modulation_opt.stateChanged.connect(self.modulation_opt_checked)
         
     ########################################################################################################################
     # ADD BUTTONS ALWAYS TO THE END OF THE LAYOUT
     def add_buttons(self):
         self.mode_layout.addRow(self.set_button)
-    
-    ########################################################################################################################
-    # MODULATION OPTION CHECKED
-    # def modulation_opt_checked(self):
-    #     if self.modulation_opt.isChecked():
-    #         self.mode_layout.removeRow(self.step_freq_edit)
-    #         rep = self.repeated_mode_checkbox.isChecked()
-    #         self.mode_layout.removeRow(self.repeated_mode_layout)
-    #         self.mode_layout.removeRow(self.direction_label)
-    #         if rep == False:
-    #             self.mode_layout.removeRow(self.moving_time_lbl)
-    #         else:
-    #             self.mode_layout.removeRow(self.repetitions_label)
-    #             self.mode_layout.removeRow(self.t_forward_lbl)
-    #             self.mode_layout.removeRow(self.t_backward_lbl)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         modul_freq_lbl = QLabel("Modul. frequency (Hz):")
-    #         self.modul_freq_edit = QLineEdit("1")
-    #         self.modul_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.modul_dc_edit = QLineEdit("50")
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         step_freq_lbl = QLabel("Step. frequency (Hz):")
-    #         self.step_freq_edit = QLineEdit("1")
-    #         self.step_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.repeated_mode_lbl = QLabel("Repeated mode:")
-    #         self.repeated_mode_lbl.setFixedWidth(160)
-    #         self.repeated_mode_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            
-    #         self.repeated_mode_checkbox = QCheckBox()
-    #         self.repeated_mode_checkbox.setText("ON")
-    #         # self.repeated_mode_checkbox.setChecked(False)
-
-    #         self.repeated_mode_layout = QHBoxLayout()
-    #         self.repeated_mode_layout.addWidget(self.repeated_mode_lbl)
-    #         self.repeated_mode_layout.addWidget(self.repeated_mode_checkbox)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.moving_time_lbl = QLabel("Time (s):")
-    #         self.moving_time_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-    #         self.moving_time_edit = QLineEdit("1")
-    #         self.moving_time_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.direction_label = QLabel("Direction:")
-    #         self.direction_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            
-    #         self.direction_edit = QComboBox()
-    #         self.direction_edit.addItem("Forward")
-    #         self.direction_edit.addItem("Backward")
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.repetitions_label = QLabel("Repetitions:")
-    #         self.repetitions_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-                
-    #         self.repetitions_edit = QLineEdit("1")
-    #         self.repetitions_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.t_forward_lbl = QLabel("Time forward (s):")
-    #         self.t_forward_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
-                
-    #         self.t_forward_edit = QLineEdit("1")
-    #         self.t_forward_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.t_backward_lbl = QLabel("Time backward (s):")
-    #         self.t_backward_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
-                
-    #         self.t_backward_edit = QLineEdit("1")
-    #         self.t_backward_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-    #         # ------------------------------------------------------------------------------------------------------------ #
-    #         self.mode_layout.addRow(modul_freq_lbl, self.modul_freq_edit)
-    #         self.mode_layout.addRow(step_freq_lbl, self.step_freq_edit)
-    #         self.mode_layout.addRow(self.repeated_mode_layout)
-    #         self.mode_layout.addRow(self.direction_label, self.direction_edit)
-    #         if rep == False:
-    #             self.mode_layout.addRow(self.moving_time_lbl, self.moving_time_edit)
-    #         else:
-    #             self.repeated_mode_checkbox.setChecked(True)
-    #             self.mode_layout.addRow(self.repetitions_label, self.repetitions_edit)
-    #             self.mode_layout.addRow(self.t_forward_lbl, self.t_forward_edit)
-    #             self.mode_layout.addRow(self.t_backward_lbl, self.t_backward_edit)
-    #         self.repeated_mode_checkbox.stateChanged.connect(self.repeated_mode_changed)
-    #     else:
-    #         self.mode_layout.removeRow(self.modul_freq_edit)
             
     ####################################################################################################################
     # REPEATED MODE CHANGED
@@ -499,9 +329,10 @@ class Dynamic_PS(QWidget):
             else:
                 if self.run_thread and self.run_thread.isRunning():
                     self.run_thread.stop_flag = True
+                    self.reset_command()
                     if self.debug == 1:
                         print("[INFO] Run interrupted.\n----------------------")
-                    self.reset_command()
+                    
 
     ####################################################################################################################
     # SET button clicked or ENTER pressed (Votlage => ON)
@@ -544,7 +375,6 @@ class Dynamic_PS(QWidget):
             self.target_voltage_edit.setDisabled(False)
             if self.repeated_mode_checkbox.isChecked() == False:
                 self.moving_time_edit.setDisabled(False)
-            # self.sequence_freq_edit.setDisabled(False)
             self.direction_edit.setDisabled(False)
             self.repeated_mode_checkbox.setDisabled(False)
             if self.repeated_mode_checkbox.isChecked():
@@ -563,9 +393,10 @@ class Dynamic_PS(QWidget):
         self.set_button.setText("Set")
         self.voltage_reset()
         if self.modulation_opt.isChecked():
-            if self.device.hb_stop_shift():
-                if self.debug == 1:
-                    print("[INFO] Mode 5: Half-Bridges 1-3 OFF")
+            pass
+            # if self.device.hb_stop_shift():
+            #     if self.debug == 1:
+            #         print("[INFO] Mode 5: Half-Bridges 1-3 OFF")
         else:
             if self.device.hb_stop_multi():
                 if self.debug == 1:

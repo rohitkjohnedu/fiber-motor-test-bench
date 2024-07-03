@@ -21,9 +21,9 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QAppl
 from PyQt6.QtGui import QDesktopServices
 from pathlib import Path
 import time
-import numpy as np
+# import numpy as np
 import os.path
-from datetime import datetime
+# from datetime import datetime
 from threading import Thread
 
 # custom packages
@@ -451,7 +451,8 @@ class MainWindow(QWidget):
             self.dynamic.auto_label.setDisabled(False)
             self.dynamic.manual_label.setDisabled(False)
             time.sleep(0.1)
-            self.dynamic.remove_temp_files()
+            if self.dynamic.data_save_opt.isChecked() == True:
+                self.dynamic.remove_temp_files()
             self.msg_finished("DynamicCharacterization", "Manual")
         
         # -------------------------------------------------------------------------------------------------------- #

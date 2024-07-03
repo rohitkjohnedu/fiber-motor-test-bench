@@ -397,7 +397,7 @@ class HvpsDevice:
             print(f"[ERR] Positive pulse width: {pos_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
             return False
         # ---------------------------------------------------------------------------------------------------------------------------- #
-        # Dynamic characterization
+        # Dynamic characterization (no modulation)
         if phase_shift is not None and isinstance(channel, Iterable):
             # with phase shift
             if not (0 <= phase_shift <= 360):
@@ -408,6 +408,13 @@ class HvpsDevice:
         # ---------------------------------------------------------------------------------------------------------------------------- #
         # Static characterization with phase shift
         elif len(ph_shifts) == 3:
+            # --------------------------------------------------------------------------- #
+            # step_freq = 2
+            # modul_freq = 40 #4*step_freq
+            # modul_duty = 50
+            # switching_time = (1/(2*step_freq))/3
+            # duration = 5
+            # --------------------------------------------------------------------------- #
             ph_shift1, ph_shift2, ph_shift3 = ph_shifts
             check_1 = 0 <= ph_shift1 <= 360
             check_2 = 0 <= ph_shift2 <= 360
@@ -415,10 +422,28 @@ class HvpsDevice:
             if not (check_1 and check_2 and check_3):
                 print(f"[ERR] Phase shift range: [0 - 360] °")
                 return False
+            # --------------------------------------------------------------------------- #
             self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
             self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
             self.write(f"SMx 5 0\r")
             return self._wait_for_confirmation("[SM5]")
+            # --------------------------------------------------------------------------- #
+            # start_time = time.perf_counter()
+            # self.write(f"SMx 5 1 {channel_key} {modul_freq} {modul_duty}\r")
+            # self.write(f"SMx 5 2 {0} {180} {180}\r")
+            # self.write(f"SMx 5 0\r")
+            # self._wait_for_confirmation("[SM5]")
+            # while time.perf_counter() < (start_time + duration):
+            #     self.write(f"SMx 5 2 {0} {180} {180}\r")
+            #     self._wait_for_confirmation("[SM5]")
+            #     time.sleep(switching_time)
+            #     self.write(f"SMx 5 2 {180} {0} {180}\r")
+            #     self._wait_for_confirmation("[SM5]")
+            #     time.sleep(switching_time)
+            #     self.write(f"SMx 5 2 {180} {180} {0}\r")
+            #     self._wait_for_confirmation("[SM5]")
+            #     time.sleep(switching_time)
+            # return self._wait_for_confirmation("[SM5]")
         # ---------------------------------------------------------------------------------------------------------------------------- #
         # Static characterization with no phase shift
         else:
