@@ -573,7 +573,7 @@ class StandaTableWidget(QWidget):
             buttonLayout.addRow(homeButton)
 
             upButton = QPushButton("Backward")
-            upButton.setFixedWidth(140)
+            upButton.setFixedWidth(120)
             downButton = QPushButton("Forward")
             # downButton.setFixedWidth(150)
             buttonLayout.addRow(upButton, downButton)

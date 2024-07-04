@@ -10,8 +10,8 @@ SOFTWARE_VERSION = 1.1
 #--------------------------------
 DEFAULT_BUFFER_LENGTH = 10000000
 #--------------------------------
-BUFFER_LENGTH = 10000
-BUFFER_SLOTS = 15
+# BUFFER_LENGTH = 10000
+# BUFFER_SLOTS = 15
 INITIAL_PCB_PARAMETERS = {
             'name': '',
             'hw_ver': 0.0,
@@ -258,9 +258,9 @@ class HvpsDevice:
                     self.buffer_lock.acquire()
                     epoch_time = time.perf_counter()
                     self.buffer_data[self.sample,:] = [epoch_time, t_save,
-                                                    hv_set, hv_vm, hv_err,
-                                                    lv_set, lv_vm, lv_err, 
-                                                    cm_val_w1, cm_val_w2, cm_val_w3]
+                                                       hv_set, hv_vm, hv_err,
+                                                       lv_set, lv_vm, lv_err, 
+                                                       cm_val_w1, cm_val_w2, cm_val_w3]
                     self.buffer_lock.release()
                     self.sample += 1
                     waiting_for_answer = False

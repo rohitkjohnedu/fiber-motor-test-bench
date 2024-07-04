@@ -1,7 +1,7 @@
 # python packages
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import (QWidget, QGroupBox, QFormLayout, QLabel, QPushButton, QComboBox,
-                             QVBoxLayout, QLineEdit, QHBoxLayout, QFrame, QCheckBox)
+from PyQt6.QtWidgets import (QWidget, QGroupBox, QFormLayout, QLabel, QPushButton, QComboBox, QScrollArea,
+                             QVBoxLayout, QLineEdit, QHBoxLayout, QFrame, QCheckBox, QApplication, QFileDialog)
 import numpy as np
 import time
 import threading
@@ -31,17 +31,17 @@ class DynamicMode(QWidget):
 
         # Debugging flags.
         self.debug = debug
-        if self.debug == 0:
+        if self.debug == 1:
+            self.power_supply_debug = 0
+            self.force_sensor_debug = 0
+            self.actuator_debug = 0
+        else:
             self.power_supply_debug = 1
             self.force_sensor_debug = 1
             self.actuator_debug = 1
-        else:
-            self.power_supply_debug = 0
-            self.force_sensor_debug = 0
-            self.actuator_debug = 0 
 
         # Variables.
-        if self.debug == 0:
+        if not self.debug == 1:
             self.start_time = 0
             self.plot_interval = 50#ms
             self.sample_rate = 400#Hz
@@ -61,7 +61,8 @@ class DynamicMode(QWidget):
     # ************************************************************************************************************ #
 
         self.characterization_type_layout = QVBoxLayout(self)
-
+        # -------------------------------------------------------------------------------------------------------- #
+        # Auto/Manual mode toggle.
         self.auto_mode_toggle = PyToggle()
         self.auto_mode_toggle.setChecked(True)
 
@@ -80,15 +81,50 @@ class DynamicMode(QWidget):
 
         self.characterization_type_layout.addLayout(self.auto_mode_layout)
 
+        self.auto_mode_toggle.stateChanged.connect(self.auto_mode_changed)
+
         self.bottom_frame = QFrame()
         self.bottom_frame.setFrameShape(QFrame.Shape.HLine)
         self.bottom_frame.setFrameShadow(QFrame.Shadow.Raised)
         self.characterization_type_layout.addWidget(self.bottom_frame)
-
-        self.auto_mode_toggle.stateChanged.connect(self.auto_mode_changed)
-
-        self.init_ui('auto')
         # -------------------------------------------------------------------------------------------------------- #
+        # Data save path.
+        save_button = QPushButton("Choose folder to save data")
+        save_button.clicked.connect(self.showDialog)
+        self.characterization_type_layout.addWidget(save_button)
+
+        self.folder_path = "Default"
+        self.save_folder_lbl = QLabel(f"Current Folder: {self.folder_path}")
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setFixedHeight(40)
+        self.scroll_area.setWidget(self.save_folder_lbl)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.characterization_type_layout.addWidget(self.scroll_area)
+
+        self.save_folder_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.save_folder_lbl.mousePressEvent = self.copyToClipboard
+        # -------------------------------------------------------------------------------------------------------- #
+        self.init_ui('auto')
+        
+        self.help_button = QPushButton("Help")
+        # self.help_button.clicked.connect(self.show_help)
+
+    # ************************************************************************************************************ #
+
+    def showDialog(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            self.folder_path = folder_path
+            self.save_folder_lbl.setText(f"Current Folder: {self.folder_path}")
+            self.save_folder_lbl.setToolTip("Click to copy the path.")
+    
+    def copyToClipboard(self, e):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.folder_path)
+
+    # ************************************************************************************************************ #
 
     def init_ui(self, mode):
 
@@ -118,10 +154,15 @@ class DynamicMode(QWidget):
             self.data_save_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.data_save_lbl.setFixedWidth(175)
             self.data_save_opt = QCheckBox()
-            self.data_save_opt.setChecked(False) # Default is not to save the data.
+            self.data_save_opt.setChecked(True) # Default is to save the data.
             data_save_opt_layout.addWidget(self.data_save_lbl)
             data_save_opt_layout.addWidget(self.data_save_opt)
             self.upper_control_layout.addLayout(data_save_opt_layout)
+
+            self.bottom_frame2 = QFrame()
+            self.bottom_frame2.setFrameShape(QFrame.Shape.HLine)
+            self.bottom_frame2.setFrameShadow(QFrame.Shadow.Raised)
+            self.upper_control_layout.addWidget(self.bottom_frame2)
 
             # Force sensor "Tare" button.
             tare_btn = QPushButton("TARE FORCE")
@@ -475,7 +516,10 @@ class DynamicMode(QWidget):
             cm_w3_uA = interpolated_power_supply_data[:,10]
 
             # Create a folder to store the data files if it doesn't exist.
-            folder_name = 'DataFiles'
+            if self.folder_path == "Default":
+                folder_name = 'DataFiles'
+            else:
+                folder_name = self.folder_path
             os.makedirs(folder_name, exist_ok=True)
 
             main_subfolder = os.path.join(folder_name, f"DynamicCharacterization")

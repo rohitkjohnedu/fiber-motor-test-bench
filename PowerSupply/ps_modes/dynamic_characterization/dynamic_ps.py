@@ -57,7 +57,7 @@ class Thread(QThread):
             phase_shift_2 = 120
             duration_2 = self.t_forward
             direction_2 = "-----> Forward"
-        if self.debug == 1:
+        if self.debug == 2:
             print("\n[INFO] Loop started.")
         for repetition in range(self.repetitions):
             if self.stop_flag:
@@ -65,22 +65,22 @@ class Thread(QThread):
                 break
             # ------------------------------------------------------------------------------------------- #
             self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_1)
-            if self.debug == 1:
+            if self.debug == 2:
                 print(direction_1)
             # ------------------------------------------------------------------------------------------- #
             time.sleep(duration_1)
             # ------------------------------------------------------------------------------------------- #
             self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_2)
-            if self.debug == 1:
+            if self.debug == 2:
                 print(direction_2)
             # ------------------------------------------------------------------------------------------- #
             time.sleep(duration_2)
             # ------------------------------------------------------------------------------------------- #
-            if self.debug == 1:
+            if self.debug == 2:
                 print("[INFO] Repetition: {}".format(repetition+1))
         if not self.stop_flag:
             self.finish.emit()
-            if self.debug == 1:
+            if self.debug == 2:
                 print("[INFO] Loop finished.\n---------------------")
 
     # **************************************************************************************************************** #
@@ -95,13 +95,13 @@ class Thread(QThread):
         pass
         
     def single_run_no_modulation(self):
-        if self.debug == 1:
+        if self.debug == 2:
             print("\n[INFO] Run started.")
         # ------------------------------------------------------------------------------------------------------------ #
         if self.direction == "Forward":
             if self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift=120):
                 # --------------------------- #
-                if self.debug == 1:
+                if self.debug == 2:
                     print("-----> Forward")
                 # --------------------------- #
                 time.sleep(self.moving_time)
@@ -109,13 +109,13 @@ class Thread(QThread):
                 if not self.stop_flag:
                     self.finish.emit()
                 # --------------------------- #
-                if self.debug == 1:
+                if self.debug == 2:
                     print("[INFO] Run finished.\n--------------------")
         # ------------------------------------------------------------------------------------------------------------ #            
         elif self.direction == "Backward":
             if self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift=240):
                 # --------------------------- #
-                if self.debug == 1:
+                if self.debug == 2:
                     print("<----- Backward")
                 # --------------------------- #
                 time.sleep(self.moving_time)
@@ -123,7 +123,7 @@ class Thread(QThread):
                 if not self.stop_flag:
                     self.finish.emit()
                 # --------------------------- #
-                if self.debug == 1:
+                if self.debug == 2:
                     print("[INFO] Run finished.\n--------------------")
 
 ############################################################################################################################   
@@ -148,7 +148,6 @@ class Dynamic_PS(QWidget):
         target_voltage_lbl = QLabel("Voltage (V):")
         
         self.target_voltage_edit = QLineEdit("0")
-        self.target_voltage_edit.setText("3000")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # ------------------------------------------------------------------------------------------------------------ #
         # hb_number_lbl = QLabel("Channels:")
@@ -287,7 +286,7 @@ class Dynamic_PS(QWidget):
         new_hv = float(self.target_voltage_edit.text())
         if new_hv == 0 and self.set_button.text() == "Set":
             zero_volt = QMessageBox.warning(self, "Zero voltage", "Please, set the voltage value")
-            if self.debug == 1:
+            if self.debug == 2:
                 print("\n[INFO] Please, set the voltage value\n------------------------------------")
             return
         else: 
@@ -330,7 +329,7 @@ class Dynamic_PS(QWidget):
                 if self.run_thread and self.run_thread.isRunning():
                     self.run_thread.stop_flag = True
                     self.reset_command()
-                    if self.debug == 1:
+                    if self.debug == 2:
                         print("[INFO] Run interrupted.\n----------------------")
                     
 
@@ -342,7 +341,7 @@ class Dynamic_PS(QWidget):
             self.reset_command()
         else:
             if self.device.set_voltage(new_hv):
-                if self.debug == 1:
+                if self.debug == 2:
                     print("\n[INFO] HV ON: {} V\n----------------------".format(new_hv))
                 if self.set_button.text() == "Set":
                     self.set_button.setText("Reset")
@@ -352,7 +351,7 @@ class Dynamic_PS(QWidget):
     # RESET button clicked or 0 voltage SET (Votlage => OFF)
     def voltage_reset(self):
         if self.device.voltage_stop():
-            if self.debug == 1:
+            if self.debug == 2:
                 print("[INFO] HV OFF\n------------------")
 
     ####################################################################################################################
@@ -368,7 +367,7 @@ class Dynamic_PS(QWidget):
                 self.repetitions_edit.setDisabled(True)
                 self.t_forward_edit.setDisabled(True)
                 self.t_backward_edit.setDisabled(True)
-            if self.debug == 1:
+            if self.debug == 2:
                 print("[INFO] Mode locked\n"
                     "------------------")
         else:
@@ -381,7 +380,7 @@ class Dynamic_PS(QWidget):
                 self.repetitions_edit.setDisabled(False)
                 self.t_forward_edit.setDisabled(False)
                 self.t_backward_edit.setDisabled(False)
-            if self.debug == 1:
+            if self.debug == 2:
                 print("\n[INFO] Mode unlocked\n"
                     "--------------------")
 
@@ -395,11 +394,11 @@ class Dynamic_PS(QWidget):
         if self.modulation_opt.isChecked():
             pass
             # if self.device.hb_stop_shift():
-            #     if self.debug == 1:
+            #     if self.debug == 2:
             #         print("[INFO] Mode 5: Half-Bridges 1-3 OFF")
         else:
             if self.device.hb_stop_multi():
-                if self.debug == 1:
+                if self.debug == 2:
                     print("[INFO] Mode 3: Half-Bridges 1-3 OFF")
 
 
