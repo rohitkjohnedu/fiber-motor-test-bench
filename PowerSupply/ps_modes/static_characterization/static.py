@@ -1,7 +1,8 @@
 # python packages
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import (QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QCheckBox, QScrollArea,
-                             QComboBox, QLineEdit, QVBoxLayout, QHBoxLayout, QFrame, QFileDialog, QApplication)
+from PyQt6.QtWidgets import (QWidget, QLabel, QGroupBox, QFormLayout, QPushButton, QCheckBox, QScrollArea, QDialog,
+                             QComboBox, QLineEdit, QVBoxLayout, QHBoxLayout, QFrame, QFileDialog, QApplication, QTextEdit)
+from PyQt6.QtGui import QIcon, QFont
 import numpy as np
 import time
 import threading
@@ -11,6 +12,82 @@ import os.path
 from PowerSupply.ps_modes.static_characterization.static_ps import Static_PS
 from StandaTable.standa_table import StandaTableWidget
 from tools.gui_tools.py_toggle import PyToggle
+
+class HelpDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Help: Static Characterization")
+
+        layout = QVBoxLayout()
+
+        # Adding text information with embedded images using HTML
+        info_text = QTextEdit()
+        info_text.setReadOnly(True)
+        info_text.setFont(QFont("Arial", 12))
+        html_content = """
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 12pt;
+                line-height: 1.5;
+            }
+        </style>
+        <h2 style="text-decoration: underline;">How to use the Static Characterization mode?</h2>
+        <p>1. Choose the mode of operation (Auto/Manual) by clicking on the respective label or toggle button.</p>
+        <p>2. Choose the folder to save the data by clicking on the corresponding button.</p>
+        <p>You can copy the path by clicking on the 'Current Folder' label. The default folder is 'DataFiles' in the program directory.</p>
+        <p style="text-decoration: underline; line-height: 1.5;">3. Manual mode.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.1. Save data if necessary by checking the 'Save data' checkbox.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.2. Press the 'RUN' button to start the experiment. It unlocks the control panel.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.3. Click on the 'TARE FORCE' button to tare the force sensor.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.4. Control the actuator using the control panel box.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.1. Click on the 'Home' button to move the actuator to the home position and set zero.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.2. Control movement with the 'Backward' and 'Forward' buttons.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.3. Set the 'Speed' of the actuator. 4 mm/s is max. speed for the translational stage.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.4. Set the desired 'Position' of the actuator. Max. resolution is 2.5 um.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.5. Use the 'Move' button to move the actuator to the desired position.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.5. Use the 'STOP' button to stop the actuator.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.5. Control the power supply using the control panel box.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.1. Set the 'Target Voltage' of the power supply. Range is 950-4500 V.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.2. Choose the control signal from the drop-down list. The figures below show the signal plots.</p>
+
+        <div style="margin: 0; padding: 0;">
+        <img src="Other/images/ABCDEF.png" style="float: left; margin-right: 10px;"/>
+        </div>
+
+        <div style="margin: 5; padding: 0;">
+        <img src="Other/images/ADBECF.png" style="float: left; margin-right: 10px;"/>
+        </div>
+
+        <div style="margin: 5; padding: 0;">
+        <img src="Other/images/Other.png" style="float: left; margin-right: 10px;"/>
+        </div>
+
+        <p style="line-height: 1.5;">States from 'A' to 'F' are DC voltages on the HV channels. States 'A', 'B', 'C' are opposite and equal to 'D', 'E', 'F'.</p>
+        <p style="line-height: 1.5;">States from 'A-D', 'B-E', 'C-F' are unipolar AC voltages on the HV channels. The frequency is set within the range 1-1000 Hz. Duty cycle is always 50%.</p>
+        <p style="line-height: 1.5;">The 'Other' state is used for custom signals. The user can set the frequency, duty cycle, and phase of the signals.</p>
+        """
+
+        info_text.setHtml(html_content)
+        layout.addWidget(info_text)
+
+        self.setLayout(layout)
+
+    def show_on_secondary_screen(self):
+        screens = QApplication.screens()
+        if len(screens) > 1:
+            secondary_screen = screens[1]
+            screen_geometry = secondary_screen.geometry()
+            self.setGeometry(
+                screen_geometry.x() + 600,
+                screen_geometry.y() + 200,
+                800,
+                700
+            )
+        else:
+            self.setGeometry(100, 100, 400, 300)
+        self.show()
+
 
 class StaticMode(QWidget):
     start_recording = pyqtSignal()
@@ -86,13 +163,36 @@ class StaticMode(QWidget):
         self.bottom_frame.setFrameShadow(QFrame.Shadow.Raised)
         self.characterization_type_layout.addWidget(self.bottom_frame)
         # -------------------------------------------------------------------------------------------------------- #
+        # Help button.
+        help_button = QPushButton("Help ")
+        self.characterization_type_layout.addWidget(help_button)
+        help_button.clicked.connect(self.show_help)
+
+        # dirname = os.path.dirname(__file__)
+        # help_icon = QIcon(os.path.join(dirname, "images/question.png"))
+        help_icon = QIcon(os.path.join("Other/images/question.png"))
+        
+        help_button.setIcon(help_icon)
+        help_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+
+        self.bottom_frame1 = QFrame()
+        self.bottom_frame1.setFrameShape(QFrame.Shape.HLine)
+        self.bottom_frame1.setFrameShadow(QFrame.Shadow.Raised)
+        self.characterization_type_layout.addWidget(self.bottom_frame1)
+        # -------------------------------------------------------------------------------------------------------- #
         # Data save path.
-        save_button = QPushButton("Choose folder to save data")
-        save_button.clicked.connect(self.showDialog)
+        save_button = QPushButton("Choose folder to save data   ")
+        save_button.clicked.connect(self.showSaveDialog)
         self.characterization_type_layout.addWidget(save_button)
+
+        # save_icon = QIcon(os.path.join(dirname, "images/save.png"))
+        save_icon = QIcon(os.path.join("Other/images/save.png"))
+        save_button.setIcon(save_icon)
+        save_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         self.folder_path = "Default"
         self.save_folder_lbl = QLabel(f"Current Folder: {self.folder_path}")
+        self.save_folder_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setFixedHeight(40)
@@ -105,13 +205,10 @@ class StaticMode(QWidget):
         self.save_folder_lbl.mousePressEvent = self.copyToClipboard
         # -------------------------------------------------------------------------------------------------------- #
         self.init_ui('auto')
-
-        self.help_button = QPushButton("Help")
-        # self.help_button.clicked.connect(self.show_help)
     
     # ************************************************************************************************************ #
 
-    def showDialog(self):
+    def showSaveDialog(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
             self.folder_path = folder_path
@@ -120,7 +217,10 @@ class StaticMode(QWidget):
     
     def copyToClipboard(self, e):
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.folder_path)
+        if self.folder_path == "Default":
+            clipboard.setText(os.path.join(os.getcwd(), "DataFiles"))
+        else:
+            clipboard.setText(self.folder_path)
 
     # ************************************************************************************************************ #
 
@@ -128,7 +228,7 @@ class StaticMode(QWidget):
 
         self.control_panel_layout = QVBoxLayout()
 
-        if mode == 'auto':   
+        if mode == 'auto':
             # Type of experiment.
             experiment_type_layout = QFormLayout()
             experiment_type_label = QLabel("Experiment:")
@@ -145,23 +245,24 @@ class StaticMode(QWidget):
         # -------------------------------------------------------------------------------------------------------- #
 
         elif mode == 'manual':
-            self.upper_control_layout = QVBoxLayout()
             # Data save option.
             data_save_opt_layout = QHBoxLayout()
             self.data_save_lbl = QLabel("Save data:")
             self.data_save_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.data_save_lbl.setFixedWidth(175)
             self.data_save_opt = QCheckBox()
-            self.data_save_opt.setChecked(True)
+            self.data_save_opt.setChecked(True) # Default is to save the data.
             data_save_opt_layout.addWidget(self.data_save_lbl)
             data_save_opt_layout.addWidget(self.data_save_opt)
-            self.upper_control_layout.addLayout(data_save_opt_layout)
-
+            
             self.bottom_frame2 = QFrame()
             self.bottom_frame2.setFrameShape(QFrame.Shape.HLine)
             self.bottom_frame2.setFrameShadow(QFrame.Shadow.Raised)
+            
+            self.upper_control_layout = QVBoxLayout()
+            self.upper_control_layout.addLayout(data_save_opt_layout)
             self.upper_control_layout.addWidget(self.bottom_frame2)
-
+            # -------------------------------------------------------------------------------------------------------- #
             # Force sensor "Tare" button.
             self.tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
@@ -246,7 +347,6 @@ class StaticMode(QWidget):
 
         self.power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
         self.power_supply_groupBox_layout.addRow(self.power_supply_control)
-        # self.power_supply_groupBox_layout.addRow(self.help_button)
 
         self.power_supply_control.set_button.clicked.connect(self.update_values)
         self.power_supply_control.update_button.clicked.connect(self.update_values)
@@ -294,7 +394,7 @@ class StaticMode(QWidget):
 
         self.widgets_layout.addStretch(1)
         self.control_panel_layout.addLayout(self.widgets_layout)
-
+        
     # ************************************************************************************************************ #
 
     def experiment_type_widgets(self):
@@ -307,8 +407,6 @@ class StaticMode(QWidget):
             self.components_control_widgets(mode='auto', exp_type=experiment_text)
         elif experiment_text == 'Force vs. Frequency and Position':
             self.components_control_widgets(mode='auto', exp_type=experiment_text)
-        # elif experiment_text == 'Max. Force vs. Voltage':
-        # elif experiment_text == 'Max. Force vs. Frequency':
 
     # ************************************************************************************************************ #
 
@@ -551,16 +649,16 @@ class StaticMode(QWidget):
             interpolated_latest_sample_number = np.floor(differential_time_latest_sample/(1/self.sample_rate))
             self.interpolation_stop_time = self.start_time + interpolated_latest_sample_number*(1/self.sample_rate)
 
-            self.interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
-            interpolated_force_sensor_data = np.interp(self.interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
-            interpolated_actuator_pos = np.interp(self.interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
-            interpolated_actuator_speed = np.interp(self.interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 2])
-            interpolated_power_supply_data = np.zeros((len(self.interpolation_time), 11))
+            interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
+            interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+            interpolated_actuator_pos = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
+            interpolated_actuator_speed = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 2])
+            interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
             for i1 in range(2, 11):
-                interpolated_power_supply_data[:, i1] = np.interp(self.interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
+                interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
 
             # aquired data
-            abs_time_s = self.interpolation_time
+            abs_time_s = interpolation_time
             rel_time_s = abs_time_s - self.start_time
             force_mN = interpolated_force_sensor_data
             position_mm = interpolated_actuator_pos
@@ -598,24 +696,24 @@ class StaticMode(QWidget):
                     self.state_index = self.power_supply_control.state_index
                     if self.state_index >= 6:
                         if self.power_supply_control.set_button.text() == 'Reset':
-                            state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
-                            freq_Hz = np.full(len(self.interpolation_time), self.freq_Hz, dtype='<f8')
-                            duty_cycle = np.full(len(self.interpolation_time), self.duty_cycle, dtype='<f8')
-                            ph1 = np.full(len(self.interpolation_time), self.ph1, dtype='<f8')
-                            ph2 = np.full(len(self.interpolation_time), self.ph2, dtype='<f8')
-                            ph3 = np.full(len(self.interpolation_time), self.ph3, dtype='<f8')
+                            state = np.full(len(interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
+                            freq_Hz = np.full(len(interpolation_time), self.freq_Hz, dtype='<f8')
+                            duty_cycle = np.full(len(interpolation_time), self.duty_cycle, dtype='<f8')
+                            ph1 = np.full(len(interpolation_time), self.ph1, dtype='<f8')
+                            ph2 = np.full(len(interpolation_time), self.ph2, dtype='<f8')
+                            ph3 = np.full(len(interpolation_time), self.ph3, dtype='<f8')
                         else:
-                            state = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                            freq_Hz = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                            duty_cycle = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                            ph1 = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                            ph2 = np.full(len(self.interpolation_time), '-', dtype='<U32')
-                            ph3 = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                            state = np.full(len(interpolation_time), '-', dtype='<U32')
+                            freq_Hz = np.full(len(interpolation_time), '-', dtype='<U32')
+                            duty_cycle = np.full(len(interpolation_time), '-', dtype='<U32')
+                            ph1 = np.full(len(interpolation_time), '-', dtype='<U32')
+                            ph2 = np.full(len(interpolation_time), '-', dtype='<U32')
+                            ph3 = np.full(len(interpolation_time), '-', dtype='<U32')
                     else:
                         if self.power_supply_control.set_button.text() == 'Reset':
-                            state = np.full(len(self.interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
+                            state = np.full(len(interpolation_time), self.power_supply_control.st_comboBox.currentText(), dtype='<U32')
                         else:
-                            state = np.full(len(self.interpolation_time), '-', dtype='<U32')
+                            state = np.full(len(interpolation_time), '-', dtype='<U32')
                     # ------------------------------------------------------------------------------------------------ #
                     dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
                             ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
@@ -719,28 +817,25 @@ class StaticMode(QWidget):
             elif self.auto_mode_toggle.isChecked() == True: # Auto mode
                 subfolder = os.path.join(main_subfolder, f"Auto")
                 os.makedirs(subfolder, exist_ok=True)
-                # subfolder1 = os.path.join(subfolder, f"date_{self.formatted_time}")
-                # os.makedirs(subfolder1, exist_ok=True)
-                # file_name = os.path.join(subfolder1, f"pos_{str(self.position)}_state_{self.state}.csv")
                 file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
                 # ------------------------------------------------------------------------------------------------ #
                 # Interface parameters.
-                state = np.full(len(self.interpolation_time), self.state, dtype='<U32')
+                state = np.full(len(interpolation_time), self.state, dtype='<U32')
                 if self.power_supply_control.modulation_opt.isChecked():
-                    freq_Hz = np.full(len(self.interpolation_time), float(self.power_supply_control.freq_edit.text()), dtype='<f8')
-                    duty_cycle = np.full(len(self.interpolation_time), float(self.power_supply_control.duty_cycle_edit.text()), dtype='<f8')
+                    freq_Hz = np.full(len(interpolation_time), float(self.power_supply_control.freq_edit.text()), dtype='<f8')
+                    duty_cycle = np.full(len(interpolation_time), float(self.power_supply_control.duty_cycle_edit.text()), dtype='<f8')
                     if self.state == 'A-D':
-                        ph1 = np.full(len(self.interpolation_time), 0, dtype='<f8')
-                        ph2 = np.full(len(self.interpolation_time), 180, dtype='<f8')
-                        ph3 = np.full(len(self.interpolation_time), 0, dtype='<f8')
+                        ph1 = np.full(len(interpolation_time), 0, dtype='<f8')
+                        ph2 = np.full(len(interpolation_time), 180, dtype='<f8')
+                        ph3 = np.full(len(interpolation_time), 0, dtype='<f8')
                     elif self.state == 'B-E':
-                        ph1 = np.full(len(self.interpolation_time), 180, dtype='<f8')
-                        ph2 = np.full(len(self.interpolation_time), 0, dtype='<f8')
-                        ph3 = np.full(len(self.interpolation_time), 180, dtype='<f8')
+                        ph1 = np.full(len(interpolation_time), 180, dtype='<f8')
+                        ph2 = np.full(len(interpolation_time), 0, dtype='<f8')
+                        ph3 = np.full(len(interpolation_time), 180, dtype='<f8')
                     elif self.state == 'C-F':
-                        ph1 = np.full(len(self.interpolation_time), 180, dtype='<f8')
-                        ph2 = np.full(len(self.interpolation_time), 180, dtype='<f8')
-                        ph3 = np.full(len(self.interpolation_time), 0, dtype='<f8')
+                        ph1 = np.full(len(interpolation_time), 180, dtype='<f8')
+                        ph2 = np.full(len(interpolation_time), 180, dtype='<f8')
+                        ph3 = np.full(len(interpolation_time), 0, dtype='<f8')
                 # ------------------------------------------------------------------------------------------------ #
                 dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
                         ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
@@ -873,6 +968,20 @@ class StaticMode(QWidget):
     
     # ************************************************************************************************************ #
 
-    # def show_help(self):
-    #     self.help_dialog = HelpDialog()
-    #     self.help_dialog.show()
+    def show_help(self):
+        self.help_dialog = HelpDialog()
+        self.help_dialog.show_on_secondary_screen()
+    
+    ###############################################################################################################
+
+        # <h1>Static Characterization</h1>
+        # <p>Static characterization is a method to measure the force exerted by the actuator at different positions, voltages, and frequencies.
+        # The force sensor is used to measure the force, the actuator is used to move the slider to different positions, and the power supply is used to set the voltage and frequency.</p>
+        # <p>There are three types of experiments that can be performed:</p>
+        # <ol>
+        #     <li>Force vs. Position: The force is measured at different positions.</li>
+        #     <li>Force vs. Voltage and Position: The force is measured at different voltages and positions.</li>
+        #     <li>Force vs. Frequency and Position: The force is measured at different frequencies and positions.</li>
+        # </ol>
+        # <p>For each experiment, the user can set the parameters for the actuator, power supply, and motor. The data can be saved in a folder of the user's choice.</p>
+        # <p>For the manual mode, the user can save the data in a temporary file and then save the data in a final file after the experiment is completed.</p>

@@ -95,6 +95,7 @@ class DynamicMode(QWidget):
 
         self.folder_path = "Default"
         self.save_folder_lbl = QLabel(f"Current Folder: {self.folder_path}")
+        self.save_folder_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setFixedHeight(40)
@@ -163,7 +164,7 @@ class DynamicMode(QWidget):
             self.bottom_frame2.setFrameShape(QFrame.Shape.HLine)
             self.bottom_frame2.setFrameShadow(QFrame.Shadow.Raised)
             self.upper_control_layout.addWidget(self.bottom_frame2)
-
+            # -------------------------------------------------------------------------------------------------------- #
             # Force sensor "Tare" button.
             tare_btn = QPushButton("TARE FORCE")
             if self.force_sensor is not None:
@@ -496,7 +497,8 @@ class DynamicMode(QWidget):
 
             interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
             interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
-            interpolated_actuator_data = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
+            interpolated_actuator_pos = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
+            interpolated_actuator_speed = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 2])
             interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
             for i1 in range(2, 11):
                 interpolated_power_supply_data[:, i1] = np.interp(interpolation_time, new_power_supply_data[:, 0], new_power_supply_data[:, i1])
@@ -504,7 +506,8 @@ class DynamicMode(QWidget):
             abs_time_s = interpolation_time
             rel_time_s = abs_time_s - self.start_time
             force_mN = interpolated_force_sensor_data
-            position_mm = interpolated_actuator_data
+            position_mm = interpolated_actuator_pos
+            speed_mm_s = interpolated_actuator_speed
             hv_set_kV = interpolated_power_supply_data[:,2]
             hv_vm_kV = interpolated_power_supply_data[:,3]
             hv_err_V = interpolated_power_supply_data[:,4]
@@ -535,20 +538,91 @@ class DynamicMode(QWidget):
                     self.temp_file_name = os.path.join(subfolder, f"temp_{self.formatted_time}.csv")
                     # ------------------------------------------------------------------------------------------------ #
                     # Interface parameters.
-
+                    if self.power_supply_control.set_button.text() == 'Reset':
+                        step_freq = np.full(len(interpolation_time), float(self.power_supply_control.step_freq_edit.text()), dtype='<f8')
+                        # if self.power_supply_control.modulation_opt.isChecked():
+                        #     modul_freq = np.full(len(interpolation_time), float(self.power_supply_control.modul_freq_edit.text()), dtype='<f8')
+                        direction = np.full(len(interpolation_time), self.power_supply_control.direction_edit.currentText(), dtype='<U1')
+                        if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                            repetitions = np.full(len(interpolation_time), self.power_supply_control.repetitions_edit.text(), dtype='<f8')
+                            t_forward = np.full(len(interpolation_time), self.power_supply_control.t_forward_edit.text(), dtype='<f8')
+                            t_backward = np.full(len(interpolation_time), self.power_supply_control.t_backward_edit.text(), dtype='<f8')
+                        else:
+                            moving_time = np.full(len(interpolation_time), self.power_supply_control.moving_time_edit.text(), dtype='<U32')
+                        # ------------------------------------------------------------------------------------------------------------------------ #
+                    else:
+                        step_freq = np.full(len(interpolation_time), '-', dtype='<U32')
+                        # if self.power_supply_control.modulation_opt.isChecked():
+                        #     modul_freq = np.full(len(interpolation_time), '-', dtype='<U32')
+                        direction = np.full(len(interpolation_time), '-', dtype='<U32')
+                        if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                            repetitions = np.full(len(interpolation_time), '-', dtype='<U32')
+                            t_forward = np.full(len(interpolation_time), '-', dtype='<U32')
+                            t_backward = np.full(len(interpolation_time), '-', dtype='<U32')
+                        else:
+                            moving_time = np.full(len(interpolation_time), '-', dtype='<U32')
                     # ------------------------------------------------------------------------------------------------ #
-                    # Save the data to the temporary file.
-                    save_data = np.column_stack((abs_time_s, rel_time_s,
-                                                force_mN, position_mm,
-                                                hv_set_kV, hv_vm_kV, hv_err_V,
-                                                #  lv_set_V, lv_vm_V, lv_err_V,
-                                                cm_w1_uA, cm_w2_uA, cm_w3_uA))
-                    with open(self.temp_file_name, 'ab') as t: 
-                        np.savetxt(t, save_data, fmt='%.8f, %.4f, ' # abs_time_s, rel_time_s
-                                                    '% 4.6f, %4.3f,' # force_mN, position_mm
-                                                    '% 6.1f, %6.1f, % 3.1f,' # hv_set_kV, hv_vm_kV, hv_err_V
-                                                    #  '% 3.2f, % 3.2f, % 3.2f,' # lv_set_V, lv_vm_V, lv_err_V
-                                                    '% 3.1f, % 3.1f, % 3.1f') # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                    dtype = [('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
+                            ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
+                            ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
+                            # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
+                            ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
+                    # if self.power_supply_control.modulation_opt.isChecked():
+                    #     new_elements = [('modul_freq', '<f8')]
+                    #     dtype.extend(new_elements)
+                    if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                        if self.power_supply_control.set_button.text() == 'Reset':
+                            new_elements = [('step_freq', '<f8'), ('direction', '<U1'), ('repetitions', '<f8'),
+                                             ('t_forward', '<f8'), ('t_backward', '<f8')]
+                        else:
+                            new_elements = [('step_freq', '<<U32'), ('direction', '<U1'), ('repetitions', '<U32'),
+                                             ('t_forward', '<U32'), ('t_backward', '<U32')]
+                    else:
+                        if self.power_supply_control.set_button.text() == 'Reset':
+                            new_elements = [('step_freq', '<f8'), ('direction', '<U1'), ('moving_time', '<f8')]
+                        else:
+                            new_elements = [('step_freq', '<U32'), ('direction', '<U1'), ('moving_time', '<U32')]
+                    dtype.extend(new_elements)
+                    # ------------------------------------------------------------------------------------------------ #
+                    save_data = np.zeros(abs_time_s.size, dtype=dtype)
+                    save_data['abs_time_s'] = abs_time_s
+                    save_data['rel_time_s'] = rel_time_s
+                    save_data['force_mN'] = force_mN
+                    save_data['position_mm'] = position_mm
+                    save_data['speed_mm_s'] = speed_mm_s
+                    save_data['hv_set_kV'] = hv_set_kV
+                    save_data['hv_vm_kV'] = hv_vm_kV
+                    save_data['hv_err_V'] = hv_err_V
+                    # save_data['lv_set_V'] = lv_set_V
+                    # save_data['lv_vm_V'] = lv_vm_V
+                    # save_data['lv_err_V'] = lv_err_V
+                    save_data['cm_w1_uA'] = cm_w1_uA
+                    save_data['cm_w2_uA'] = cm_w2_uA
+                    save_data['cm_w3_uA'] = cm_w3_uA
+                    save_data['step_freq'] = step_freq
+                    save_data['direction'] = direction
+                    if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                        save_data['repetitions'] = repetitions
+                        save_data['t_forward'] = t_forward
+                        save_data['t_backward'] = t_backward
+                    # ------------------------------------------------------------------------------------------------ #
+                    with open(self.temp_file_name, 'ab') as t:
+                        fmt = '%.8f, %.4f, ' # abs_time_s, rel_time_s
+                        fmt += '% 4.6f, %4.3f, %.1f, ' # force_mN, position_mm, speed_mm_s
+                        fmt += '% 5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
+                        # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
+                        fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
+                        if self.power_supply_control.set_button.text() == 'Reset':    
+                            if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                                fmt += ', %.1f, %s, %.1f, %.1f, %.1f' # step_freq, direction, repetitions, t_forward, t_backward
+                            else:
+                                fmt += ', %.1f, %s, %.1f' # step_freq, direction, moving_time
+                        else:
+                            if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                                fmt += ', %s, %s, %s, %s, %s' # step_freq, direction, repetitions, t_forward, t_backward
+                            else:
+                                fmt += ', %s, %s, %s' # step_freq, direction, moving_time
+                        np.savetxt(t, save_data, fmt=fmt)
                     # ------------------------------------------------------------------------------------------------ #
                     # Now write the final file combining parameters and data from the temporary file.
                     file_name = os.path.join(subfolder, f"date_{self.formatted_time}.csv")
@@ -558,6 +632,11 @@ class DynamicMode(QWidget):
                                         f'Datetime: {self.formatted_time}\n'
                                         f'Characterization: Dynamic\n'
                                         f'Mode: Manual\n')
+                        # ------------------------------------------------------------------------------------------------ #
+                        if self.power_supply_control.modulation_opt.isChecked():
+                            final_file.write(f'Modulation: ON\n')
+                        else:
+                            final_file.write(f'Modulation: OFF\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n-----------------------Motor_Info--------------------------\n\n')
                         if self.motor_type.currentText() == 'Motor Fiber':
@@ -575,18 +654,25 @@ class DynamicMode(QWidget):
                                         f'Sample rate (Hz): {self.sample_rate}\n\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n-------------------Explanatory_Note-----------------------\n\n'
-                                        f'When the PS is set ON, the variables (state, freq, DC, phase shifts) '
+                                        f'When the PS is set ON, the variables (step_freq, moving_time, etc.) '
                                         f'are recorded. If the PS is set OFF, the variables are recorded as "-".\n'
                                         f'Voltage aquired from the PS is recorded with a small delay raletivly to '
                                         f'the other variables. The delay is due to the PS response time.\n')
                         # ----------------------------------------------------------------------------------------------------------------- #
                         final_file.write('\n----------------------Data_Info---------------------------\n\n')
-                        final_file.write(f'Absolute time (s), Relative time (s), '
-                                            f'Force (mN), Position (mm), '
-                                            f'hv_set (kV), hv_vm (kV), hv_err (V), '
-                                            # f'lv_set (V), lv_vm (V), lv_err (V), '
-                                            f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)\n\n')
-
+                        final_file.write(f'abs. t (s), rel. t (s), '
+                                         f'F (mN), p (mm), v (mm/s), '
+                                         f'hv_set (kV), hv_vm (kV), hv_err (V), '
+                                         # f'lv_set (V), lv_vm (V), lv_err (V), '
+                                         f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA), '
+                                         f'step. freq. (Hz), direction')
+                        if self.power_supply_control.modulation_opt.isChecked():
+                            final_file.write(f', modul. freq. (Hz)')
+                        if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                            final_file.write(f', Repetitions, Time forward (s), Time backward (s)\n\n')
+                        else:
+                            final_file.write(f', Moving time (s)\n\n')
+                        # ----------------------------------------------------------------------------------------------------------------- #
                         # Append the data from the temporary file to the final file.
                         with open(self.temp_file_name, 'r') as t:
                             data = t.read()
