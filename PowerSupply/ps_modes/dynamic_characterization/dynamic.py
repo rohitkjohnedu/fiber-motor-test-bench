@@ -1,7 +1,8 @@
 # python packages
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import (QWidget, QGroupBox, QFormLayout, QLabel, QPushButton, QComboBox, QScrollArea,
-                             QVBoxLayout, QLineEdit, QHBoxLayout, QFrame, QCheckBox, QApplication, QFileDialog)
+from PyQt6.QtWidgets import (QWidget, QGroupBox, QFormLayout, QLabel, QPushButton, QComboBox, QScrollArea, QApplication,
+                             QVBoxLayout, QLineEdit, QHBoxLayout, QFrame, QCheckBox, QApplication, QFileDialog, QDialog, QTextEdit)
+from PyQt6.QtGui import QIcon, QFont
 import numpy as np
 import time
 import threading
@@ -11,6 +12,102 @@ import os.path
 from PowerSupply.ps_modes.dynamic_characterization.dynamic_ps import Dynamic_PS
 from StandaTable.standa_table import StandaTableWidget
 from tools.gui_tools.py_toggle import PyToggle
+
+class HelpDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Help: Dynamic Characterization")
+
+        layout = QVBoxLayout()
+
+        # Adding text information with embedded images using HTML
+        info_text = QTextEdit()
+        info_text.setReadOnly(True)
+        info_text.setFont(QFont("Arial", 12))
+        html_content = """
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 12pt;
+                line-height: 1.5;
+            }
+        </style>
+        <h2 style="text-decoration: underline;">How to use the Dynamic Characterization mode?</h2>
+        <p>1. Choose the mode of operation (Auto/Manual) by clicking on the respective label or toggle button.</p>
+        <p>2. Choose the folder to save the data by clicking on the corresponding button.</p>
+        <p>You can copy the path by clicking on the 'Current Folder' label. The default folder is 'DataFiles' in the program directory.</p>
+        <p style="text-decoration: underline; line-height: 1.5;">3. Manual mode.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.1. Save data if necessary by checking the 'Save data' checkbox.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.2. Press the 'RUN' button to start the experiment. It unlocks the control panel.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.3. Click on the 'TARE FORCE' button to tare the force sensor.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.4. Control the actuator using the control panel box:</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.1. Click on the 'Home' button to move the actuator to the home position and set zero.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.2. Control movement with the 'Backward' and 'Forward' buttons.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.3. Set the 'Speed' of the actuator. Max. speed 4 mm/s is for the translational stage.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.4. Set the 'Position' of the actuator. Max. resolution is 2.5 um for the translational stage.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.5. Use the 'Move' button to move the actuator to the desired position.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.5. Use the 'STOP' button to stop the actuator.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.5. Control the power supply using the control panel box:</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.1. Set the 'Voltage' of the power supply. Range is 950-4500 V.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.2. Set the 'Stepping frequency' of the power supply. Range is 1-1000 Hz.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.3. There are two types of control signals: modulated and not modulated.
+        <p style="line-height: 1.5;">The not modulated signal is a sequence of 'A`', 'B`', 'C`', 'D`', 'E`', 'F`' states, as shown below. (These states are different from the states in the static mode).
+        This control sequence is characterized by the stepping frequency and the stepping duty cycle, which is always 50%.
+        <div style="margin: 5; padding: 0;">
+        <img src="Other/images/Not_modulated.png"/>
+        </div>
+        <p style="line-height: 1.5;">The modulated signal is a sequence of 'A-D`', 'B-E`', 'C-F`' states, as shown below.
+        This control sequence is characterized, besides the stepping frequency and duty cycle, also by the modulation frequency and the modulation duty cycle (50%). 
+        <div style="margin: 5; padding: 0;">
+        <img src="Other/images/Modulated.png"/>
+        </div>
+        <p style="line-height: 1.5;">The movement direction changes by changing the polarity of two channels (see the figure below). </p>
+        <div style="margin: 5; padding: 0;">
+        <img src="Other/images/Loop.png"/>
+        </div>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.4. Repeated mode OFF: the tested motor moves in one direction for the set time. 
+        Repeated mode ON: the motor moves to the chosen direction for the set time and then moves back for the other set time. It continues for a given number of repetitions.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.5. Press the 'SET' button or 'Enter' to set the power supply to the desired state. 
+        Wait till the end of the motor translation or stop it by pressing the 'Reset' button if necessary.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.6. Write down parameters of the tested motor in the 'Parameters' box.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.7. Press the 'STOP' button to finish the measurement.</p>
+
+        <p style="text-decoration: underline; line-height: 1.5;">4. Automatic mode.</p>
+        <p style="margin: 0 15px; line-height: 1.5;"> Under development.</p>
+        """
+
+        # <p style="margin: 0 15px; line-height: 1.5;">4.1. Choose the type of experiment from the drop-down list.</p>
+        # <p style="margin: 0 15px; line-height: 1.5;">4.2. Control the actuator using the control panel box:</p>
+        # <p style="margin: 0 30px; line-height: 1.5;">4.3.1. Check the 'Go home and set zero position' if you want to.</p>
+        # <p style="margin: 0 30px; line-height: 1.5;">4.3.2. Set the range of the position change and the step size. The max. resolution is 2.5 um. The max. speed is 4 mm/s.</p>
+        # <p style="margin: 0 15px; line-height: 1.5;">4.4. Control the power supply using the control panel box:</p>
+        # <p style="margin: 0 30px; line-height: 1.5;">4.4.1. For the 'Force vs. Speed' experiment, set the target voltage and the control sequence.</p>
+        # <p style="margin: 0 30px; line-height: 1.5;">4.4.2. For the 'Force vs. Voltage and Speed' experiment, set the voltage range, step size, and the control sequence.</p>
+        # <p style="margin: 0 30px; line-height: 1.5;">4.4.3. For the 'Force vs. Frequency and Speed' experiment, set the target voltage, frequency range, and step size. The control sequence is modulated.</p>
+        # <p style="margin: 0 15px; line-height: 1.5;">4.5. Write down parameters of the tested motor in the 'Parameters' box.</p>
+        # <p style="margin: 0 15px; line-height: 1.5;">4.6. Press the 'RUN' button to start the experiment.</p>
+        # <p style="margin: 0 15px; line-height: 1.5;">4.7. The data is automatically saved in the selected folder.</p>
+        # <p style="margin: 0 15px; line-height: 1.5;">4.8. Press the 'STOP' button to stop the experiment if necessary.</p>
+        
+        info_text.setHtml(html_content)
+        layout.addWidget(info_text)
+
+        self.setLayout(layout)
+
+    def show_on_secondary_screen(self):
+        screens = QApplication.screens()
+        if len(screens) > 1:
+            secondary_screen = screens[1]
+            screen_geometry = secondary_screen.geometry()
+            self.setGeometry(
+                screen_geometry.x() + 500,
+                screen_geometry.y() + 200,
+                1050,
+                700
+            )
+        else:
+            self.setGeometry(100, 100, 400, 300)
+        self.show()
 
 class DynamicMode(QWidget):
     start_recording = pyqtSignal()
@@ -88,10 +185,29 @@ class DynamicMode(QWidget):
         self.bottom_frame.setFrameShadow(QFrame.Shadow.Raised)
         self.characterization_type_layout.addWidget(self.bottom_frame)
         # -------------------------------------------------------------------------------------------------------- #
+        # Help button.
+        help_button = QPushButton("Help ")
+        self.characterization_type_layout.addWidget(help_button)
+        help_button.clicked.connect(self.show_help)
+
+        help_icon = QIcon(os.path.join("Other/images/question.png"))
+        
+        help_button.setIcon(help_icon)
+        help_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+
+        self.bottom_frame1 = QFrame()
+        self.bottom_frame1.setFrameShape(QFrame.Shape.HLine)
+        self.bottom_frame1.setFrameShadow(QFrame.Shadow.Raised)
+        self.characterization_type_layout.addWidget(self.bottom_frame1)
+        # -------------------------------------------------------------------------------------------------------- #
         # Data save path.
-        save_button = QPushButton("Choose folder to save data")
+        save_button = QPushButton("Choose folder to save data   ")
         save_button.clicked.connect(self.showDialog)
         self.characterization_type_layout.addWidget(save_button)
+
+        save_icon = QIcon(os.path.join("Other/images/save.png"))
+        save_button.setIcon(save_icon)
+        save_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         self.folder_path = "Default"
         self.save_folder_lbl = QLabel(f"Current Folder: {self.folder_path}")
@@ -108,9 +224,6 @@ class DynamicMode(QWidget):
         self.save_folder_lbl.mousePressEvent = self.copyToClipboard
         # -------------------------------------------------------------------------------------------------------- #
         self.init_ui('auto')
-        
-        self.help_button = QPushButton("Help")
-        # self.help_button.clicked.connect(self.show_help)
 
     # ************************************************************************************************************ #
 
@@ -123,7 +236,10 @@ class DynamicMode(QWidget):
     
     def copyToClipboard(self, e):
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.folder_path)
+        if self.folder_path == "Default":
+            clipboard.setText(os.path.join(os.getcwd(), "DataFiles"))
+        else:
+            clipboard.setText(self.folder_path)
 
     # ************************************************************************************************************ #
 
@@ -158,11 +274,14 @@ class DynamicMode(QWidget):
             self.data_save_opt.setChecked(True) # Default is to save the data.
             data_save_opt_layout.addWidget(self.data_save_lbl)
             data_save_opt_layout.addWidget(self.data_save_opt)
-            self.upper_control_layout.addLayout(data_save_opt_layout)
 
             self.bottom_frame2 = QFrame()
             self.bottom_frame2.setFrameShape(QFrame.Shape.HLine)
             self.bottom_frame2.setFrameShadow(QFrame.Shadow.Raised)
+            self.upper_control_layout.addWidget(self.bottom_frame2)
+
+            self.upper_control_layout = QVBoxLayout()
+            self.upper_control_layout.addLayout(data_save_opt_layout)
             self.upper_control_layout.addWidget(self.bottom_frame2)
             # -------------------------------------------------------------------------------------------------------- #
             # Force sensor "Tare" button.
@@ -350,7 +469,6 @@ class DynamicMode(QWidget):
             self.parameters_groupBox_layout.addRow(self.slider_name_lbl, self.slider_name)
             # --------------------------------------------------------------------------------------------------------- #
             self.parameters_groupBox.setLayout(self.parameters_groupBox_layout)
-        # self.characterization_type_layout.addStretch(1) 
 
     # ************************************************************************************************************ #
 
@@ -575,7 +693,7 @@ class DynamicMode(QWidget):
                             new_elements = [('step_freq', '<f8'), ('direction', '<U1'), ('repetitions', '<f8'),
                                              ('t_forward', '<f8'), ('t_backward', '<f8')]
                         else:
-                            new_elements = [('step_freq', '<<U32'), ('direction', '<U1'), ('repetitions', '<U32'),
+                            new_elements = [('step_freq', '<U32'), ('direction', '<U1'), ('repetitions', '<U32'),
                                              ('t_forward', '<U32'), ('t_backward', '<U32')]
                     else:
                         if self.power_supply_control.set_button.text() == 'Reset':
@@ -723,3 +841,12 @@ class DynamicMode(QWidget):
     # ************************************************************************************************************ #
     def remove_temp_files(self):
         os.remove(self.temp_file_name)
+    
+    # ************************************************************************************************************ #
+
+    def show_help(self):
+        self.help_dialog = HelpDialog()
+        self.help_dialog.show_on_secondary_screen()
+
+    ###############################################################################################################
+    # ---------------------------------------- End of the Class ------------------------------------------------- #

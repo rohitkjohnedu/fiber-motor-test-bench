@@ -69,6 +69,8 @@ class HvpsDevice:
         self.sample = 0
         self.read_samples = 0
         self.reading_thread_lock = RLock()
+
+        self.dynamic_modulation = False
         # ---------------------------------------------------------------------------------------------------------------------------- #
 
         self.buffer_lock = Lock()
@@ -236,6 +238,57 @@ class HvpsDevice:
                 waiting_for_answer = True
                 waiting_for_answer_time = time.perf_counter()
 
+            # -------------------------------------------------------------------------------------------------------------- #
+            if self.dynamic_modulation is True:
+                next_step_time = self.modulation_start_time + self.modulation_counter/self.modulation_step_freq
+                while ((time.perf_counter() < next_step_time) and (next_step_time-time.perf_counter()<0.01)):
+                    time.sleep(0.0001)
+
+                # Moving forward
+                if self.modulation_freq_state == 0:
+                    print("Moving forward")
+                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                    self.write(f"SMx 5 0\r")                 # Start
+                    # self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 2
+                elif self.modulation_freq_state == 1:
+                    print("A-D")
+                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                    # self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 2
+                elif self.modulation_freq_state == 2:
+                    print("B-E")
+                    self.write(f"SMx 5 2 {180} {0} {180}\r") # B-E
+                    # self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 3
+                elif self.modulation_freq_state == 3:
+                    print("C-F")
+                    self.write(f"SMx 5 2 {180} {180} {0}\r") # C-F
+                    # self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 1
+
+                # Moving backward
+                if self.modulation_freq_state == 10:
+                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                    self.write(f"SMx 5 0\r")                 # Start
+                    self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 12
+                elif self.modulation_freq_state == 11:
+                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                    self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 12
+                elif self.modulation_freq_state == 12:
+                    self.write(f"SMx 5 2 {180} {180} {0}\r") # C-F
+                    self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 13
+                elif self.modulation_freq_state == 13:
+                    self.write(f"SMx 5 2 {180} {0} {180}\r") # B-E
+                    self._wait_for_confirmation("[SM5]")
+                    self.modulation_freq_state = 11
+
+                self.modulation_counter += 1
+            # -------------------------------------------------------------------------------------------------------------- #
+
             line = self._read_serial()
             if line.startswith("[moni]") and self.cont_reading is False:
                     waiting_for_answer = False
@@ -372,7 +425,7 @@ class HvpsDevice:
         self.write("CMx 5 0\r")
         return self._wait_for_confirmation("[CM5]")
 
-    def hb_set(self, channel, freq=1, pos_duty=50, phase_shift=None, ph_shifts=[]): # ph_shifts = [ph_shift1, ph_shift2, ph_shift3]
+    def hb_set(self, channel, freq=1, pos_duty=50, phase_shift=None, step_freq=None, direction=None):
         """
         Set the output switches in a half bridge with parameters at the channel_key.
 
@@ -397,56 +450,56 @@ class HvpsDevice:
             print(f"[ERR] Positive pulse width: {pos_pulse_width} us < {self.pcb_parameters['min_pulse']} us")
             return False
         # ---------------------------------------------------------------------------------------------------------------------------- #
-        # Dynamic characterization (no modulation)
-        if phase_shift is not None and isinstance(channel, Iterable):
-            # with phase shift
-            if not (0 <= phase_shift <= 360):
-                print(f"[ERR] Phase shift range: [0 - 360] °")
-                return False
-            self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
-            return self._wait_for_confirmation("[SM3]")
+        if isinstance(channel, Iterable):
+            print("Multi channel")
+            if phase_shift is not None:
+                # Dynamic with no modulation
+                if isinstance(phase_shift, Iterable):
+                    print("Dynamic with no modulation")
+                    ph_shift1, ph_shift2, ph_shift3 = phase_shift
+                    check_1 = 0 <= ph_shift1 <= 360
+                    check_2 = 0 <= ph_shift2 <= 360
+                    check_3 = 0 <= ph_shift3 <= 360
+                    if not (check_1 and check_2 and check_3):
+                        print(f"[ERR] Phase shift range: [0 - 360] °")
+                        return False
+                    # ---------------------------------------------------------------------------------------------------------- #
+                    self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
+                    self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
+                    self.write(f"SMx 5 0\r")
+                    return self._wait_for_confirmation("[SM5]")
+                # -------------------------------------------------------------------------------------------------------------- #
+                # Static with modulation
+                else:
+                    print("Static with modulation")
+                    if not (0 <= phase_shift <= 360):
+                        print(f"[ERR] Phase shift range: [0 - 360] °")
+                        return False
+                    self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
+                    return self._wait_for_confirmation("[SM3]")
+            # ------------------------------------------------------------------------------------------------------------------ #
+            # Dynamic with modulation
+            else:
+                print("Dynamic with modulation")
+                if not (0 <= step_freq <= 1000):
+                    print(f"[ERR] Step frequency range: [0 - 1000] Hz")
+                    return False
+                self.modulation_step_freq = 3*step_freq
+                if not freq >= self.modulation_step_freq:
+                    print(f"[ERR] Modulation frequency must be greater than {self.modulation_step_freq} Hz")
+                    return False
+                self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
+                if direction == "Forward":
+                    self.modulation_freq_state = 0
+                elif direction == "Backward":
+                    self.modulation_freq_state = 10
+                self.modulation_counter = 0
+                self.modulation_start_time = time.perf_counter()
+                self.dynamic_modulation = True
         # ---------------------------------------------------------------------------------------------------------------------------- #
-        # Static characterization with phase shift
-        elif len(ph_shifts) == 3:
-            # --------------------------------------------------------------------------- #
-            # step_freq = 2
-            # modul_freq = 40 #4*step_freq
-            # modul_duty = 50
-            # switching_time = (1/(2*step_freq))/3
-            # duration = 5
-            # --------------------------------------------------------------------------- #
-            ph_shift1, ph_shift2, ph_shift3 = ph_shifts
-            check_1 = 0 <= ph_shift1 <= 360
-            check_2 = 0 <= ph_shift2 <= 360
-            check_3 = 0 <= ph_shift3 <= 360
-            if not (check_1 and check_2 and check_3):
-                print(f"[ERR] Phase shift range: [0 - 360] °")
-                return False
-            # --------------------------------------------------------------------------- #
-            self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
-            self.write(f"SMx 5 2 {ph_shift1} {ph_shift2} {ph_shift3}\r")
-            self.write(f"SMx 5 0\r")
-            return self._wait_for_confirmation("[SM5]")
-            # --------------------------------------------------------------------------- #
-            # start_time = time.perf_counter()
-            # self.write(f"SMx 5 1 {channel_key} {modul_freq} {modul_duty}\r")
-            # self.write(f"SMx 5 2 {0} {180} {180}\r")
-            # self.write(f"SMx 5 0\r")
-            # self._wait_for_confirmation("[SM5]")
-            # while time.perf_counter() < (start_time + duration):
-            #     self.write(f"SMx 5 2 {0} {180} {180}\r")
-            #     self._wait_for_confirmation("[SM5]")
-            #     time.sleep(switching_time)
-            #     self.write(f"SMx 5 2 {180} {0} {180}\r")
-            #     self._wait_for_confirmation("[SM5]")
-            #     time.sleep(switching_time)
-            #     self.write(f"SMx 5 2 {180} {180} {0}\r")
-            #     self._wait_for_confirmation("[SM5]")
-            #     time.sleep(switching_time)
-            # return self._wait_for_confirmation("[SM5]")
-        # ---------------------------------------------------------------------------------------------------------------------------- #
-        # Static characterization with no phase shift
+        # Static with no modulation
         else:
+            print("Single channel")
             # DC voltage
             if (freq == 1) or (pos_duty == 100):
                 self.write(f"SMx 1 {channel_key} 1 100\r")

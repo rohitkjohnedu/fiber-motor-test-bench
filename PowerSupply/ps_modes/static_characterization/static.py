@@ -40,34 +40,48 @@ class HelpDialog(QDialog):
         <p style="margin: 0 15px; line-height: 1.5;">3.1. Save data if necessary by checking the 'Save data' checkbox.</p>
         <p style="margin: 0 15px; line-height: 1.5;">3.2. Press the 'RUN' button to start the experiment. It unlocks the control panel.</p>
         <p style="margin: 0 15px; line-height: 1.5;">3.3. Click on the 'TARE FORCE' button to tare the force sensor.</p>
-        <p style="margin: 0 15px; line-height: 1.5;">3.4. Control the actuator using the control panel box.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.4. Control the actuator using the control panel box:</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.4.1. Click on the 'Home' button to move the actuator to the home position and set zero.</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.4.2. Control movement with the 'Backward' and 'Forward' buttons.</p>
-        <p style="margin: 0 30px; line-height: 1.5;">3.4.3. Set the 'Speed' of the actuator. 4 mm/s is max. speed for the translational stage.</p>
-        <p style="margin: 0 30px; line-height: 1.5;">3.4.4. Set the desired 'Position' of the actuator. Max. resolution is 2.5 um.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.3. Set the 'Speed' of the actuator. Max. speed 4 mm/s is for the translational stage.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.4.4. Set the desired 'Position' of the actuator. Max. resolution is 2.5 um for the translational stage.</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.4.5. Use the 'Move' button to move the actuator to the desired position.</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.4.5. Use the 'STOP' button to stop the actuator.</p>
-        <p style="margin: 0 15px; line-height: 1.5;">3.5. Control the power supply using the control panel box.</p>
-        <p style="margin: 0 30px; line-height: 1.5;">3.5.1. Set the 'Target Voltage' of the power supply. Range is 950-4500 V.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.5. Control the power supply using the control panel box:</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.1. Set the 'Voltage' of the power supply. Range is 950-4500 V.</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.5.2. Choose the control signal from the drop-down list. The figures below show the signal plots.</p>
-
-        <div style="margin: 0; padding: 0;">
-        <img src="Other/images/ABCDEF.png" style="float: left; margin-right: 10px;"/>
-        </div>
-
         <div style="margin: 5; padding: 0;">
-        <img src="Other/images/ADBECF.png" style="float: left; margin-right: 10px;"/>
+        <img src="Other/images/ABCDEF.png"/>
         </div>
-
         <div style="margin: 5; padding: 0;">
-        <img src="Other/images/Other.png" style="float: left; margin-right: 10px;"/>
+        <img src="Other/images/ADBECF.png"/>
         </div>
-
-        <p style="line-height: 1.5;">States from 'A' to 'F' are DC voltages on the HV channels. States 'A', 'B', 'C' are opposite and equal to 'D', 'E', 'F'.</p>
-        <p style="line-height: 1.5;">States from 'A-D', 'B-E', 'C-F' are unipolar AC voltages on the HV channels. The frequency is set within the range 1-1000 Hz. Duty cycle is always 50%.</p>
-        <p style="line-height: 1.5;">The 'Other' state is used for custom signals. The user can set the frequency, duty cycle, and phase of the signals.</p>
+        <div style="margin: 5; padding: 0;">
+        <img src="Other/images/Other.png"/>
+        </div>
+        <p style="line-height: 1.5;">States from 'A' to 'F' are DC voltages on the HV channels. States 'A', 'B', 'C' are opposite and equal to 'D', 'E', 'F'.
+        States from 'A-D', 'B-E', 'C-F' are unipolar AC voltages on the HV channels. The frequency is set within the range 1-1000 Hz. Duty cycle is always 50%.
+        The 'Other' state is used for custom signals. The user can set the frequency, duty cycle, and phase of the signals.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">3.5.3. Press the 'SET' button or 'Enter' to set the power supply to the desired state. 
+        To reset the power supply, press the 'RESET' button or set 0 V. Change target voltage and press 'Update' to apply changes.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.6. Write down parameters of the tested motor in the 'Parameters' box.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">3.7. Press the 'STOP' button to finish the measurement.</p>
+        <p style="text-decoration: underline; line-height: 1.5;">4. Automatic mode.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">4.1. Choose the type of experiment from the drop-down list.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">4.2. Control the actuator using the control panel box:</p>
+        <p style="margin: 0 30px; line-height: 1.5;">4.3.1. Check the 'Go home and set zero position' if you want to.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">4.3.2. Set the range of the position change and the step size. The max. resolution is 2.5 um. The max. speed is 4 mm/s.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">4.4. Control the power supply using the control panel box:</p>
+        <p style="margin: 0 30px; line-height: 1.5;">4.4.1. For the 'Force vs. Position' experiment, set the target voltage and the control sequence.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">4.4.2. For the 'Force vs. Voltage and Position' experiment, set the voltage range, step size, and the control sequence.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">4.4.3. For the 'Force vs. Frequency and Position' experiment, set the target voltage, frequency range, and step size. The control sequence is modulated.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">4.4.4. There are two not modulated sequences: 'A-B-C' and 'D-E-F'. The modulated sequence is '(A-D)-(B-E)-(C-F)', and requires the modulation frequency to be set.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">4.5. Write down parameters of the tested motor in the 'Parameters' box.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">4.6. Press the 'RUN' button to start the experiment.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">4.7. The data is automatically saved in the selected folder.</p>
+        <p style="margin: 0 15px; line-height: 1.5;">4.8. Press the 'STOP' button to stop the experiment if necessary.</p>
         """
-
+        
         info_text.setHtml(html_content)
         layout.addWidget(info_text)
 
@@ -79,9 +93,9 @@ class HelpDialog(QDialog):
             secondary_screen = screens[1]
             screen_geometry = secondary_screen.geometry()
             self.setGeometry(
-                screen_geometry.x() + 600,
+                screen_geometry.x() + 500,
                 screen_geometry.y() + 200,
-                800,
+                1050,
                 700
             )
         else:
@@ -168,8 +182,6 @@ class StaticMode(QWidget):
         self.characterization_type_layout.addWidget(help_button)
         help_button.clicked.connect(self.show_help)
 
-        # dirname = os.path.dirname(__file__)
-        # help_icon = QIcon(os.path.join(dirname, "images/question.png"))
         help_icon = QIcon(os.path.join("Other/images/question.png"))
         
         help_button.setIcon(help_icon)
@@ -185,7 +197,6 @@ class StaticMode(QWidget):
         save_button.clicked.connect(self.showSaveDialog)
         self.characterization_type_layout.addWidget(save_button)
 
-        # save_icon = QIcon(os.path.join(dirname, "images/save.png"))
         save_icon = QIcon(os.path.join("Other/images/save.png"))
         save_button.setIcon(save_icon)
         save_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -973,15 +984,4 @@ class StaticMode(QWidget):
         self.help_dialog.show_on_secondary_screen()
     
     ###############################################################################################################
-
-        # <h1>Static Characterization</h1>
-        # <p>Static characterization is a method to measure the force exerted by the actuator at different positions, voltages, and frequencies.
-        # The force sensor is used to measure the force, the actuator is used to move the slider to different positions, and the power supply is used to set the voltage and frequency.</p>
-        # <p>There are three types of experiments that can be performed:</p>
-        # <ol>
-        #     <li>Force vs. Position: The force is measured at different positions.</li>
-        #     <li>Force vs. Voltage and Position: The force is measured at different voltages and positions.</li>
-        #     <li>Force vs. Frequency and Position: The force is measured at different frequencies and positions.</li>
-        # </ol>
-        # <p>For each experiment, the user can set the parameters for the actuator, power supply, and motor. The data can be saved in a folder of the user's choice.</p>
-        # <p>For the manual mode, the user can save the data in a temporary file and then save the data in a final file after the experiment is completed.</p>
+    # ---------------------------------------- End of the Class ------------------------------------------------- #

@@ -318,7 +318,7 @@ class Static_PS(QWidget):
     def AC_set(self, channels_keys, freq_val, duty_val, ph_shifts):
         channel_key = list(range(channels_keys[3])) # all three channels [0, 1, 2]
         three_ch = 3
-        if self.device.hb_set(channel_key, freq_val, duty_val, ph_shifts=ph_shifts):
+        if self.device.hb_set(channel_key, freq_val, duty_val, ph_shifts):
             if self.debug == 2:
                 print("[INFO] Set: {} Channels | {}Hz | {}% | {}° | {}° | {}°".format(three_ch, freq_val, duty_val,
                                                                             ph_shifts[0], ph_shifts[1], ph_shifts[2]))
