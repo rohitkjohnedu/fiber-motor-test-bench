@@ -93,7 +93,9 @@ class Thread(QThread):
             self.single_run_no_modulation()
 
     def single_run_modulation(self):
-        print("\n[INFO] Run started.")
+        if self.debug == 2:
+            print("\n[INFO] Run started.")
+        # ------------------------------------------------------------------------------------------------------------ #
         if self.device.hb_set(self.channels_keys, self.modul_freq, self.modul_duty, step_freq=self.step_freq, direction=self.direction):
             time.sleep(self.moving_time)
             self.device.dynamic_modulation = False
@@ -152,7 +154,7 @@ class Dynamic_PS(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         target_voltage_lbl = QLabel("Voltage (V):")
         
-        self.target_voltage_edit = QLineEdit("0")
+        self.target_voltage_edit = QLineEdit("3000")
         self.target_voltage_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         # ------------------------------------------------------------------------------------------------------------ #
         # hb_number_lbl = QLabel("Channels:")
@@ -299,12 +301,6 @@ class Dynamic_PS(QWidget):
             self.modul_freq_edit = QLineEdit("1")
             self.modul_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             # ------------------------------------------------------------------------------------------------------------ #
-            self.modul_dc_edit = QLineEdit("50")
-            # ------------------------------------------------------------------------------------------------------------ #
-            step_freq_lbl = QLabel("Step. frequency (Hz):")
-            self.step_freq_edit = QLineEdit("1")
-            self.step_freq_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            # ------------------------------------------------------------------------------------------------------------ #
             self.repeated_mode_lbl = QLabel("Repeated mode:")
             self.repeated_mode_lbl.setFixedWidth(160)
             self.repeated_mode_lbl.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -380,6 +376,7 @@ class Dynamic_PS(QWidget):
                     self.lock_command(is_on=1)
                     # ------------------------------------------------------------------------------ #
                     step_freq = float(self.step_freq_edit.text())
+                    print(step_freq)
                     step_duty = float(self.step_dc_edit.text()) # 50 %
                     # ------------------------------------------------------------------------------ #
                     if self.modulation_opt.isChecked():
@@ -409,6 +406,7 @@ class Dynamic_PS(QWidget):
                         self.run_thread.start()
             else:
                 if self.run_thread and self.run_thread.isRunning():
+                    print("1")
                     self.run_thread.stop_flag = True
                     self.reset_command()
                     if self.debug == 2:

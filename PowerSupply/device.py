@@ -10,8 +10,6 @@ SOFTWARE_VERSION = 1.1
 #--------------------------------
 DEFAULT_BUFFER_LENGTH = 10000000
 #--------------------------------
-# BUFFER_LENGTH = 10000
-# BUFFER_SLOTS = 15
 INITIAL_PCB_PARAMETERS = {
             'name': '',
             'hw_ver': 0.0,
@@ -71,6 +69,7 @@ class HvpsDevice:
         self.reading_thread_lock = RLock()
 
         self.dynamic_modulation = False
+        self.switch = 0
         # ---------------------------------------------------------------------------------------------------------------------------- #
 
         self.buffer_lock = Lock()
@@ -206,7 +205,7 @@ class HvpsDevice:
         self.cont_reading = False
         self.exit_reading.set()
         if self.reading_thread.is_alive():
-            self.reading_thread.join()  
+            self.reading_thread.join()
     
     def clear_buffer(self):
         self.buffer_data = np.zeros((self.buffer_length, self.variables_number), dtype=np.float64)
@@ -241,52 +240,51 @@ class HvpsDevice:
             # -------------------------------------------------------------------------------------------------------------- #
             if self.dynamic_modulation is True:
                 next_step_time = self.modulation_start_time + self.modulation_counter/self.modulation_step_freq
-                while ((time.perf_counter() < next_step_time) and (next_step_time-time.perf_counter()<0.01)):
-                    time.sleep(0.0001)
+                if next_step_time-time.perf_counter() < 0.00001:
+                    # Moving forward
+                    if self.modulation_freq_state == 0:
+                        # print("Moving forward")
+                        self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                        self.write(f"SMx 5 0\r")                 # Start
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 2
+                    elif self.modulation_freq_state == 1:
+                        # print("A-D")
+                        self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 2
+                    elif self.modulation_freq_state == 2:
+                        # print("B-E")
+                        self.write(f"SMx 5 2 {180} {0} {180}\r") # B-E
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 3
+                    elif self.modulation_freq_state == 3:
+                        # print("C-F")
+                        self.write(f"SMx 5 2 {180} {180} {0}\r") # C-F
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 1
 
-                # Moving forward
-                if self.modulation_freq_state == 0:
-                    print("Moving forward")
-                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
-                    self.write(f"SMx 5 0\r")                 # Start
-                    # self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 2
-                elif self.modulation_freq_state == 1:
-                    print("A-D")
-                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
-                    # self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 2
-                elif self.modulation_freq_state == 2:
-                    print("B-E")
-                    self.write(f"SMx 5 2 {180} {0} {180}\r") # B-E
-                    # self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 3
-                elif self.modulation_freq_state == 3:
-                    print("C-F")
-                    self.write(f"SMx 5 2 {180} {180} {0}\r") # C-F
-                    # self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 1
+                    # Moving backward
+                    if self.modulation_freq_state == 10:
+                        # print("Moving backward")
+                        self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                        self.write(f"SMx 5 0\r")                 # Start
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 12
+                    elif self.modulation_freq_state == 11:
+                        self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 12
+                    elif self.modulation_freq_state == 12:
+                        self.write(f"SMx 5 2 {180} {180} {0}\r") # C-F
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 13
+                    elif self.modulation_freq_state == 13:
+                        self.write(f"SMx 5 2 {180} {0} {180}\r") # B-E
+                        self._wait_for_confirmation("[SM5]")
+                        self.modulation_freq_state = 11
 
-                # Moving backward
-                if self.modulation_freq_state == 10:
-                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
-                    self.write(f"SMx 5 0\r")                 # Start
-                    self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 12
-                elif self.modulation_freq_state == 11:
-                    self.write(f"SMx 5 2 {0} {180} {180}\r") # A-D
-                    self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 12
-                elif self.modulation_freq_state == 12:
-                    self.write(f"SMx 5 2 {180} {180} {0}\r") # C-F
-                    self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 13
-                elif self.modulation_freq_state == 13:
-                    self.write(f"SMx 5 2 {180} {0} {180}\r") # B-E
-                    self._wait_for_confirmation("[SM5]")
-                    self.modulation_freq_state = 11
-
-                self.modulation_counter += 1
+                    self.modulation_counter += 1
             # -------------------------------------------------------------------------------------------------------------- #
 
             line = self._read_serial()
@@ -304,7 +302,7 @@ class HvpsDevice:
                     lv_vm = np.float64(data[4])
                     lv_err = np.float64(data[3]) - np.float64(data[4])
                     # --------------------------------------------------------------------- #
-                    cm_val_w1 = np.float64(data[7])/1e6
+                    cm_val_w1 = np.float64(data[7])/1e6 
                     cm_val_w2 = np.float64(data[8])/1e6
                     cm_val_w3 = np.float64(data[9])/1e6
                     # --------------------------------------------------------------------- #
@@ -323,7 +321,7 @@ class HvpsDevice:
                         self.confirmed.set()
                         self.last_confirmation_match = ''
                         waiting_for_answer = False
-            elif time.perf_counter() - waiting_for_answer_time > 0.3:
+            elif time.perf_counter() - waiting_for_answer_time > 0.1:
                     print("Timeout waiting for answer")
                     waiting_for_answer = False
 
@@ -337,7 +335,7 @@ class HvpsDevice:
         self.read_samples = self.sample
         return data
 
-    def _wait_for_confirmation(self, match, timeout=0.2):
+    def _wait_for_confirmation(self, match, timeout=0.1):
         if not self.ser.is_open:
             return False
         self.last_confirmation_match = match
@@ -490,12 +488,13 @@ class HvpsDevice:
                     return False
                 self.write(f"SMx 5 1 {channel_key} {freq} {pos_duty}\r")
                 if direction == "Forward":
-                    self.modulation_freq_state = 0
-                elif direction == "Backward":
                     self.modulation_freq_state = 10
+                elif direction == "Backward":
+                    self.modulation_freq_state = 0
                 self.modulation_counter = 0
                 self.modulation_start_time = time.perf_counter()
                 self.dynamic_modulation = True
+                return True
         # ---------------------------------------------------------------------------------------------------------------------------- #
         # Static with no modulation
         else:
