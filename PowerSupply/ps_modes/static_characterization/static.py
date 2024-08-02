@@ -60,7 +60,7 @@ class HelpDialog(QDialog):
         <img src="Other/images/Other.png"/>
         </div>
         <p style="line-height: 1.5;">States from 'A' to 'F' are DC voltages on the HV channels. States 'A', 'B', 'C' are opposite and equal to 'D', 'E', 'F'.
-        States from 'A-D', 'B-E', 'C-F' are unipolar AC voltages on the HV channels. The frequency is set within the range 1-1000 Hz. Duty cycle is always 50%.
+        States 'A-D', 'B-E', 'C-F' are unipolar AC voltages on the HV channels. The frequency is set within the range 1-1000 Hz. Duty cycle is always 50%.
         The 'Other' state is used for custom signals. The user can set the frequency, duty cycle, and phase of the signals.</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.5.3. Press the 'SET' button or 'Enter' to set the power supply to the desired state. 
         To reset the power supply, press the 'RESET' button or set 0 V. Change target voltage and press 'Update' to apply changes.</p>
@@ -75,7 +75,7 @@ class HelpDialog(QDialog):
         <p style="margin: 0 30px; line-height: 1.5;">4.4.1. For the 'Force vs. Position' experiment, set the target voltage and the control sequence.</p>
         <p style="margin: 0 30px; line-height: 1.5;">4.4.2. For the 'Force vs. Voltage and Position' experiment, set the voltage range, step size, and the control sequence.</p>
         <p style="margin: 0 30px; line-height: 1.5;">4.4.3. For the 'Force vs. Frequency and Position' experiment, set the target voltage, frequency range, and step size. The control sequence is modulated.</p>
-        <p style="margin: 0 30px; line-height: 1.5;">4.4.4. There are two not modulated sequences: 'A-B-C' and 'D-E-F'. The modulated sequence is '(A-D)-(B-E)-(C-F)', and requires the modulation frequency to be set.</p>
+        <p style="margin: 0 30px; line-height: 1.5;">4.4.4. There are two not-modulated sequences: 'A-B-C' and 'D-E-F'. The modulated sequence is '(A-D)-(B-E)-(C-F)', and requires the modulation frequency to be set.</p>
         <p style="margin: 0 15px; line-height: 1.5;">4.5. Write down parameters of the tested motor in the 'Parameters' box.</p>
         <p style="margin: 0 15px; line-height: 1.5;">4.6. Press the 'RUN' button to start the experiment.</p>
         <p style="margin: 0 15px; line-height: 1.5;">4.7. The data is automatically saved in the selected folder.</p>
@@ -502,12 +502,15 @@ class StaticMode(QWidget):
             else:
                 step_size = float(self.power_supply_control.step_volt_edit.text())
                 # Calculate the number of steps.
-                if step_size == 0:
+                if step_size == 0 and end_volt != start_volt:
                     self.zero_step_volt_flag = 1
                     if not self.stop_event.is_set():
                         self.finished.emit() # set the finished event
                 else:
-                    steps_nb = np.abs(np.floor(np.round((end_volt - start_volt) / (step_size), 10)))
+                    if end_volt == start_volt:
+                        steps_nb = 0
+                    else:
+                        steps_nb = np.abs(np.floor(np.round((end_volt - start_volt) / (step_size), 10)))
                     for step in range(int(steps_nb)+1):
                         voltage = start_volt+step*step_size
                         self.power_supply_control.target_voltage_edit.setText(str(voltage))
@@ -532,12 +535,15 @@ class StaticMode(QWidget):
                 else:
                     step_size = float(self.power_supply_control.step_freq_edit.text())
                     # Calculate the number of steps.
-                    if step_size == 0:
+                    if step_size == 0 and end_freq != start_freq:
                         self.zero_step_freq_flag = 1
                         if not self.stop_event.is_set():
                             self.finished.emit() # set the finished event
                     else:
-                        steps_nb = np.abs(np.floor(np.round((end_freq - start_freq) / (step_size), 10)))
+                        if end_freq == start_freq:
+                            steps_nb = 0
+                        else:
+                            steps_nb = np.abs(np.floor(np.round((end_freq - start_freq) / (step_size), 10)))
                         for step in range(int(steps_nb)+1):
                             frequency = start_freq+step*step_size
                             self.power_supply_control.freq_edit.setText(str(frequency))
@@ -569,11 +575,14 @@ class StaticMode(QWidget):
         moving_time = np.abs(end_pos - start_pos) / speed
 
         # Calculate the number of steps.
-        if step_size == 0:
+        if step_size == 0 and end_pos != start_pos:
             self.zero_step_flag = 1
         else:
-            steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
-            # print("\n[INFO] The number of steps is: ", steps_nb)
+            if end_pos == start_pos:
+                steps_nb = 0
+            else:
+                steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
+                # print("\n[INFO] The number of steps is: ", steps_nb)
             # ---------------------------------------------------------------------------------------------------- #
             # Get the power supply parameters.
             modulation = self.power_supply_control.modulation_opt.isChecked()

@@ -51,7 +51,7 @@ class HelpDialog(QDialog):
         <p style="margin: 0 30px; line-height: 1.5;">3.5.1. Set the 'Voltage' of the power supply. Range is 950-4500 V.</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.5.2. Set the 'Stepping frequency' of the power supply. Range is 1-1000 Hz.</p>
         <p style="margin: 0 30px; line-height: 1.5;">3.5.3. There are two types of control signals: modulated and not modulated.
-        <p style="line-height: 1.5;">The not modulated signal is a sequence of 'A`', 'B`', 'C`', 'D`', 'E`', 'F`' states, as shown below. (These states are different from the states in the static mode).
+        <p style="line-height: 1.5;">The not-modulated signal is a sequence of 'A`', 'B`', 'C`', 'D`', 'E`', 'F`' states, as shown below. (These states are different from the states in the static mode).
         This control sequence is characterized by the stepping frequency and the stepping duty cycle, which is always 50%.
         <div style="margin: 5; padding: 0;">
         <img src="Other/images/Not_modulated.png"/>
@@ -252,6 +252,7 @@ class DynamicMode(QWidget):
             experiment_type_layout = QFormLayout()
             experiment_type_label = QLabel("Experiment:")
             self.experiment_type = QComboBox()
+            self.experiment_type.setDisabled(True)
             experiments = ['Force vs. Speed', 'Force vs. Voltage and Speed', 'Force vs. Frequency and Speed']
             for experiment in experiments:
                 self.experiment_type.addItem(experiment)
@@ -510,12 +511,15 @@ class DynamicMode(QWidget):
     #         moving_time = np.abs(end_pos - start_pos) / speed
 
     #         # Calculate the number of steps.
-    #         if step_size == 0:
+    #         if step_size == 0 and start_pos != end_pos:
     #             self.zero_step_size.emit()
     #             return
     #         else:
-    #             steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
-    #             # print("\n[INFO] The number of steps is: ", steps_nb)
+    #             if start_pos == end_pos:
+    #                 steps_nb = 1
+    #             else:
+        #             steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
+        #             # print("\n[INFO] The number of steps is: ", steps_nb)
     #             # ---------------------------------------------------------------------------------------------------- #
     #             # Get the power supply parameters.
     #             # voltage = float(self.power_supply_control.target_voltage_edit.text())
@@ -658,8 +662,8 @@ class DynamicMode(QWidget):
                     # Interface parameters.
                     if self.power_supply_control.set_button.text() == 'Reset':
                         step_freq = np.full(len(interpolation_time), float(self.power_supply_control.step_freq_edit.text()), dtype='<f8')
-                        # if self.power_supply_control.modulation_opt.isChecked():
-                        #     modul_freq = np.full(len(interpolation_time), float(self.power_supply_control.modul_freq_edit.text()), dtype='<f8')
+                        if self.power_supply_control.modulation_opt.isChecked():
+                            modul_freq = np.full(len(interpolation_time), float(self.power_supply_control.modul_freq_edit.text()), dtype='<f8')
                         direction = np.full(len(interpolation_time), self.power_supply_control.direction_edit.currentText(), dtype='<U1')
                         if self.power_supply_control.repeated_mode_checkbox.isChecked():
                             repetitions = np.full(len(interpolation_time), self.power_supply_control.repetitions_edit.text(), dtype='<f8')
@@ -670,8 +674,8 @@ class DynamicMode(QWidget):
                         # ------------------------------------------------------------------------------------------------------------------------ #
                     else:
                         step_freq = np.full(len(interpolation_time), '-', dtype='<U32')
-                        # if self.power_supply_control.modulation_opt.isChecked():
-                        #     modul_freq = np.full(len(interpolation_time), '-', dtype='<U32')
+                        if self.power_supply_control.modulation_opt.isChecked():
+                            modul_freq = np.full(len(interpolation_time), '-', dtype='<U32')
                         direction = np.full(len(interpolation_time), '-', dtype='<U32')
                         if self.power_supply_control.repeated_mode_checkbox.isChecked():
                             repetitions = np.full(len(interpolation_time), '-', dtype='<U32')
@@ -685,9 +689,9 @@ class DynamicMode(QWidget):
                             ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
                             # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
                             ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
-                    # if self.power_supply_control.modulation_opt.isChecked():
-                    #     new_elements = [('modul_freq', '<f8')]
-                    #     dtype.extend(new_elements)
+                    if self.power_supply_control.modulation_opt.isChecked():
+                        new_elements = [('modul_freq', '<f8')]
+                        dtype.extend(new_elements)
                     if self.power_supply_control.repeated_mode_checkbox.isChecked():
                         if self.power_supply_control.set_button.text() == 'Reset':
                             new_elements = [('step_freq', '<f8'), ('direction', '<U1'), ('repetitions', '<f8'),
@@ -719,10 +723,14 @@ class DynamicMode(QWidget):
                     save_data['cm_w3_uA'] = cm_w3_uA
                     save_data['step_freq'] = step_freq
                     save_data['direction'] = direction
+                    if self.power_supply_control.modulation_opt.isChecked():
+                        save_data['modul_freq'] = modul_freq
                     if self.power_supply_control.repeated_mode_checkbox.isChecked():
                         save_data['repetitions'] = repetitions
                         save_data['t_forward'] = t_forward
                         save_data['t_backward'] = t_backward
+                    else:
+                        save_data['moving_time'] = moving_time
                     # ------------------------------------------------------------------------------------------------ #
                     with open(self.temp_file_name, 'ab') as t:
                         fmt = '%.8f, %.4f, ' # abs_time_s, rel_time_s
@@ -786,10 +794,10 @@ class DynamicMode(QWidget):
                                          f'step. freq. (Hz), direction')
                         if self.power_supply_control.modulation_opt.isChecked():
                             final_file.write(f', modul. freq. (Hz)')
-                        if self.power_supply_control.repeated_mode_checkbox.isChecked():
-                            final_file.write(f', Repetitions, Time forward (s), Time backward (s)\n\n')
-                        else:
-                            final_file.write(f', Moving time (s)\n\n')
+                        # if self.power_supply_control.repeated_mode_checkbox.isChecked():
+                        #     final_file.write(f', repetitions, time forward (s), time backward (s)\n\n')
+                        # else:
+                        #     final_file.write(f', moving time (s)\n\n')
                         # ----------------------------------------------------------------------------------------------------------------- #
                         # Append the data from the temporary file to the final file.
                         with open(self.temp_file_name, 'r') as t:

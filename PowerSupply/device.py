@@ -449,11 +449,11 @@ class HvpsDevice:
             return False
         # ---------------------------------------------------------------------------------------------------------------------------- #
         if isinstance(channel, Iterable):
-            print("Multi channel")
+            # print("Multi channel")
             if phase_shift is not None:
                 # Dynamic with no modulation
                 if isinstance(phase_shift, Iterable):
-                    print("Dynamic with no modulation")
+                    # print("Dynamic with no modulation")
                     ph_shift1, ph_shift2, ph_shift3 = phase_shift
                     check_1 = 0 <= ph_shift1 <= 360
                     check_2 = 0 <= ph_shift2 <= 360
@@ -469,7 +469,7 @@ class HvpsDevice:
                 # -------------------------------------------------------------------------------------------------------------- #
                 # Static with modulation
                 else:
-                    print("Static with modulation")
+                    # print("Static with modulation")
                     if not (0 <= phase_shift <= 360):
                         print(f"[ERR] Phase shift range: [0 - 360] °")
                         return False
@@ -478,7 +478,7 @@ class HvpsDevice:
             # ------------------------------------------------------------------------------------------------------------------ #
             # Dynamic with modulation
             else:
-                print("Dynamic with modulation")
+                # print("Dynamic with modulation")
                 if not (0 <= step_freq <= 1000):
                     print(f"[ERR] Step frequency range: [0 - 1000] Hz")
                     return False
@@ -498,7 +498,7 @@ class HvpsDevice:
         # ---------------------------------------------------------------------------------------------------------------------------- #
         # Static with no modulation
         else:
-            print("Single channel")
+            # print("Single channel")
             # DC voltage
             if (freq == 1) or (pos_duty == 100):
                 self.write(f"SMx 1 {channel_key} 1 100\r")

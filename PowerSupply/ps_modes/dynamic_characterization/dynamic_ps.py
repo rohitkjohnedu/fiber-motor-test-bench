@@ -173,6 +173,7 @@ class Dynamic_PS(QWidget):
         self.modulation_opt = QCheckBox()
         self.modulation_opt.setText("ON")
         self.modulation_opt.setChecked(False)
+        self.modulation_opt.setDisabled(True)
 
         self.modulation_layout = QHBoxLayout()
         self.modulation_layout.addWidget(modulation_lbl)
@@ -376,7 +377,6 @@ class Dynamic_PS(QWidget):
                     self.lock_command(is_on=1)
                     # ------------------------------------------------------------------------------ #
                     step_freq = float(self.step_freq_edit.text())
-                    print(step_freq)
                     step_duty = float(self.step_dc_edit.text()) # 50 %
                     # ------------------------------------------------------------------------------ #
                     if self.modulation_opt.isChecked():
@@ -406,7 +406,6 @@ class Dynamic_PS(QWidget):
                         self.run_thread.start()
             else:
                 if self.run_thread and self.run_thread.isRunning():
-                    print("1")
                     self.run_thread.stop_flag = True
                     self.reset_command()
                     if self.debug == 2:
