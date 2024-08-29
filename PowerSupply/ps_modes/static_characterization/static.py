@@ -597,7 +597,16 @@ class StaticMode(QWidget):
                 else:
                     states = states_txt
             else:
-                states = ['A-D', 'B-E', 'C-F']
+                states_txt = self.power_supply_control.control_seq_modul.currentText() # get the states
+                if states_txt == '(A-D)-(B-E)-(C-F)':
+                    states = ['A-D', 'B-E', 'C-F']
+                elif states_txt == 'A-D':
+                    states = ['A-D']
+                elif states_txt == 'B-E':
+                    states = ['B-E']
+                elif states_txt == 'C-F':
+                    states = ['C-F']
+                    
             # print("\n[INFO] The power supply states are: ", states)
 
             # ---------------------------------------------------------------------------------------------------- #
@@ -932,7 +941,7 @@ class StaticMode(QWidget):
                         # ------------------------------------------------------------------------------------------------ #
                         if self.power_supply_control.modulation_opt.isChecked():
                             final_file.write(f'Modulation: ON\n'
-                                             f'Measuring sequence: {self.power_supply_control.control_seq_modul.text()}\n'
+                                             f'Measuring sequence: {self.power_supply_control.control_seq_modul.currentText()}\n'
                                              f'Modulation frequency (Hz): {self.power_supply_control.freq_edit.text()}\n')
                         else:
                             final_file.write(f'Modulation: OFF\n'

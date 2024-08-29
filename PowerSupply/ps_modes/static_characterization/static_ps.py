@@ -32,6 +32,7 @@ class Static_PS(QWidget):
             self.st_comboBox.addItem(state)
 
         self.control_seq_lbl = QLabel("Measurement signal:")
+
         self.control_sequence = QComboBox()
         self.control_sequence.addItem("A-B-C")
         self.control_sequence.addItem("D-E-F")
@@ -42,9 +43,14 @@ class Static_PS(QWidget):
         self.control_sequence.addItem("E")
         self.control_sequence.addItem("F")
 
-        self.control_seq_lbl = QLabel("Measurement signal:")
-        self.control_seq_modul = QLabel('(A-D)-(B-E)-(C-F)')
-        self.control_seq_modul.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.control_seq_modul = QComboBox()
+        self.control_seq_modul.addItem("(A-D)-(B-E)-(C-F)")
+        self.control_seq_modul.addItem("A-D")
+        self.control_seq_modul.addItem("B-E")
+        self.control_seq_modul.addItem("C-F")
+
+        # self.control_seq_modul = QLabel('(A-D)-(B-E)-(C-F)')
+        # self.control_seq_modul.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         modulation_lbl = QLabel("Modulation:")
         modulation_lbl.setFixedWidth(175)
@@ -231,8 +237,11 @@ class Static_PS(QWidget):
         if self.modulation_opt.isChecked():
             self.mode_layout.removeRow(self.control_sequence)
             self.control_seq_lbl = QLabel("Measurement signal:")
-            self.control_seq_modul = QLabel('(A-D)-(B-E)-(C-F)')
-            self.control_seq_modul.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.control_seq_modul = QComboBox()
+            self.control_seq_modul.addItem("(A-D)-(B-E)-(C-F)")
+            self.control_seq_modul.addItem("A-D")
+            self.control_seq_modul.addItem("B-E")
+            self.control_seq_modul.addItem("C-F")
             self.mode_layout.addRow(self.control_seq_lbl, self.control_seq_modul)
             self.freq_label = QLabel("Modul. frequency (Hz):")
             self.freq_edit = QLineEdit("1")
@@ -395,17 +404,17 @@ class Static_PS(QWidget):
 
     ####################################################################################################################
     # LOCK COMMAND
-    def lock_command(self, is_on):
-        if is_on == 1:
-            self.st_comboBox.setDisabled(True)
-            if self.debug == 2:
-                print("[INFO] Mode locked\n"
-                    "------------------")
-        else:
-            self.st_comboBox.setDisabled(False)
-            if self.debug == 2:
-                print("[INFO] Mode unlocked\n"
-                    "--------------------")
+    # def lock_command(self, is_on):
+    #     if is_on == 1:
+    #         self.st_comboBox.setDisabled(True)
+    #         if self.debug == 2:
+    #             print("[INFO] Mode locked\n"
+    #                 "------------------")
+    #     else:
+    #         self.st_comboBox.setDisabled(False)
+    #         if self.debug == 2:
+    #             print("[INFO] Mode unlocked\n"
+    #                 "--------------------")
 
     ####################################################################################################################
     # RESET COMMAND
