@@ -262,7 +262,7 @@ class StaticMode(QWidget):
             self.data_save_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.data_save_lbl.setFixedWidth(175)
             self.data_save_opt = QCheckBox()
-            self.data_save_opt.setChecked(True) # Default is to save the data.
+            self.data_save_opt.setChecked(False) # Default is not to save the data.
             data_save_opt_layout.addWidget(self.data_save_lbl)
             data_save_opt_layout.addWidget(self.data_save_opt)
             
@@ -359,8 +359,9 @@ class StaticMode(QWidget):
         self.power_supply_groupBox_layout = QFormLayout(power_supply_groupBox)
         self.power_supply_groupBox_layout.addRow(self.power_supply_control)
 
-        self.power_supply_control.set_button.clicked.connect(self.update_values)
-        self.power_supply_control.update_button.clicked.connect(self.update_values)
+        if mode == 'manual' and self.data_save_opt.isChecked():
+            self.power_supply_control.set_button.clicked.connect(self.update_values)
+            self.power_supply_control.update_button.clicked.connect(self.update_values)
 
         power_supply_groupBox.setLayout(self.power_supply_groupBox_layout)
         # -------------------------------------------------------------------------------------------------------- #
@@ -583,11 +584,25 @@ class StaticMode(QWidget):
             else:
                 steps_nb = np.abs(np.floor(np.round((end_pos - start_pos) / (step_size / 1000), 10)))  # number of steps
                 # print("\n[INFO] The number of steps is: ", steps_nb)
+
             # ---------------------------------------------------------------------------------------------------- #
             # Get the power supply parameters.
             modulation = self.power_supply_control.modulation_opt.isChecked()
+            if modulation == False:
+                states_txt = self.power_supply_control.control_sequence.currentText() # get the states
+                if states_txt == 'A-B-C':
+                    states = ['A', 'B', 'C']
+                elif states_txt == 'D-E-F':
+                    states = ['D', 'E', 'F']
+                else:
+                    states = states_txt
+            else:
+                states = ['A-D', 'B-E', 'C-F']
+            # print("\n[INFO] The power supply states are: ", states)
+
             # ---------------------------------------------------------------------------------------------------- #
             # Algorithm for the "Force vs Position" experiment.
+            self.force_sensor.tare() # tare the force sensor
             for step in range(int(steps_nb)+1):
                 # print("\n[INFO] The step number is: ", step)
                 # ------------------------------------------------------------------------------------------------ #
@@ -598,33 +613,36 @@ class StaticMode(QWidget):
                 # print("\n[INFO] The actuator is moving to the position: ", self.position)
                 self.actuator.move(self.position) # move the actuator to the position
                 if step == 0:
-                    time.sleep(init_moving_time+2) # wait for the actuator to reach the starting position
+                    # time.sleep(init_moving_time) # wait for the actuator to reach the starting position. (Only for big steps).
+                    time.sleep(1) # for micro steps
                 else:
-                    time.sleep(moving_time+2) # wait for the actuator to reach the next position
-                self.force_sensor.tare() # tare the force sensor
-                time.sleep(0.1) # wait for the force sensor to tare
-                if modulation == False:
-                    states_txt = self.power_supply_control.control_sequence.currentText() # get the states
-                    if states_txt == 'A-B-C':
-                        states = ['A', 'B', 'C']
-                    elif states_txt == 'D-E-F':
-                        states = ['D', 'E', 'F']
-                else:
-                    states = ['A-D', 'B-E', 'C-F']
-                # print("\n[INFO] The power supply states are: ", states)
+                    # time.sleep(moving_time) # wait for the actuator to reach the next position. (Only for big steps).
+                    time.sleep(1) # for micro steps
+                # ------------------------------------------------------------------------------------------------ #
                 for state in states:
                     # -------------------------------------------------------------------------------- #
                     if self.stop_event.is_set():
                         break
                     # -------------------------------------------------------------------------------- #
-                    self.state = state # (for later use in the program)
+                    # Measure force offset
+                    self.clear_buffers() # clear the buffers
+                    self.start_recording.emit() # record the data
+                    self.state = f'Offset_{state}' # (for later use in the program)
+                    # print("\n[INFO] The data is being recorded")
+                    time.sleep(2) # measure for 2 seconds
+                    self.stop_recording.emit() # stop recording the data
+                    # print("\n[INFO] The data is stopped recording")
+                    # -------------------------------------------------------------------------------- #
                     self.force_sensor.tare() # tare the force sensor
                     time.sleep(0.1) # wait for the force sensor to tare
                     self.power_supply_control.set_pressed(state) # set the power supply to the state
                     # print("\n[INFO] The power supply is set to the state: ", state)
                     time.sleep(0.5) 
                     # -------------------------------------------------------------------------------- #
+                    # Measure force output
+                    self.clear_buffers() # clear the buffers
                     self.start_recording.emit() # record the data
+                    self.state = state # (for later use in the program)
                     # print("\n[INFO] The data is being recorded")
                     time.sleep(2) # measure for 2 seconds
                     self.stop_recording.emit() # stop recording the data
@@ -632,12 +650,20 @@ class StaticMode(QWidget):
                     # -------------------------------------------------------------------------------- #
                     self.power_supply_control.reset_command(state) # reset the power supply
                     # print("\n[INFO] The power supply is reset")
-                    time.sleep(2) # wait for 1 second
+                    time.sleep(2) # wait for 2 second
                 # ------------------------------------------------------------------------------------------------ #
                 if self.stop_event.is_set():
                     break
 
     # ************************************************************************************************************ #
+
+    def clear_buffers(self):
+        if self.power_supply.buffer_length - self.power_supply.sample < 1000:
+            self.power_supply.clear_buffer()
+        if self.force_sensor.buffer_length - self.force_sensor.sample < 10000:
+            self.force_sensor.clear_buffer()
+        if self.actuator.buffer_length - self.actuator.sample < 1000:
+            self.actuator.clear_buffer()
 
     def start_indiv_rcd(self):
         if self.auto_mode_toggle.isChecked() == False: # Manual mode
@@ -845,17 +871,21 @@ class StaticMode(QWidget):
                     freq_Hz = np.full(len(interpolation_time), float(self.power_supply_control.freq_edit.text()), dtype='<f8')
                     duty_cycle = np.full(len(interpolation_time), float(self.power_supply_control.duty_cycle_edit.text()), dtype='<f8')
                     if self.state == 'A-D':
-                        ph1 = np.full(len(interpolation_time), 0, dtype='<f8')
-                        ph2 = np.full(len(interpolation_time), 180, dtype='<f8')
-                        ph3 = np.full(len(interpolation_time), 0, dtype='<f8')
+                        ph1 = np.full(len(interpolation_time), '0', dtype='<U32')
+                        ph2 = np.full(len(interpolation_time), '180', dtype='<U32')
+                        ph3 = np.full(len(interpolation_time), '180', dtype='<U32')
                     elif self.state == 'B-E':
-                        ph1 = np.full(len(interpolation_time), 180, dtype='<f8')
-                        ph2 = np.full(len(interpolation_time), 0, dtype='<f8')
-                        ph3 = np.full(len(interpolation_time), 180, dtype='<f8')
+                        ph1 = np.full(len(interpolation_time), '180', dtype='<U32')
+                        ph2 = np.full(len(interpolation_time), '0', dtype='<U32')
+                        ph3 = np.full(len(interpolation_time), '180', dtype='<U32')
                     elif self.state == 'C-F':
-                        ph1 = np.full(len(interpolation_time), 180, dtype='<f8')
-                        ph2 = np.full(len(interpolation_time), 180, dtype='<f8')
-                        ph3 = np.full(len(interpolation_time), 0, dtype='<f8')
+                        ph1 = np.full(len(interpolation_time), '180', dtype='<U32')
+                        ph2 = np.full(len(interpolation_time), '180', dtype='<U32')
+                        ph3 = np.full(len(interpolation_time), '0', dtype='<U32')
+                    else:
+                        ph1 = np.full(len(interpolation_time), '-', dtype='<U32')
+                        ph2 = np.full(len(interpolation_time), '-', dtype='<U32')
+                        ph3 = np.full(len(interpolation_time), '-', dtype='<U32')
                 # ------------------------------------------------------------------------------------------------ #
                 dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
                         ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
@@ -865,7 +895,7 @@ class StaticMode(QWidget):
                 
                 if self.power_supply_control.modulation_opt.isChecked():
                     new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
-                                        ('ph1_deg', '<f8'), ('ph2_deg', '<f8'), ('ph3_deg', '<f8')]
+                                        ('ph1_deg', '<U32'), ('ph2_deg', '<U32'), ('ph3_deg', '<U32')]
                     dtype.extend(new_elements)
                 # ------------------------------------------------------------------------------------------------ #
                 save_data = np.zeros(abs_time_s.size, dtype=dtype)
@@ -902,11 +932,11 @@ class StaticMode(QWidget):
                         # ------------------------------------------------------------------------------------------------ #
                         if self.power_supply_control.modulation_opt.isChecked():
                             final_file.write(f'Modulation: ON\n'
-                                             f'Control sequence: {self.power_supply_control.control_seq_modul}\n'
+                                             f'Measuring sequence: {self.power_supply_control.control_seq_modul.text()}\n'
                                              f'Modulation frequency (Hz): {self.power_supply_control.freq_edit.text()}\n')
                         else:
                             final_file.write(f'Modulation: OFF\n'
-                                             f'Control sequence: {self.power_supply_control.control_sequence.currentText()}\n')
+                                             f'Measuring sequence: {self.power_supply_control.control_sequence.currentText()}\n')
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write(f'Start position (mm): {self.actuator_control.start_pos_edit.text()}\n'
                                          f'End position (mm): {self.actuator_control.end_pos_edit.text()}\n'
@@ -939,8 +969,8 @@ class StaticMode(QWidget):
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n----------------------Data_Info---------------------------\n\n')
                         final_file.write(f'state, abs. t (s), rel. t (s), '
-                                         f'F (mN), p (mm), v (mm/s), '
-                                         f'hv_set (kV), hv_vm (kV), hv_err (V), '
+                                         f'F (mN), x (mm), v_set (mm/s), '
+                                         f'hv_set (V), hv_vm (V), hv_err (V), '
                                          #  f'lv_set (V), lv_vm (V), lv_err (V), '
                                          f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)')
                         
@@ -957,7 +987,8 @@ class StaticMode(QWidget):
                     # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
                     fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
                     if self.power_supply_control.modulation_opt.isChecked():
-                        fmt += ', %3.0f, %2.0f, %3.0f, %3.0f, %3.0f' # freq_Hz, duty_cycle, ph1, ph2, ph3                
+                        fmt += ', %3.0f, %2.0f' # freq_Hz, duty_cycle
+                        fmt += ', %s, %s, %s' # ph1, ph2, ph3
                     np.savetxt(f, save_data, fmt=fmt)
                     
     # ************************************************************************************************************ #

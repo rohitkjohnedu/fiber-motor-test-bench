@@ -31,12 +31,18 @@ class Static_PS(QWidget):
         for state in self.states:
             self.st_comboBox.addItem(state)
 
-        self.control_seq_lbl = QLabel("Control sequence:")
+        self.control_seq_lbl = QLabel("Measurement signal:")
         self.control_sequence = QComboBox()
         self.control_sequence.addItem("A-B-C")
         self.control_sequence.addItem("D-E-F")
+        self.control_sequence.addItem("A")
+        self.control_sequence.addItem("B")
+        self.control_sequence.addItem("C")
+        self.control_sequence.addItem("D")
+        self.control_sequence.addItem("E")
+        self.control_sequence.addItem("F")
 
-        self.control_seq_lbl = QLabel("Control sequence:")
+        self.control_seq_lbl = QLabel("Measurement signal:")
         self.control_seq_modul = QLabel('(A-D)-(B-E)-(C-F)')
         self.control_seq_modul.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -224,7 +230,7 @@ class Static_PS(QWidget):
     def modulation_opt_checked(self):
         if self.modulation_opt.isChecked():
             self.mode_layout.removeRow(self.control_sequence)
-            self.control_seq_lbl = QLabel("Control sequence:")
+            self.control_seq_lbl = QLabel("Measurement signal:")
             self.control_seq_modul = QLabel('(A-D)-(B-E)-(C-F)')
             self.control_seq_modul.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.mode_layout.addRow(self.control_seq_lbl, self.control_seq_modul)
@@ -239,10 +245,16 @@ class Static_PS(QWidget):
             self.mode_layout.removeRow(self.control_seq_modul)
             self.mode_layout.removeRow(self.freq_edit)
             self.mode_layout.removeRow(self.freq_range_lbl)
-            self.control_seq_lbl = QLabel("Control sequence:")
+            self.control_seq_lbl = QLabel("Measurement signal:")
             self.control_sequence = QComboBox()
             self.control_sequence.addItem("A-B-C")
             self.control_sequence.addItem("D-E-F")
+            self.control_sequence.addItem("A")
+            self.control_sequence.addItem("B")
+            self.control_sequence.addItem("C")
+            self.control_sequence.addItem("D")
+            self.control_sequence.addItem("E")
+            self.control_sequence.addItem("F")
             self.mode_layout.addRow(self.control_seq_lbl, self.control_sequence)
 
     ####################################################################################################################
@@ -379,7 +391,7 @@ class Static_PS(QWidget):
                 else:                   # state Other
                     ph_shifts = [ch1_phase_shift, ch2_phase_shift, ch3_phase_shift]
                     self.AC_set(self.channels_keys, freq_val,  duty_val, ph_shifts) # phase shift set for other
-                self.lock_command(is_on=1)
+                # self.lock_command(is_on=1)
 
     ####################################################################################################################
     # LOCK COMMAND
@@ -400,7 +412,7 @@ class Static_PS(QWidget):
     def reset_command(self, state=None):
         if self.mode == 'manual':
             # unlock the mode
-            self.lock_command(is_on=0)
+            # self.lock_command(is_on=0)
             # ---------------------------------- #
             self.set_button.setText("Set")
             # self.target_voltage_edit.setText("0")

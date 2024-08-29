@@ -695,7 +695,7 @@ class PositionPlot(QWidget):
         self.actuator = actuator
 
         self.plotHistoryLength = 10#seconds
-        self.maxPlotHistoryLength = 100000#samples
+        self.maxPlotHistoryLength = 10000000#samples
         
         plot_layout = QHBoxLayout(self)
         plot_widget = pg.PlotWidget(self)

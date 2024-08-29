@@ -69,6 +69,7 @@ class HvpsDevice:
         self.reading_thread_lock = RLock()
 
         self.dynamic_modulation = False
+        self.dynamic = False
         self.switch = 0
         # ---------------------------------------------------------------------------------------------------------------------------- #
 
@@ -238,7 +239,7 @@ class HvpsDevice:
                 waiting_for_answer_time = time.perf_counter()
 
             # -------------------------------------------------------------------------------------------------------------- #
-            if self.dynamic_modulation is True:
+            if self.dynamic_modulation:
                 next_step_time = self.modulation_start_time + self.modulation_counter/self.modulation_step_freq
                 if next_step_time-time.perf_counter() < 0.00001:
                     # Moving forward
@@ -285,8 +286,7 @@ class HvpsDevice:
                         self.modulation_freq_state = 11
 
                     self.modulation_counter += 1
-            # -------------------------------------------------------------------------------------------------------------- #
-
+            # ----------------------------------------------------------------------------- #
             line = self._read_serial()
             if line.startswith("[moni]") and self.cont_reading is False:
                     waiting_for_answer = False
@@ -321,7 +321,7 @@ class HvpsDevice:
                         self.confirmed.set()
                         self.last_confirmation_match = ''
                         waiting_for_answer = False
-            elif time.perf_counter() - waiting_for_answer_time > 0.1:
+            elif time.perf_counter() - waiting_for_answer_time > 0.5:
                     print("Timeout waiting for answer")
                     waiting_for_answer = False
 
@@ -335,7 +335,7 @@ class HvpsDevice:
         self.read_samples = self.sample
         return data
 
-    def _wait_for_confirmation(self, match, timeout=0.1):
+    def _wait_for_confirmation(self, match, timeout=0.5):
         if not self.ser.is_open:
             return False
         self.last_confirmation_match = match
@@ -451,10 +451,12 @@ class HvpsDevice:
         if isinstance(channel, Iterable):
             # print("Multi channel")
             if phase_shift is not None:
-                # Dynamic with no modulation
+                # print("phase_shift is not None")
+                # Static with modulation
                 if isinstance(phase_shift, Iterable):
-                    # print("Dynamic with no modulation")
+                    # print("Static with modulation")
                     ph_shift1, ph_shift2, ph_shift3 = phase_shift
+                    # print(ph_shift1, ph_shift2, ph_shift3)
                     check_1 = 0 <= ph_shift1 <= 360
                     check_2 = 0 <= ph_shift2 <= 360
                     check_3 = 0 <= ph_shift3 <= 360
@@ -467,16 +469,13 @@ class HvpsDevice:
                     self.write(f"SMx 5 0\r")
                     return self._wait_for_confirmation("[SM5]")
                 # -------------------------------------------------------------------------------------------------------------- #
-                # Static with modulation
+                # Dynamic with no modulation
                 else:
-                    # print("Static with modulation")
-                    if not (0 <= phase_shift <= 360):
-                        print(f"[ERR] Phase shift range: [0 - 360] °")
-                        return False
-                    self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r")
+                    # print("Dynamic with no modulation")
+                    self.write(f"SMx 3 {channel_key} {freq} {pos_duty} 0 0 {phase_shift}\r") # DC=50%, ph_shift is 120 or 240
                     return self._wait_for_confirmation("[SM3]")
             # ------------------------------------------------------------------------------------------------------------------ #
-            # Dynamic with modulation
+            # Dynamic with modulation (not possible yet)
             else:
                 # print("Dynamic with modulation")
                 if not (0 <= step_freq <= 1000):
@@ -504,6 +503,6 @@ class HvpsDevice:
                 self.write(f"SMx 1 {channel_key} 1 100\r")
             # AC voltage
             else:
-                self.write(f"SMx 1 {channel_key} {freq} {pos_duty} 0 0 0\r")
+                self.write(f"SMx 1 {channel_key} {freq} {pos_duty} 0 0 0\r") # is not used in the program 
             return self._wait_for_confirmation("[SM1]")
 

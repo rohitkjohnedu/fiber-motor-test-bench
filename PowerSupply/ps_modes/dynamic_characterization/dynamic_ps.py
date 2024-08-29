@@ -58,19 +58,24 @@ class Thread(QThread):
             phase_shift_2 = 120
             duration_2 = self.t_forward
             direction_2 = "-----> Forward"
+
         if self.debug == 2:
             print("\n[INFO] Loop started.")
         for repetition in range(self.repetitions):
+            print(repetition)
             if self.stop_flag:
                 print("[INFO] Loop interrupted.\n----------------------")
                 break
             # ------------------------------------------------------------------------------------------- #
+            if repetition > 0:
+                self.device.hb_stop_multi()
             self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_1)
             if self.debug == 2:
                 print(direction_1)
             # ------------------------------------------------------------------------------------------- #
             time.sleep(duration_1)
             # ------------------------------------------------------------------------------------------- #
+            self.device.hb_stop_multi()
             self.device.hb_set(self.channels_keys, self.step_freq, self.step_duty, phase_shift_2)
             if self.debug == 2:
                 print(direction_2)
@@ -83,7 +88,7 @@ class Thread(QThread):
             self.finish.emit()
             if self.debug == 2:
                 print("[INFO] Loop finished.\n---------------------")
-
+            
     # **************************************************************************************************************** #
     
     def single_run(self):
@@ -397,6 +402,15 @@ class Dynamic_PS(QWidget):
                         repetitions = None
                         t_forward = None
                         t_backward = None
+
+                    # if direction == "Forward":
+                    #     phase_shift_1 = 120
+                    # elif direction == "Backward":
+                    #     phase_shift_1 = 240
+                    # self.device.hb_set(self.channels_keys, step_freq, step_duty, phase_shift_1, direction=direction, repetitions=repetitions,
+                    #        t_forward=t_forward, t_backward=t_backward)
+
+
                     # ------------------------------------------------------------------------------ #
                     if not self.run_thread or not self.run_thread.isRunning():
                         self.run_thread = Thread(self.device, self.channels_keys, step_freq, step_duty,
@@ -407,6 +421,7 @@ class Dynamic_PS(QWidget):
             else:
                 if self.run_thread and self.run_thread.isRunning():
                     self.run_thread.stop_flag = True
+
                     self.reset_command()
                     if self.debug == 2:
                         print("[INFO] Run interrupted.\n----------------------")

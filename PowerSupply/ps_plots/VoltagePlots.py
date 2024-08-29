@@ -41,7 +41,7 @@ class VoltagePlots(QWidget):
         self.display_index = display_index
         
         self.plotHistoryLength = 10#seconds
-        self.maxPlotHistoryLength = 100000#samples
+        self.maxPlotHistoryLength = 10000000#samples
         
         # Create a layout for the VoltagePlots widget:
         plot_layout = QHBoxLayout(self)

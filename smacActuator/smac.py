@@ -17,7 +17,7 @@ class Smac:
         try:
             self.serial_com_lock.acquire()
             self.ser.close()
-            self.ser = Serial(port=self.port_name, baudrate=self.baudrate, timeout=self.timeout,xonxoff=True)
+            self.ser = Serial(port=self.port_name, baudrate=self.baudrate, timeout=self.timeout, xonxoff=True)
         except Exception as e:
             print("Error opening serial port: %s" % e)
             return False
