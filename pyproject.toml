@@ -1,0 +1,11 @@
+[project]
+name = "actuator-test-bench"
+version = "1.0.0"
+requires-python = "==3.12.10"
+dependencies = [
+    "PyQt6",
+    "pyqtgraph",
+    "numpy",
+    "pyserial",
+    "pythonnet",
+]
