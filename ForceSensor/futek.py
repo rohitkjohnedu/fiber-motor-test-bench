@@ -109,7 +109,7 @@ class FutekSensor():
     """
     Class for reading Futek Force Sensor
     """
-    def __init__(self, serial_number="802078"):
+    def __init__(self, serial_number="725662"):
         """
         Init Class
 
