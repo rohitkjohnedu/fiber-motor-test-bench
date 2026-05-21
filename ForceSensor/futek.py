@@ -129,6 +129,8 @@ class FutekSensor():
         self.tare_register_value = 0
         self.firmware_version = 0
         self.board_type = 0
+        self.device_sn = ""
+        self.sensor_id = ""
         self.sensor_stiffness = 3962.63E3  # 3962 N/m 3962E3 mN/m
         self.taring_force = 0  # Taring initialization
         self.device_handle = None
@@ -163,6 +165,7 @@ class FutekSensor():
             self.serial_number = serial_number
         try:  # Try to connect from dll
             self.futek_dll.Open_Device_Connection(self.serial_number)
+            time.sleep(0.2)  # Wait for DeviceHandle to become valid
             # Return True if no error
             if not self.is_connected:  # If no exception but connection error
                 _error_display(f"Impossible to connect force sensor. \nDevice Error {self.futek_dll.DeviceStatus}")
@@ -172,8 +175,8 @@ class FutekSensor():
                 time.sleep(0.1)  # Pause
                 self._get_devices_parameters()  # Get device parameters
                 logging.info(f"Futek force sensor connected. Sensor capacity is {self.sensor_capacity:.1f} mN")
-        except:  # If exception
-            _error_display(f"Device Error {self.futek_dll.DeviceStatus} \nImpossible to connect force sensor.")
+        except Exception as exc:  # If exception
+            _error_display(f"Device Error {self.futek_dll.DeviceStatus} \nImpossible to connect force sensor.\n{exc}")
 
         return self.is_connected  # Returns connection state
     
@@ -264,6 +267,8 @@ class FutekSensor():
 
             self.firmware_version = self.futek_dll.Get_Firmware_Version(self.device_handle)
             self.board_type = self.futek_dll.Get_Type_of_Board(self.device_handle)
+            self.device_sn = self.serial_number
+            self.sensor_id = self.futek_dll.Get_Sensor_Identification_Number(self.device_handle)
             self.get_sensor_load()
             if error != "":  # If there is an error
                 _error_display(error)  # Print error in console

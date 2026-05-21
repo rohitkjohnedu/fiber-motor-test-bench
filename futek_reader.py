@@ -1,4 +1,4 @@
-"""Standalone FUTEK force sensor reader with COM port discovery and live plot."""
+"""Standalone FUTEK force sensor reader with live plot."""
 
 import sys
 import os
@@ -6,19 +6,29 @@ import time
 
 import numpy as np
 import pyqtgraph as pg
-import serial.tools.list_ports
 
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QGroupBox, QLineEdit,
-    QSizePolicy,
+    QTextEdit,
 )
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 PLOT_HISTORY_S = 10.0  # seconds of history shown in the live plot
 UPDATE_INTERVAL_MS = 100  # UI refresh interval
+
+DISPLAY_UNITS = {
+    "mN":  1.0,
+    "N":   1e-3,
+    "gf":  1.0 / 9.80665,
+    "lb":  1.0 / 4448.2216,
+}
+
+# Conversion factors from each unit to mN (inverse of DISPLAY_UNITS)
+CAPACITY_UNITS_TO_MN = {u: 1.0 / s for u, s in DISPLAY_UNITS.items()}
 
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -34,7 +44,10 @@ class FutekReaderWindow(QWidget):
         root = QVBoxLayout(self)
         root.setSpacing(8)
 
-        root.addWidget(self._build_connection_group())
+        top_row = QHBoxLayout()
+        top_row.addWidget(self._build_connection_group())
+        top_row.addWidget(self._build_registers_group(), stretch=1)
+        root.addLayout(top_row)
         root.addWidget(self._build_reading_group())
         root.addWidget(self._build_plot_widget(), stretch=1)
 
@@ -47,26 +60,12 @@ class FutekReaderWindow(QWidget):
         self._timer.setInterval(UPDATE_INTERVAL_MS)
         self._timer.timeout.connect(self._on_timer)
 
-        self._refresh_ports()
-
     # ── builders ──────────────────────────────────────────────────────────────
 
     def _build_connection_group(self) -> QGroupBox:
         group = QGroupBox("Connection")
         layout = QVBoxLayout(group)
         layout.setSpacing(6)
-
-        # COM port row (informational — shows what USB/serial devices are visible)
-        com_row = QHBoxLayout()
-        com_row.addWidget(QLabel("COM Port:"))
-        self.com_combo = QComboBox()
-        self.com_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        com_row.addWidget(self.com_combo, 1)
-        refresh_btn = QPushButton("Refresh")
-        refresh_btn.setFixedWidth(70)
-        refresh_btn.clicked.connect(self._refresh_ports)
-        com_row.addWidget(refresh_btn)
-        layout.addLayout(com_row)
 
         # FUTEK serial-number row
         sn_row = QHBoxLayout()
@@ -77,6 +76,27 @@ class FutekReaderWindow(QWidget):
         sn_row.addWidget(self.sn_edit)
         sn_row.addStretch()
         layout.addLayout(sn_row)
+
+        # Capacity override row
+        cap_row = QHBoxLayout()
+        cap_row.addWidget(QLabel("Capacity:"))
+        self.capacity_edit = QLineEdit()
+        self.capacity_edit.setPlaceholderText("auto")
+        self.capacity_edit.setFixedWidth(90)
+        self.capacity_edit.setToolTip(
+            "Auto-filled on connect. Override if the detected value is wrong\n"
+            "(e.g. IPM650 stores capacity in wrong units)."
+        )
+        self.capacity_edit.editingFinished.connect(self._on_capacity_edited)
+        cap_row.addWidget(self.capacity_edit)
+        self.capacity_unit_combo = QComboBox()
+        for u in CAPACITY_UNITS_TO_MN:
+            self.capacity_unit_combo.addItem(u)
+        self.capacity_unit_combo.setFixedWidth(60)
+        self.capacity_unit_combo.currentTextChanged.connect(self._on_capacity_edited)
+        cap_row.addWidget(self.capacity_unit_combo)
+        cap_row.addStretch()
+        layout.addLayout(cap_row)
 
         # Connect button
         self.connect_btn = QPushButton("Connect")
@@ -97,10 +117,16 @@ class FutekReaderWindow(QWidget):
         )
         layout.addWidget(self.force_label)
 
-        self.unit_label = QLabel("mN")
-        self.unit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.unit_label.setStyleSheet("font-size: 18px; color: #555;")
-        layout.addWidget(self.unit_label)
+        unit_row = QHBoxLayout()
+        unit_row.addStretch()
+        self.unit_combo = QComboBox()
+        for u in DISPLAY_UNITS:
+            self.unit_combo.addItem(u)
+        self.unit_combo.setFixedWidth(70)
+        self.unit_combo.currentTextChanged.connect(self._on_unit_changed)
+        unit_row.addWidget(self.unit_combo)
+        unit_row.addStretch()
+        layout.addLayout(unit_row)
 
         self.info_label = QLabel("")
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -115,29 +141,27 @@ class FutekReaderWindow(QWidget):
 
         return group
 
+    def _build_registers_group(self) -> QGroupBox:
+        group = QGroupBox("Device Registers")
+        layout = QVBoxLayout(group)
+        self.registers_display = QTextEdit()
+        self.registers_display.setReadOnly(True)
+        self.registers_display.setFont(QFont("Courier New", 9))
+        self.registers_display.setPlaceholderText("Connect to a device to see register values.")
+        layout.addWidget(self.registers_display)
+        return group
+
     def _build_plot_widget(self) -> QWidget:
         pg.setConfigOption("background", "w")
         pg.setConfigOption("foreground", "k")
 
         self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setLabel("left", "Force", units="mN")
+        self.plot_widget.setLabel("left", "Force", units=next(iter(DISPLAY_UNITS)))
         self.plot_widget.setLabel("bottom", "Time", units="s")
         self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
         self.plot_curve = self.plot_widget.plot(pen=pg.mkPen("#2196F3", width=2))
         self.plot_widget.setMinimumHeight(180)
         return self.plot_widget
-
-    # ── port discovery ────────────────────────────────────────────────────────
-
-    def _refresh_ports(self):
-        self.com_combo.clear()
-        ports = sorted(serial.tools.list_ports.comports(), key=lambda p: p.device)
-        if ports:
-            for p in ports:
-                label = f"{p.device}  —  {p.description}"
-                self.com_combo.addItem(label, p.device)
-        else:
-            self.com_combo.addItem("No serial ports found")
 
     # ── connection ────────────────────────────────────────────────────────────
 
@@ -169,18 +193,24 @@ class FutekReaderWindow(QWidget):
             self._set_status("Connection failed — check serial number and USB cable.", error=True)
             return
 
+        self._update_registers()
+
         self.sensor.start_recording()
         self._start_time = time.perf_counter()
         self._timer.start()
 
         self.connect_btn.setText("Disconnect")
         self.tare_btn.setEnabled(True)
+        self.capacity_edit.setText(f"{self.sensor.sensor_capacity:.4g}")
+        self.capacity_unit_combo.setCurrentText("mN")
         self._set_status(
-            f"Connected  |  Capacity: {self.sensor.sensor_capacity:.1f} mN"
+            f"Connected  |  IPM650 S/N: {self.sensor.device_sn}"
+            f"  |  Capacity: {self.sensor.sensor_capacity:.1f} mN"
             f"  |  FW: {self.sensor.firmware_version}"
         )
         self.info_label.setText(
-            f"S/N: {serial_number}   Capacity: {self.sensor.sensor_capacity:.1f} mN"
+            f"IPM650 S/N: {self.sensor.device_sn}   LRF400 S/N: {self.sensor.sensor_id}"
+            f"   Capacity: {self.sensor.sensor_capacity:.1f} mN"
         )
 
     def _disconnect(self):
@@ -193,6 +223,7 @@ class FutekReaderWindow(QWidget):
         self.tare_btn.setEnabled(False)
         self.force_label.setText("—")
         self.info_label.setText("")
+        self.registers_display.clear()
         self.plot_curve.setData([], [])
         self._set_status("Disconnected")
 
@@ -207,6 +238,67 @@ class FutekReaderWindow(QWidget):
 
     # ── live update ───────────────────────────────────────────────────────────
 
+    def _update_registers(self):
+        try:
+            from ForceSensor.futek import FUTEK_UNITS_CODE
+            s   = self.sensor
+            dll = s.futek_dll
+            h   = s.device_handle
+
+            reg5_raw = dll.Get_Internal_Register(h, 5)
+            reg6_raw = dll.Get_Internal_Register(h, 6)
+            reg5 = int(reg5_raw)
+            reg6 = int(reg6_raw)
+
+            dp = reg6 >> 16
+            uc = (reg6 & 0xFF00) >> 8
+            dc = reg6 & 0xFF
+            unit_name = FUTEK_UNITS_CODE[uc]["unit_name"] if uc in FUTEK_UNITS_CODE else "unknown"
+            conv      = FUTEK_UNITS_CODE[uc]["conversion_to_mN"] if uc in FUTEK_UNITS_CODE else 1.0
+            raw_cap   = reg5 * 10 ** (-dp)
+            cap_mn    = raw_cap * conv * (1 if dc else -1)
+
+            lines = [
+                f"{'Firmware:':<14}{s.firmware_version:<12}  {'Board type:':<14}{s.board_type}",
+                f"{'IPM650 S/N:':<14}{s.device_sn:<12}  {'Sensor ID:':<14}{s.sensor_id}",
+                "",
+                f"{'Register':<10}{'Value':>12}    Description",
+                "-" * 52,
+                f"{'Reg 1':<10}{s.tare_register_value:>12,.0f}    Tare register",
+                f"{'Reg 2':<10}{s.offset:>12,.0f}    Zero (offset)",
+                f"{'Reg 3':<10}{s.fullscale_value:>12,.0f}    Full scale",
+                f"{'Reg 5':<10}{reg5:>12,}    Capacity raw value",
+                f"{'Reg 6':<10}{reg6:>12,}    Capacity details:",
+                f"{'':10}{'':>12}      decimal_point = {dp}  (x 10^-{dp})",
+                f"{'':10}{'':>12}      unit_code     = {uc}  ({unit_name}, x{conv} mN)",
+                f"{'':10}{'':>12}      direction     = {dc}  ({'positive' if dc else 'negative'})",
+                "",
+                f"Computed: {reg5} x 10^-{dp} x {conv} = {cap_mn:.4g} mN",
+            ]
+            self.registers_display.setPlainText("\n".join(lines))
+        except Exception as exc:
+            self.registers_display.setPlainText(f"Error reading registers:\n{exc}")
+
+    def _on_capacity_edited(self):
+        text = self.capacity_edit.text().strip()
+        if not text or self.sensor is None:
+            return
+        try:
+            value = float(text)
+        except ValueError:
+            self.capacity_edit.setText(f"{self.sensor.sensor_capacity:.4g}")
+            return
+        unit = self.capacity_unit_combo.currentText()
+        capacity_mn = value * CAPACITY_UNITS_TO_MN[unit]
+        self.sensor.set_sensor_range(capacity_mn)
+        self.info_label.setText(
+            f"IPM650 S/N: {self.sensor.device_sn}   LRF400 S/N: {self.sensor.sensor_id}"
+            f"   Capacity: {value:.4g} {unit}  ({capacity_mn:.1f} mN)"
+        )
+
+    def _on_unit_changed(self, unit: str):
+        self.plot_widget.setLabel("left", "Force", units=unit)
+
     def _on_timer(self):
         if self.sensor is None or not self.sensor.is_connected:
             return
@@ -214,9 +306,11 @@ class FutekReaderWindow(QWidget):
         if self.sensor.sample < 1:
             return
 
+        scale = DISPLAY_UNITS[self.unit_combo.currentText()]
+
         # Current value display
-        force = self.sensor.get_current_force()
-        self.force_label.setText(f"{force:+.2f}")
+        force = self.sensor.get_current_force() * scale
+        self.force_label.setText(f"{force:+.4f}")
 
         # Plot update
         t_all, f_all = self.sensor.get_buffer()
@@ -225,7 +319,7 @@ class FutekReaderWindow(QWidget):
         t_rel = t_all - self._start_time
         t_last = t_rel[-1]
         mask = t_rel >= t_last - PLOT_HISTORY_S
-        self.plot_curve.setData(t_rel[mask], f_all[mask])
+        self.plot_curve.setData(t_rel[mask], f_all[mask] * scale)
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
