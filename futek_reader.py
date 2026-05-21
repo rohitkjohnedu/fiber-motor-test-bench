@@ -110,12 +110,25 @@ class FutekReaderWindow(QWidget):
         group = QGroupBox("Force Reading")
         layout = QVBoxLayout(group)
 
+        cap_style = "font-size: 52px; font-weight: bold; color: #e74c3c; padding: 0 8px;"
+        reading_row = QHBoxLayout()
+        self.cap_min_label = QLabel("—")
+        self.cap_min_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.cap_min_label.setStyleSheet(cap_style)
+        reading_row.addWidget(self.cap_min_label)
+
         self.force_label = QLabel("—")
         self.force_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.force_label.setStyleSheet(
             "font-size: 52px; font-weight: bold; color: #2196F3;"
         )
-        layout.addWidget(self.force_label)
+        reading_row.addWidget(self.force_label, stretch=1)
+
+        self.cap_max_label = QLabel("—")
+        self.cap_max_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.cap_max_label.setStyleSheet(cap_style)
+        reading_row.addWidget(self.cap_max_label)
+        layout.addLayout(reading_row)
 
         unit_row = QHBoxLayout()
         unit_row.addStretch()
@@ -203,6 +216,7 @@ class FutekReaderWindow(QWidget):
         self.tare_btn.setEnabled(True)
         self.capacity_edit.setText(f"{self.sensor.sensor_capacity:.4g}")
         self.capacity_unit_combo.setCurrentText("mN")
+        self._update_capacity_labels()
         self._set_status(
             f"Connected  |  IPM650 S/N: {self.sensor.device_sn}"
             f"  |  Capacity: {self.sensor.sensor_capacity:.1f} mN"
@@ -224,6 +238,7 @@ class FutekReaderWindow(QWidget):
         self.force_label.setText("—")
         self.info_label.setText("")
         self.registers_display.clear()
+        self._update_capacity_labels()
         self.plot_curve.setData([], [])
         self._set_status("Disconnected")
 
@@ -291,13 +306,26 @@ class FutekReaderWindow(QWidget):
         unit = self.capacity_unit_combo.currentText()
         capacity_mn = value * CAPACITY_UNITS_TO_MN[unit]
         self.sensor.set_sensor_range(capacity_mn)
+        self._update_capacity_labels()
         self.info_label.setText(
             f"IPM650 S/N: {self.sensor.device_sn}   LRF400 S/N: {self.sensor.sensor_id}"
             f"   Capacity: {value:.4g} {unit}  ({capacity_mn:.1f} mN)"
         )
 
+    def _update_capacity_labels(self):
+        if self.sensor is None:
+            self.cap_min_label.setText("—")
+            self.cap_max_label.setText("—")
+            return
+        scale = DISPLAY_UNITS[self.unit_combo.currentText()]
+        unit  = self.unit_combo.currentText()
+        cap   = self.sensor.sensor_capacity * scale
+        self.cap_min_label.setText(f"{-cap:.4g} {unit}")
+        self.cap_max_label.setText(f"+{cap:.4g} {unit}")
+
     def _on_unit_changed(self, unit: str):
         self.plot_widget.setLabel("left", "Force", units=unit)
+        self._update_capacity_labels()
 
     def _on_timer(self):
         if self.sensor is None or not self.sensor.is_connected:
@@ -310,7 +338,7 @@ class FutekReaderWindow(QWidget):
 
         # Current value display
         force = self.sensor.get_current_force() * scale
-        self.force_label.setText(f"{force:+.4f}")
+        self.force_label.setText(f"{force:+.4f} {self.unit_combo.currentText()}")
 
         # Plot update
         t_all, f_all = self.sensor.get_buffer()
