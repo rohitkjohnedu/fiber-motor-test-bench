@@ -17,8 +17,9 @@
 import sys
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QUrl
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QApplication, QPushButton,
-                                QTabWidget, QScrollArea, QMessageBox, QProgressBar, QDialog, QLabel)
-from PyQt6.QtGui import QDesktopServices
+                                QTabWidget, QScrollArea, QMessageBox, QProgressBar, QDialog, QLabel,
+                                QLineEdit, QTextEdit)
+from PyQt6.QtGui import QDesktopServices, QFont
 from pathlib import Path
 import time
 import os.path
@@ -104,11 +105,21 @@ class MainWindow(QWidget):
             self.power_supply = None # else no power supply
         # ------------------------------------------------------------------------------------------------------------ #
 
+        # FUTEK serial number field — created before instantiation so the constructor can use it
+        self.futek_sn_edit = QLineEdit("725662")
+        self.futek_sn_edit.setPlaceholderText("e.g. 725662")
+        self.futek_sn_edit.setFixedWidth(100)
+
         # FUTEK FORCE SENSOR (Load cell).
         if self.force_sensor_debug == 1: # if force sensor is connected
-            self.force_sensor = FutekSensor()
+            self.force_sensor = FutekSensor(serial_number=self.futek_sn_edit.text().strip())
         else:
             self.force_sensor = None # else no force sensor
+
+        # Read FUTEK registers once (must happen before start_recording() — DLL is not thread-safe)
+        self._futek_register_text = "Not connected."
+        if self.force_sensor_debug == 1 and self.force_sensor is not None:
+            self._futek_register_text = self._read_futek_registers()
         # ------------------------------------------------------------------------------------------------------------ #
 
         # ACTUATOR (Translation stage)
@@ -172,6 +183,22 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
         # Add the static and dynamic characterization tabs to the control panel.
         self.add_scroll_area_control() # add scroll area to the static and dynamic characterization tabs.
+
+        # FUTEK device serial number selector
+        futek_group = QGroupBox("FUTEK IPM650")
+        futek_group.setStyleSheet("font-weight: bold;")
+        futek_group_layout = QHBoxLayout(futek_group)
+        futek_sn_label = QLabel("Device S/N:")
+        futek_sn_label.setStyleSheet("font-weight: normal;")
+        futek_group_layout.addWidget(futek_sn_label)
+        futek_group_layout.addWidget(self.futek_sn_edit)
+        self.futek_apply_btn = QPushButton("Apply")
+        self.futek_apply_btn.setFixedWidth(60)
+        self.futek_apply_btn.setStyleSheet("font-weight: normal;")
+        self.futek_apply_btn.clicked.connect(self._apply_futek_sn)
+        futek_group_layout.addWidget(self.futek_apply_btn)
+        futek_group_layout.addStretch()
+        self.control_panel_layout.addWidget(futek_group)
 
         self.characterization_type = QTabWidget()
         self.characterization_type.addTab(self.scroll_area_static, 'Static Characterization')
@@ -240,7 +267,10 @@ class MainWindow(QWidget):
 
         # Add the plots to the monitoring layout.
         self.add_scroll_area_monitor() # add scroll area to the monitoring tab.
-        self.monitoring_groupBox_layout.addWidget(self.scroll_area_plots)
+        self.monitoring_tabs = QTabWidget()
+        self.monitoring_tabs.addTab(self.scroll_area_plots, "Graphs")
+        self.monitoring_tabs.addTab(self._build_raw_data_tab(), "Raw Data")
+        self.monitoring_groupBox_layout.addWidget(self.monitoring_tabs)
         # ------------------------------------------------------------------------------------------------------------ #
         self.main_layout.addLayout(self.monitoring_groupBox_layout, 1) # add the monitoring on the right side.
 
@@ -314,6 +344,8 @@ class MainWindow(QWidget):
                                            "font-weight: bold; "
                                            "font-size: 24px;"
                                            "position: center; ")
+            self.futek_sn_edit.setEnabled(False)
+            self.futek_apply_btn.setEnabled(False)
             # -------------------------------------------------------------------------------------------------------- #
             if self.characterization_type.currentIndex() == 0: # if static characterization is selected
                 self.do_static_characterization()
@@ -328,6 +360,8 @@ class MainWindow(QWidget):
                                        "font-weight: bold; "
                                        "font-size: 24px;"
                                        "position: center; ")
+            self.futek_sn_edit.setEnabled(True)
+            self.futek_apply_btn.setEnabled(True)
             # -------------------------------------------------------------------------------------------------------- #
             if self.characterization_type.currentIndex() == 0: # if static characterization is selected
                 self.stop_static_characterization()
@@ -558,6 +592,154 @@ class MainWindow(QWidget):
             self.force_plot.plot_update(self.start_time)
         if self.actuator_debug == 1:
             self.position_plot.plot_update(self.start_time)
+        if self.monitoring_tabs.currentIndex() == 1:
+            self._update_raw_data_tab()
+
+    # **************************************************************************************************************** #
+
+    def _apply_futek_sn(self):
+        if self.force_sensor_debug != 1 or self.force_sensor is None:
+            return
+        new_sn = self.futek_sn_edit.text().strip()
+        if not new_sn:
+            return
+        self.futek_apply_btn.setEnabled(False)
+        self.futek_apply_btn.setText("…")
+        QApplication.processEvents()
+
+        self.force_sensor.disconnect()
+        self.force_sensor.connect(serial_number=new_sn)
+
+        self._futek_register_text = self._read_futek_registers()
+        self.raw_futek_display.setPlainText(self._futek_register_text)
+
+        self.futek_apply_btn.setText("Apply")
+        self.futek_apply_btn.setEnabled(True)
+
+    def _read_futek_registers(self):
+        try:
+            from ForceSensor.futek import FUTEK_UNITS_CODE
+            s   = self.force_sensor
+            dll = s.futek_dll
+            h   = s.device_handle
+
+            reg5_raw = dll.Get_Internal_Register(h, 5)
+            reg6_raw = dll.Get_Internal_Register(h, 6)
+            reg5 = int(reg5_raw)
+            reg6 = int(reg6_raw)
+
+            dp = reg6 >> 16
+            uc = (reg6 & 0xFF00) >> 8
+            dc = reg6 & 0xFF
+            unit_name = FUTEK_UNITS_CODE[uc]["unit_name"] if uc in FUTEK_UNITS_CODE else "unknown"
+            conv      = FUTEK_UNITS_CODE[uc]["conversion_to_mN"] if uc in FUTEK_UNITS_CODE else 1.0
+            raw_cap   = reg5 * 10 ** (-dp)
+            cap_mn    = raw_cap * conv * (1 if dc else -1)
+
+            lines = [
+                f"{'Firmware:':<14}{s.firmware_version:<12}  {'Board type:':<14}{s.board_type}",
+                f"{'IPM650 S/N:':<14}{s.device_sn:<12}  {'Sensor ID:':<14}{s.sensor_id}",
+                "",
+                f"{'Register':<10}{'Value':>12}    Description",
+                "-" * 52,
+                f"{'Reg 1':<10}{s.tare_register_value:>12,.0f}    Tare register",
+                f"{'Reg 2':<10}{s.offset:>12,.0f}    Zero (offset)",
+                f"{'Reg 3':<10}{s.fullscale_value:>12,.0f}    Full scale",
+                f"{'Reg 5':<10}{reg5:>12,}    Capacity raw value",
+                f"{'Reg 6':<10}{reg6:>12,}    Capacity details:",
+                f"{'':10}{'':>12}      decimal_point = {dp}  (x 10^-{dp})",
+                f"{'':10}{'':>12}      unit_code     = {uc}  ({unit_name}, x{conv} mN)",
+                f"{'':10}{'':>12}      direction     = {dc}  ({'positive' if dc else 'negative'})",
+                "",
+                f"Computed: {reg5} x 10^-{dp} x {conv} = {cap_mn:.4g} mN",
+            ]
+            return "\n".join(lines)
+        except Exception as exc:
+            return f"Error reading FUTEK registers:\n{exc}"
+
+    def _build_raw_data_tab(self):
+        mono = QFont("Courier New", 9)
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setSpacing(8)
+
+        futek_box = QGroupBox("FUTEK IPM650")
+        futek_vl = QVBoxLayout(futek_box)
+        self.raw_futek_display = QTextEdit()
+        self.raw_futek_display.setReadOnly(True)
+        self.raw_futek_display.setFont(mono)
+        self.raw_futek_display.setPlainText(self._futek_register_text)
+        self.raw_futek_display.setMinimumHeight(200)
+        futek_vl.addWidget(self.raw_futek_display)
+        layout.addWidget(futek_box)
+
+        standa_box = QGroupBox("Standa Translation Stage")
+        standa_vl = QVBoxLayout(standa_box)
+        self.raw_standa_display = QTextEdit()
+        self.raw_standa_display.setReadOnly(True)
+        self.raw_standa_display.setFont(mono)
+        self.raw_standa_display.setPlaceholderText("No data yet — start recording.")
+        self.raw_standa_display.setFixedHeight(80)
+        standa_vl.addWidget(self.raw_standa_display)
+        layout.addWidget(standa_box)
+
+        hvps_box = QGroupBox("High Voltage Power Supply")
+        hvps_vl = QVBoxLayout(hvps_box)
+        self.raw_hvps_display = QTextEdit()
+        self.raw_hvps_display.setReadOnly(True)
+        self.raw_hvps_display.setFont(mono)
+        self.raw_hvps_display.setPlaceholderText("No data yet — start recording.")
+        self.raw_hvps_display.setFixedHeight(160)
+        hvps_vl.addWidget(self.raw_hvps_display)
+        layout.addWidget(hvps_box)
+
+        layout.addStretch()
+
+        scroll = QScrollArea()
+        scroll.setWidget(container)
+        scroll.setWidgetResizable(True)
+        return scroll
+
+    def _update_raw_data_tab(self):
+        if self.force_sensor_debug == 1 and self.force_sensor is not None:
+            try:
+                t, f = self.force_sensor.get_buffer()
+                if len(f) > 0:
+                    self.raw_futek_display.setPlainText(
+                        self._futek_register_text + f"\n\nLive Force:  {f[-1]:+.4f} mN"
+                    )
+            except Exception:
+                pass
+
+        if self.actuator_debug == 1 and self.actuator is not None:
+            try:
+                t, pos, spd = self.actuator.get_buffer()
+                if len(pos) > 0:
+                    lines = [
+                        f"{'Position:':<14}{pos[-1]:>10.4f}  mm",
+                        f"{'Speed:':<14}{spd[-1]:>10.4f}  mm/s",
+                    ]
+                    self.raw_standa_display.setPlainText("\n".join(lines))
+            except Exception:
+                pass
+
+        if self.power_supply_debug == 1 and self.power_supply is not None:
+            try:
+                data = self.power_supply.get_buffer()
+                if len(data) > 0:
+                    r = data[-1]
+                    lines = [
+                        f"{'HV set:':<16}{r[2]:>10.2f}  V    {'HV measured:':<16}{r[3]:>10.2f}  V    err: {r[4]:+.2f} V",
+                        f"{'LV set:':<16}{r[5]:>10.2f}  V    {'LV measured:':<16}{r[6]:>10.2f}  V    err: {r[7]:+.2f} V",
+                        "",
+                        f"{'Current W1:':<16}{r[8]*1000:>10.4f}  mA",
+                        f"{'Current W2:':<16}{r[9]*1000:>10.4f}  mA",
+                        f"{'Current W3:':<16}{r[10]*1000:>10.4f}  mA",
+                    ]
+                    self.raw_hvps_display.setPlainText("\n".join(lines))
+            except Exception:
+                pass
 
     # **************************************************************************************************************** #
 
