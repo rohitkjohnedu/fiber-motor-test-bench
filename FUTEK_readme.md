@@ -1,0 +1,1 @@
+Apparently, the unit used to display the sensor reading the IPM650 is the unit corresponding to the unit_code register send to the USB
