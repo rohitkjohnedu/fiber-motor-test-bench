@@ -694,6 +694,10 @@ class StaticMode(QWidget):
             new_power_supply_data = self.power_supply.get_new_data()
         if self.force_sensor_debug == 1:
             new_force_sensor_data = self.force_sensor.get_new_data()
+        has_sensor2 = (self.force_sensor2 is not None and self.force_sensor2.is_connected
+                       and self.force_sensor2.sample > 0)
+        if has_sensor2:
+            new_force_sensor2_data = self.force_sensor2.get_new_data()
         if self.actuator_debug == 1:
             new_actuator_data = self.actuator.get_new_data()
             
@@ -711,6 +715,10 @@ class StaticMode(QWidget):
 
             interpolation_time = np.arange(interpolation_start_time, self.interpolation_stop_time, 1/self.sample_rate)
             interpolated_force_sensor_data = np.interp(interpolation_time, new_force_sensor_data[:, 0], new_force_sensor_data[:, 1])
+            if has_sensor2 and len(new_force_sensor2_data) > 0:
+                interpolated_force_sensor2_data = np.interp(interpolation_time, new_force_sensor2_data[:, 0], new_force_sensor2_data[:, 1])
+            else:
+                interpolated_force_sensor2_data = np.full(len(interpolation_time), np.nan)
             interpolated_actuator_pos = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 1])
             interpolated_actuator_speed = np.interp(interpolation_time, new_actuator_data[:, 0], new_actuator_data[:, 2])
             interpolated_power_supply_data = np.zeros((len(interpolation_time), 11))
@@ -720,7 +728,8 @@ class StaticMode(QWidget):
             # aquired data
             abs_time_s = interpolation_time
             rel_time_s = abs_time_s - self.start_time
-            force_mN = interpolated_force_sensor_data
+            force_mN  = interpolated_force_sensor_data
+            force2_mN = interpolated_force_sensor2_data
             position_mm = interpolated_actuator_pos
             speed_mm_s = interpolated_actuator_speed
             hv_set_kV = interpolated_power_supply_data[:,2]
@@ -776,11 +785,11 @@ class StaticMode(QWidget):
                             state = np.full(len(interpolation_time), '-', dtype='<U32')
                     # ------------------------------------------------------------------------------------------------ #
                     dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
-                            ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
+                            ('force_mN', '<f8'), ('force2_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
                             ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
                             # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
                             ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
-                    
+
                     if self.state_index >= 6:
                         if self.power_supply_control.set_button.text() == 'Reset': 
                             new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
@@ -794,7 +803,8 @@ class StaticMode(QWidget):
                     save_data['state'] = state
                     save_data['abs_time_s'] = abs_time_s
                     save_data['rel_time_s'] = rel_time_s
-                    save_data['force_mN'] = force_mN
+                    save_data['force_mN']  = force_mN
+                    save_data['force2_mN'] = force2_mN
                     save_data['position_mm'] = position_mm
                     save_data['speed_mm_s'] = speed_mm_s
                     save_data['hv_set_kV'] = hv_set_kV
@@ -815,7 +825,7 @@ class StaticMode(QWidget):
                     # ------------------------------------------------------------------------------------------------ #
                     with open(self.temp_file_name, 'ab') as t:
                         fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
-                        fmt += '% 4.6f, %4.3f, %.1f, ' # force_mN, position_mm, speed_mm_s
+                        fmt += '% 4.6f, % 4.6f, %4.3f, %.1f, ' # force_mN, force2_mN, position_mm, speed_mm_s
                         fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
                         # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
                         fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
@@ -858,7 +868,7 @@ class StaticMode(QWidget):
                         # ----------------------------------------------------------------------------------------------------------------- #
                         final_file.write('\n----------------------Data_Info---------------------------\n\n')
                         final_file.write(f'state, abs. t (s), rel. t (s), '
-                                        f'F (mN), p (mm), v (mm/s), '
+                                        f'F1 (mN), F2 (mN), p (mm), v (mm/s), '
                                         f'hv_set (kV), hv_vm (kV), hv_err (V), '
                                         #  f'lv_set (V), lv_vm (V), lv_err (V), '
                                         f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)')
@@ -902,11 +912,11 @@ class StaticMode(QWidget):
                         ph3 = np.full(len(interpolation_time), '-', dtype='<U32')
                 # ------------------------------------------------------------------------------------------------ #
                 dtype = [('state', '<U32'), ('abs_time_s', '<f8'), ('rel_time_s', '<f8'),
-                        ('force_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
+                        ('force_mN', '<f8'), ('force2_mN', '<f8'), ('position_mm', '<f8'), ('speed_mm_s', '<f8'),
                         ('hv_set_kV', '<f8'), ('hv_vm_kV', '<f8'), ('hv_err_V', '<f8'),
                         # ('lv_set_V', '<f8'), ('lv_vm_V', '<f8'), ('lv_err_V', '<f8'),
                         ('cm_w1_uA', '<f8'), ('cm_w2_uA', '<f8'), ('cm_w3_uA', '<f8')]
-                
+
                 if self.power_supply_control.modulation_opt.isChecked():
                     new_elements = [('freq_Hz', '<f8'), ('duty_cycle_%', '<f8'),
                                         ('ph1_deg', '<U32'), ('ph2_deg', '<U32'), ('ph3_deg', '<U32')]
@@ -916,7 +926,8 @@ class StaticMode(QWidget):
                 save_data['state'] = state
                 save_data['abs_time_s'] = abs_time_s
                 save_data['rel_time_s'] = rel_time_s
-                save_data['force_mN'] = force_mN
+                save_data['force_mN']  = force_mN
+                save_data['force2_mN'] = force2_mN
                 save_data['position_mm'] = position_mm
                 save_data['speed_mm_s'] = speed_mm_s
                 save_data['hv_set_kV'] = hv_set_kV
@@ -983,7 +994,7 @@ class StaticMode(QWidget):
                         # ------------------------------------------------------------------------------------------------ #
                         final_file.write('\n----------------------Data_Info---------------------------\n\n')
                         final_file.write(f'state, abs. t (s), rel. t (s), '
-                                         f'F (mN), x (mm), v_set (mm/s), '
+                                         f'F1 (mN), F2 (mN), x (mm), v_set (mm/s), '
                                          f'hv_set (V), hv_vm (V), hv_err (V), '
                                          #  f'lv_set (V), lv_vm (V), lv_err (V), '
                                          f'cm_w1 (uA), cm_w2 (uA), cm_w3 (uA)')
@@ -996,7 +1007,7 @@ class StaticMode(QWidget):
                         # ------------------------------------------------------------------------------------------------ #
                 with open(file_name, 'ab') as f:
                     fmt = '%s, %.8f, %.4f, ' # state, abs_time_s, rel_time_s
-                    fmt += '% 4.6f, %4.3f, %.1f, ' # force_mN, position_mm, speed_mm_s
+                    fmt += '% 4.6f, % 4.6f, %4.3f, %.1f, ' # force_mN, force2_mN, position_mm, speed_mm_s
                     fmt += '%5.1f, %5.1f, % 5.1f, ' # hv_set_kV, hv_vm_kV, hv_err_V
                     # fmt += '% 3.2f, % 3.2f, % 3.2f, ' # lv_set_V, lv_vm_V, lv_err_V
                     fmt += '% 3.1f, % 3.1f, % 3.1f' # cm_w1_uA, cm_w2_uA, cm_w3_uA
