@@ -475,7 +475,7 @@ class StaticMode(QWidget):
     # ************************************************************************************************************ #
 
     def run_static(self):
-        self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a str
+        self.formatted_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # Get the current date and time as a str
         self.zero_step_flag = 0
         self.out_of_range_volt_flag = 0
         self.zero_step_volt_flag = 0
@@ -681,7 +681,7 @@ class StaticMode(QWidget):
 
     def start_indiv_rcd(self):
         if self.auto_mode_toggle.isChecked() == False: # Manual mode
-            self.formatted_time = datetime.now().strftime('%H-%M-%S_%d-%m-%Y')  # Get the current date and time as a string
+            self.formatted_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # Get the current date and time as a string
         self.start_time = time.perf_counter()
         self.timer.start(self.plot_interval)
 
