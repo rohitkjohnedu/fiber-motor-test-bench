@@ -433,40 +433,59 @@ class FutekSensor():
 ############################################################################################################
 
 class ForcePlot(QWidget):
-    """Widget for plotting the Force sensor"""
-    def __init__(self, force_sensor_object: FutekSensor=None):
+    """Widget for plotting one or two force sensors on a shared axis."""
+    def __init__(self, force_sensor_object: FutekSensor=None, force_sensor2: FutekSensor=None):
         """
-        :param force_sensor_object: Force sensor object to display
+        :param force_sensor_object: Primary force sensor (blue curve)
+        :param force_sensor2: Optional secondary force sensor (red curve)
         """
         super(ForcePlot, self).__init__()
         self.futek_sensor = force_sensor_object
+        self.futek_sensor2 = force_sensor2
 
         self.plotHistoryLength = 10 #s
         self.maxPlotHistoryLength = 10000000 #samples
-        
+
         plot_layout = QHBoxLayout(self)
         plot_widget = pg.PlotWidget(self)
         force_plot = plot_widget.plotItem
         force_plot.setTitle("Force", bold=True)
         force_plot.setLabel('left', 'Force', units='N')
         force_plot.setLabel('bottom', 'Time', units='s')
-        self.force_plot = force_plot.plot()
+        force_plot.addLegend()
+        self.force_plot  = force_plot.plot(pen=pg.mkPen('b', width=2), name='Sensor 1')
+        self.force_plot2 = force_plot.plot(pen=pg.mkPen('r', width=2), name='Sensor 2')
         plot_layout.addWidget(plot_widget)
 
     # ************************************************************************************************** #
 
+    def set_sensor2(self, sensor: FutekSensor) -> None:
+        self.futek_sensor2 = sensor
+
     def plot_update(self, start_time):
-        if self.futek_sensor.is_connected:
+        if self.futek_sensor is not None and self.futek_sensor.is_connected:
             epoch_time_force, force = self.futek_sensor.get_buffer()
             tplot = epoch_time_force - start_time
 
             if len(tplot) > self.maxPlotHistoryLength:
-                    tplot = tplot[-self.maxPlotHistoryLength:]
-                    force = force[-self.maxPlotHistoryLength:]
+                tplot = tplot[-self.maxPlotHistoryLength:]
+                force = force[-self.maxPlotHistoryLength:]
 
-            if len(tplot)>0:
-                use = tplot>tplot[-1]-self.plotHistoryLength
-                self.force_plot.setData(tplot[use], force[use]/1000.0)
+            if len(tplot) > 0:
+                use = tplot > tplot[-1] - self.plotHistoryLength
+                self.force_plot.setData(tplot[use], force[use] / 1000.0)
+
+        if self.futek_sensor2 is not None and self.futek_sensor2.is_connected:
+            epoch_time_force2, force2 = self.futek_sensor2.get_buffer()
+            tplot2 = epoch_time_force2 - start_time
+
+            if len(tplot2) > self.maxPlotHistoryLength:
+                tplot2 = tplot2[-self.maxPlotHistoryLength:]
+                force2 = force2[-self.maxPlotHistoryLength:]
+
+            if len(tplot2) > 0:
+                use2 = tplot2 > tplot2[-1] - self.plotHistoryLength
+                self.force_plot2.setData(tplot2[use2], force2[use2] / 1000.0)
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length

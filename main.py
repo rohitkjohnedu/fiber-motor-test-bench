@@ -105,10 +105,14 @@ class MainWindow(QWidget):
             self.power_supply = None # else no power supply
         # ------------------------------------------------------------------------------------------------------------ #
 
-        # FUTEK serial number field — created before instantiation so the constructor can use it
+        # FUTEK serial number fields — created before instantiation so the constructor can use them
         self.futek_sn_edit = QLineEdit("725662")
         self.futek_sn_edit.setPlaceholderText("e.g. 725662")
         self.futek_sn_edit.setFixedWidth(100)
+
+        self.futek_sn2_edit = QLineEdit("")
+        self.futek_sn2_edit.setPlaceholderText("e.g. optional")
+        self.futek_sn2_edit.setFixedWidth(100)
 
         # FUTEK FORCE SENSOR (Load cell).
         if self.force_sensor_debug == 1: # if force sensor is connected
@@ -116,10 +120,19 @@ class MainWindow(QWidget):
         else:
             self.force_sensor = None # else no force sensor
 
+        # Second force sensor — only created if a serial number is specified at startup.
+        self.force_sensor2 = None
+        _sn2 = self.futek_sn2_edit.text().strip()
+        if self.force_sensor_debug == 1 and _sn2:
+            self.force_sensor2 = FutekSensor(serial_number=_sn2)
+
         # Read FUTEK registers once (must happen before start_recording() — DLL is not thread-safe)
         self._futek_register_text = "Not connected."
+        self._futek_register2_text = "Not connected."
         if self.force_sensor_debug == 1 and self.force_sensor is not None:
             self._futek_register_text = self._read_futek_registers()
+        if self.force_sensor_debug == 1 and self.force_sensor2 is not None:
+            self._futek_register2_text = self._read_futek_registers(self.force_sensor2)
         # ------------------------------------------------------------------------------------------------------------ #
 
         # ACTUATOR (Translation stage)
@@ -133,7 +146,7 @@ class MainWindow(QWidget):
         self.voltage_plot = VoltagePlots(self.power_supply, plot_title='Voltage', y_hv_max=4500,
                                          y_lv_max=12, display_index=self.display_voltages)
         self.current_plot = CurrentPlots(self.power_supply, plot_title='Current', y_max=0.001)
-        self.force_plot = ForcePlot(self.force_sensor)
+        self.force_plot = ForcePlot(self.force_sensor, self.force_sensor2)
         self.position_plot = PositionPlot(self.actuator)
         # ------------------------------------------------------------------------------------------------------------ #
 
@@ -184,20 +197,37 @@ class MainWindow(QWidget):
         # Add the static and dynamic characterization tabs to the control panel.
         self.add_scroll_area_control() # add scroll area to the static and dynamic characterization tabs.
 
-        # FUTEK device serial number selector
+        # FUTEK device serial number selector (two sensors)
         futek_group = QGroupBox("FUTEK IPM650")
         futek_group.setStyleSheet("font-weight: bold;")
-        futek_group_layout = QHBoxLayout(futek_group)
-        futek_sn_label = QLabel("Device S/N:")
-        futek_sn_label.setStyleSheet("font-weight: normal;")
-        futek_group_layout.addWidget(futek_sn_label)
-        futek_group_layout.addWidget(self.futek_sn_edit)
+        futek_group_layout = QVBoxLayout(futek_group)
+
+        sn1_row = QHBoxLayout()
+        futek_sn1_label = QLabel("Sensor 1 S/N:")
+        futek_sn1_label.setStyleSheet("font-weight: normal;")
+        sn1_row.addWidget(futek_sn1_label)
+        sn1_row.addWidget(self.futek_sn_edit)
         self.futek_apply_btn = QPushButton("Apply")
         self.futek_apply_btn.setFixedWidth(60)
         self.futek_apply_btn.setStyleSheet("font-weight: normal;")
         self.futek_apply_btn.clicked.connect(self._apply_futek_sn)
-        futek_group_layout.addWidget(self.futek_apply_btn)
-        futek_group_layout.addStretch()
+        sn1_row.addWidget(self.futek_apply_btn)
+        sn1_row.addStretch()
+        futek_group_layout.addLayout(sn1_row)
+
+        sn2_row = QHBoxLayout()
+        futek_sn2_label = QLabel("Sensor 2 S/N:")
+        futek_sn2_label.setStyleSheet("font-weight: normal;")
+        sn2_row.addWidget(futek_sn2_label)
+        sn2_row.addWidget(self.futek_sn2_edit)
+        self.futek_apply2_btn = QPushButton("Apply")
+        self.futek_apply2_btn.setFixedWidth(60)
+        self.futek_apply2_btn.setStyleSheet("font-weight: normal;")
+        self.futek_apply2_btn.clicked.connect(self._apply_futek_sn2)
+        sn2_row.addWidget(self.futek_apply2_btn)
+        sn2_row.addStretch()
+        futek_group_layout.addLayout(sn2_row)
+
         self.control_panel_layout.addWidget(futek_group)
 
         self.characterization_type = QTabWidget()
@@ -314,6 +344,8 @@ class MainWindow(QWidget):
             self.power_supply.start_recording()
         if self.force_sensor_debug == 1:
             self.force_sensor.start_recording()
+            if self.force_sensor2 is not None:
+                self.force_sensor2.start_recording()
         if self.actuator_debug == 1:
             self.actuator.start_recording()
 
@@ -329,6 +361,8 @@ class MainWindow(QWidget):
             self.power_supply.stop_recording()
         if self.force_sensor_debug == 1:
             self.force_sensor.stop_recording()
+            if self.force_sensor2 is not None:
+                self.force_sensor2.stop_recording()
         if self.actuator_debug == 1:
             self.actuator.stop_recording()
 
@@ -346,6 +380,8 @@ class MainWindow(QWidget):
                                            "position: center; ")
             self.futek_sn_edit.setEnabled(False)
             self.futek_apply_btn.setEnabled(False)
+            self.futek_sn2_edit.setEnabled(False)
+            self.futek_apply2_btn.setEnabled(False)
             # -------------------------------------------------------------------------------------------------------- #
             if self.characterization_type.currentIndex() == 0: # if static characterization is selected
                 self.do_static_characterization()
@@ -362,6 +398,8 @@ class MainWindow(QWidget):
                                        "position: center; ")
             self.futek_sn_edit.setEnabled(True)
             self.futek_apply_btn.setEnabled(True)
+            self.futek_sn2_edit.setEnabled(True)
+            self.futek_apply2_btn.setEnabled(True)
             # -------------------------------------------------------------------------------------------------------- #
             if self.characterization_type.currentIndex() == 0: # if static characterization is selected
                 self.stop_static_characterization()
@@ -616,10 +654,34 @@ class MainWindow(QWidget):
         self.futek_apply_btn.setText("Apply")
         self.futek_apply_btn.setEnabled(True)
 
-    def _read_futek_registers(self):
+    def _apply_futek_sn2(self):
+        if self.force_sensor_debug != 1:
+            return
+        new_sn = self.futek_sn2_edit.text().strip()
+        if not new_sn:
+            return
+        self.futek_apply2_btn.setEnabled(False)
+        self.futek_apply2_btn.setText("…")
+        QApplication.processEvents()
+
+        if self.force_sensor2 is not None:
+            self.force_sensor2.disconnect()
+            self.force_sensor2.connect(serial_number=new_sn)
+        else:
+            self.force_sensor2 = FutekSensor(serial_number=new_sn)
+            self.force_plot.set_sensor2(self.force_sensor2)
+
+        self._futek_register2_text = self._read_futek_registers(self.force_sensor2)
+
+        self.futek_apply2_btn.setText("Apply")
+        self.futek_apply2_btn.setEnabled(True)
+
+    def _read_futek_registers(self, sensor=None):
+        if sensor is None:
+            sensor = self.force_sensor
         try:
             from ForceSensor.futek import FUTEK_UNITS_CODE
-            s   = self.force_sensor
+            s   = sensor
             dll = s.futek_dll
             h   = s.device_handle
 
@@ -705,9 +767,19 @@ class MainWindow(QWidget):
         if self.force_sensor_debug == 1 and self.force_sensor is not None:
             try:
                 t, f = self.force_sensor.get_buffer()
+                s2_line = ""
+                if self.force_sensor2 is not None and self.force_sensor2.is_connected:
+                    try:
+                        _, f2 = self.force_sensor2.get_buffer()
+                        if len(f2) > 0:
+                            s2_line = f"\nSensor 2 Live Force:  {f2[-1]:+.4f} mN"
+                    except Exception:
+                        pass
                 if len(f) > 0:
                     self.raw_futek_display.setPlainText(
-                        self._futek_register_text + f"\n\nLive Force:  {f[-1]:+.4f} mN"
+                        self._futek_register_text
+                        + f"\n\nSensor 1 Live Force:  {f[-1]:+.4f} mN"
+                        + s2_line
                     )
             except Exception:
                 pass
@@ -753,6 +825,8 @@ class MainWindow(QWidget):
                 self.power_supply.disconnect()
             if self.force_sensor_debug == 1: # if force sensor is connected
                 self.force_sensor.disconnect()
+                if self.force_sensor2 is not None:
+                    self.force_sensor2.disconnect()
             if self.actuator_debug == 1: # if actuator is connected
                 self.actuator.disconnect()
             event.accept()
