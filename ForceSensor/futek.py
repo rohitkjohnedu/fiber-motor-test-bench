@@ -109,6 +109,10 @@ class FutekSensor():
     """
     Class for reading Futek Force Sensor
     """
+    # Serialises every DLL call across all instances — the FUTEK USB DLL is not
+    # safe for concurrent access even from separate USB_DLL() objects.
+    dll_lock: RLock = RLock()
+
     def __init__(self, serial_number="725662"):
         """
         Init Class
@@ -144,6 +148,7 @@ class FutekSensor():
         self.read_samples = 0
 
         self.continuous_reading_flag = False
+        self._connected = False  # Tracks our own connection state independently of DLL global state.
 
         self.reading_thread = Thread(target=self._read_device)
         self.reading_thread_lock = RLock()  # Lock for multithreading
@@ -152,7 +157,9 @@ class FutekSensor():
 
     @property
     def is_connected(self):
-        return self.futek_dll.DeviceStatus == 0 and self.futek_dll.DeviceHandle.ToInt64() > 0
+        # Use our own flag rather than futek_dll.DeviceStatus / DeviceHandle, because those
+        # are DLL-global state that gets overwritten when a second USB_DLL instance connects.
+        return self._connected
 
     def connect(self, serial_number=None):
         """
@@ -164,15 +171,19 @@ class FutekSensor():
         if serial_number is not None:
             self.serial_number = serial_number
         try:  # Try to connect from dll
-            self.futek_dll.Open_Device_Connection(self.serial_number)
+            with FutekSensor.dll_lock:
+                self.futek_dll.Open_Device_Connection(self.serial_number)
             time.sleep(0.2)  # Wait for DeviceHandle to become valid
-            # Return True if no error
-            if not self.is_connected:  # If no exception but connection error
+            with FutekSensor.dll_lock:
+                dll_ok = self.futek_dll.DeviceStatus == 0 and self.futek_dll.DeviceHandle.ToInt64() > 0
+                handle  = self.futek_dll.DeviceHandle if dll_ok else None
+            if not dll_ok:  # If no exception but connection error
                 _error_display(f"Impossible to connect force sensor. \nDevice Error {self.futek_dll.DeviceStatus}")
                 self.device_handle = ""  # Handle is empty
-            else:  # Otherwise, if forse sensor connected
-                self.device_handle = self.futek_dll.DeviceHandle  # Get device Handle
+            else:  # Otherwise, if force sensor connected
+                self.device_handle = handle
                 time.sleep(0.1)  # Pause
+                self._connected = True  # Must be set before _get_devices_parameters(), which checks is_connected.
                 self._get_devices_parameters()  # Get device parameters
                 logging.info(f"Futek force sensor connected. Sensor capacity is {self.sensor_capacity:.1f} mN")
         except Exception as exc:  # If exception
@@ -184,10 +195,12 @@ class FutekSensor():
         """
         Disconnect force sensor
         """
+        self._connected = False
         self.stop_recording()  # Stop continuous reading thread
         # Calling Dll close method
         if self.device_handle:
-            self.futek_dll.Close_Device_Connection(self.device_handle)
+            with FutekSensor.dll_lock:
+                self.futek_dll.Close_Device_Connection(self.device_handle)
         return self.is_connected
 
     def get_sensor_load(self):
@@ -197,9 +210,11 @@ class FutekSensor():
         :return: Sensor capacity in mN
         :type: float
         """
-        sensor_capacity_register = self.futek_dll.Get_Internal_Register(self.device_handle, 5)
+        with FutekSensor.dll_lock:
+            sensor_capacity_register = self.futek_dll.Get_Internal_Register(self.device_handle, 5)
         sensor_capacity_register = np.float64(sensor_capacity_register)
-        sensor_capacity_register_details = self.futek_dll.Get_Internal_Register(self.device_handle, 6)
+        with FutekSensor.dll_lock:
+            sensor_capacity_register_details = self.futek_dll.Get_Internal_Register(self.device_handle, 6)
         sensor_capacity_register_details = int(sensor_capacity_register_details)
 
         decimal_point_code = sensor_capacity_register_details >> 16
@@ -230,7 +245,8 @@ class FutekSensor():
             initial_time = time.perf_counter()  # Start counting for timeout
             error = ""
             while True:  # Try to read fullscale value
-                fullscale_value = self.futek_dll.Get_Fullscale_Value(self.device_handle)
+                with FutekSensor.dll_lock:
+                    fullscale_value = self.futek_dll.Get_Fullscale_Value(self.device_handle)
                 if fullscale_value.isnumeric():  # If the return is numeric (i.e. correct)
                     self.fullscale_value = np.float64(fullscale_value)  # It is saved
                     break  # Quitting the reading process
@@ -243,7 +259,8 @@ class FutekSensor():
 
             initial_time = time.perf_counter()  # Reset clock for timeout
             while True:  # Try to read offset value
-                offset = self.futek_dll.Get_Offset_Value(self.device_handle)  # Call Dll function
+                with FutekSensor.dll_lock:
+                    offset = self.futek_dll.Get_Offset_Value(self.device_handle)  # Call Dll function
                 if offset.isnumeric():  # If the return value is correct
                     self.offset = np.float64(offset)  # Save the value
                     break  # Stop trying to read
@@ -255,7 +272,8 @@ class FutekSensor():
 
             initial_time = time.perf_counter()  # Reset clock for timeout
             while True:  # Try to read tare register value
-                tare_register_value = self.futek_dll.Get_Internal_Register(self.device_handle, 1)
+                with FutekSensor.dll_lock:
+                    tare_register_value = self.futek_dll.Get_Internal_Register(self.device_handle, 1)
                 if tare_register_value.isnumeric():  # If the return value is correct
                     self.tare_register_value = np.float64(tare_register_value)  # Save the value
                     break  # Stop trying to read
@@ -265,10 +283,11 @@ class FutekSensor():
                         error += "Force sensor error : tare register reading timeout\n"  # Add error to the error string
                         break  # Stop trying to get the tare value
 
-            self.firmware_version = self.futek_dll.Get_Firmware_Version(self.device_handle)
-            self.board_type = self.futek_dll.Get_Type_of_Board(self.device_handle)
-            self.device_sn = self.serial_number
-            self.sensor_id = self.futek_dll.Get_Sensor_Identification_Number(self.device_handle)
+            with FutekSensor.dll_lock:
+                self.firmware_version = self.futek_dll.Get_Firmware_Version(self.device_handle)
+                self.board_type = self.futek_dll.Get_Type_of_Board(self.device_handle)
+                self.device_sn = self.serial_number
+                self.sensor_id = self.futek_dll.Get_Sensor_Identification_Number(self.device_handle)
             self.get_sensor_load()
             if error != "":  # If there is an error
                 _error_display(error)  # Print error in console
@@ -368,7 +387,12 @@ class FutekSensor():
         """
         while self.continuous_reading_flag:  # If flag for stoping data acquisition is not true
             if self.is_connected:  # If connected to force sensor
-                reading = self.futek_dll.Normal_Data_Request(self.device_handle)  # Read current value
+                try:
+                    with FutekSensor.dll_lock:
+                        reading = self.futek_dll.Normal_Data_Request(self.device_handle)  # Read current value
+                except Exception:
+                    time.sleep(0.01)
+                    continue
                 if reading.isnumeric():  # If the value is valid
                     current_time = time.perf_counter()  # Get corresponding reading time
                     raw_force = np.float64(reading) - self.tare_register_value  # Update raw data
