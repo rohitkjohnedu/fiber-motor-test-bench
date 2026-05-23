@@ -108,7 +108,7 @@ class StaticMode(QWidget):
     stop_recording = pyqtSignal()
     finished = pyqtSignal()
     
-    def __init__(self, power_supply=None, force_sensor=None, actuator=None, debug=1, parent=None):
+    def __init__(self, power_supply=None, force_sensor=None, actuator=None, debug=1, force_sensor2=None, parent=None):
         QWidget.__init__(self, parent=parent)
 
         # Event to stop the data recording.
@@ -117,6 +117,7 @@ class StaticMode(QWidget):
         # Components.
         self.power_supply = power_supply
         self.force_sensor = force_sensor
+        self.force_sensor2 = force_sensor2
         self.actuator = actuator
 
         # Debugging flags.
@@ -612,6 +613,8 @@ class StaticMode(QWidget):
             # ---------------------------------------------------------------------------------------------------- #
             # Algorithm for the "Force vs Position" experiment.
             self.force_sensor.tare() # tare the force sensor
+            if self.force_sensor2 is not None:
+                self.force_sensor2.tare()
             for step in range(int(steps_nb)+1):
                 # print("\n[INFO] The step number is: ", step)
                 # ------------------------------------------------------------------------------------------------ #
@@ -643,6 +646,8 @@ class StaticMode(QWidget):
                     # print("\n[INFO] The data is stopped recording")
                     # -------------------------------------------------------------------------------- #
                     self.force_sensor.tare() # tare the force sensor
+                    if self.force_sensor2 is not None:
+                        self.force_sensor2.tare()
                     time.sleep(0.1) # wait for the force sensor to tare
                     self.power_supply_control.set_pressed(state) # set the power supply to the state
                     # print("\n[INFO] The power supply is set to the state: ", state)

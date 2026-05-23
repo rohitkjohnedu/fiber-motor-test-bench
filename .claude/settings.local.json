@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(powershell -Command \"Get-Date -Format 'dddd_yyyy-MM-dd_HH-mm-ss'\")"
+      "Bash(powershell -Command \"Get-Date -Format 'dddd_yyyy-MM-dd_HH-mm-ss'\")",
+      "Bash(python -m pytest test_taring.py -v)",
+      "Bash(python -m unittest test_taring -v)"
     ]
   }
 }

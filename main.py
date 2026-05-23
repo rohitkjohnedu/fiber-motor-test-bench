@@ -151,7 +151,7 @@ class MainWindow(QWidget):
         # ------------------------------------------------------------------------------------------------------------ #
 
         # Characterization.
-        self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator, self.debug)
+        self.static = StaticMode(self.power_supply, self.force_sensor, self.actuator, self.debug, force_sensor2=self.force_sensor2)
         self.dynamic = DynamicMode(self.power_supply, self.force_sensor, self.actuator, self.debug)
         # ------------------------------------------------------------------------------------------------------------ #
 
@@ -670,6 +670,10 @@ class MainWindow(QWidget):
         else:
             self.force_sensor2 = FutekSensor(serial_number=new_sn)
             self.force_plot.set_sensor2(self.force_sensor2)
+
+        # Propagate the (possibly new) reference to characterization modes so
+        # they tare the correct object during experiments.
+        self.static.force_sensor2 = self.force_sensor2
 
         self._futek_register2_text = self._read_futek_registers(self.force_sensor2)
 
