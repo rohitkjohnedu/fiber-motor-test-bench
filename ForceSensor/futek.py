@@ -5,7 +5,7 @@ import time
 from threading import Thread, RLock
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QMessageBox, QApplication
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QComboBox, QMessageBox, QApplication
 
 sys.path.append(os.getcwd())
 
@@ -435,7 +435,7 @@ class FutekSensor():
 ############################################################################################################
 
 class ForcePlot(QWidget):
-    """Widget for plotting one or two force sensors on a shared axis."""
+    """Widget for plotting one or two force sensors on a shared axis, with an optional combination curve."""
     def __init__(self, force_sensor_object: FutekSensor=None, force_sensor2: FutekSensor=None):
         """
         :param force_sensor_object: Primary force sensor (blue curve)
@@ -448,7 +448,19 @@ class ForcePlot(QWidget):
         self.plotHistoryLength = 10 #s
         self.maxPlotHistoryLength = 10000000 #samples
 
-        plot_layout = QHBoxLayout(self)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(2)
+
+        ctrl_row = QHBoxLayout()
+        combo_label = QLabel("Combination:")
+        self.combo_mode = QComboBox()
+        self.combo_mode.addItems(["None", "S1 + S2", "S1 − S2"])
+        ctrl_row.addStretch()
+        ctrl_row.addWidget(combo_label)
+        ctrl_row.addWidget(self.combo_mode)
+        outer_layout.addLayout(ctrl_row)
+
         plot_widget = pg.PlotWidget(self)
         force_plot = plot_widget.plotItem
         force_plot.setTitle("Force", bold=True)
@@ -457,7 +469,8 @@ class ForcePlot(QWidget):
         force_plot.addLegend()
         self.force_plot  = force_plot.plot(pen=pg.mkPen('b', width=2), name='Sensor 1')
         self.force_plot2 = force_plot.plot(pen=pg.mkPen('r', width=2), name='Sensor 2')
-        plot_layout.addWidget(plot_widget)
+        self.force_plot3 = force_plot.plot(pen=pg.mkPen('g', width=2), name='Combination')
+        outer_layout.addWidget(plot_widget)
 
     # ************************************************************************************************** #
 
@@ -465,6 +478,8 @@ class ForcePlot(QWidget):
         self.futek_sensor2 = sensor
 
     def plot_update(self, start_time):
+        t1 = f1 = t2 = f2 = None
+
         if self.futek_sensor is not None and self.futek_sensor.is_connected:
             epoch_time_force, force = self.futek_sensor.get_buffer()
             tplot = epoch_time_force - start_time
@@ -475,7 +490,8 @@ class ForcePlot(QWidget):
 
             if len(tplot) > 0:
                 use = tplot > tplot[-1] - self.plotHistoryLength
-                self.force_plot.setData(tplot[use], force[use] / 1000.0)
+                t1, f1 = tplot[use], force[use] / 1000.0
+                self.force_plot.setData(t1, f1)
 
         if self.futek_sensor2 is not None and self.futek_sensor2.is_connected:
             epoch_time_force2, force2 = self.futek_sensor2.get_buffer()
@@ -487,7 +503,25 @@ class ForcePlot(QWidget):
 
             if len(tplot2) > 0:
                 use2 = tplot2 > tplot2[-1] - self.plotHistoryLength
-                self.force_plot2.setData(tplot2[use2], force2[use2] / 1000.0)
+                t2, f2 = tplot2[use2], force2[use2] / 1000.0
+                self.force_plot2.setData(t2, f2)
+
+        # Combination curve — interpolate onto sensor 1's time grid
+        mode = self.combo_mode.currentText()
+        if mode != "None" and t1 is not None and t2 is not None and len(t1) > 1 and len(t2) > 1:
+            t_start = max(t1[0], t2[0])
+            t_end   = min(t1[-1], t2[-1])
+            if t_end > t_start:
+                mask = (t1 >= t_start) & (t1 <= t_end)
+                t_common  = t1[mask]
+                f1_common = f1[mask]
+                f2_interp = np.interp(t_common, t2, f2)
+                f_combo = f1_common + f2_interp if mode == "S1 + S2" else f1_common - f2_interp
+                self.force_plot3.setData(t_common, f_combo)
+            else:
+                self.force_plot3.setData([], [])
+        else:
+            self.force_plot3.setData([], [])
 
     def set_plot_history(self, history_length):
         self.plotHistoryLength = history_length

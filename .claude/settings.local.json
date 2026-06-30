@@ -6,7 +6,8 @@
       "Bash(python -m unittest test_taring -v)",
       "Read(//c/Users/kadungam/.claude/projects/c--Users-kadungam-OneDrive---epfl-ch-swiss-EPFL-LMTS-Research-Fiber-motor-Experiments-Test-bench-software-documented-Code-actuator-test-bench-software/memory/**)",
       "Bash(git -C \"c:\\\\Users\\\\kadungam\\\\OneDrive - epfl.ch\\\\swiss\\\\EPFL\\\\LMTS\\\\Research\\\\Fiber_motor\\\\Experiments\\\\Test_bench_software_documented\\\\Code\\\\actuator_test_bench_software\" diff HEAD --stat)",
-      "Bash(git -C \"c:\\\\Users\\\\kadungam\\\\OneDrive - epfl.ch\\\\swiss\\\\EPFL\\\\LMTS\\\\Research\\\\Fiber_motor\\\\Experiments\\\\Test_bench_software_documented\\\\Code\\\\actuator_test_bench_software\" log --oneline -3)"
+      "Bash(git -C \"c:\\\\Users\\\\kadungam\\\\OneDrive - epfl.ch\\\\swiss\\\\EPFL\\\\LMTS\\\\Research\\\\Fiber_motor\\\\Experiments\\\\Test_bench_software_documented\\\\Code\\\\actuator_test_bench_software\" log --oneline -3)",
+      "Read(//c/Users/kadungam/AppData/Local/Temp/**)"
     ]
   }
 }
